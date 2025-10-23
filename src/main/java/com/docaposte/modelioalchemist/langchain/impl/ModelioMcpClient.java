@@ -3,26 +3,22 @@ package com.docaposte.modelioalchemist.langchain.impl;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.mcp.McpToolProvider;
+import dev.langchain4j.agent.tool.ToolSpecification;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 /**
- * MCP client wrapper to interface with Modelio MCP server for UML element creation.
+ * Minimal MCP client wrapper following ModelioBot architecture.
+ * No hardcoded tool methods - only dynamic tool discovery via McpToolProvider.
  */
 public class ModelioMcpClient {
 
     private final McpClient mcpClient;
-    private final String sseUrl;
-    private final ObjectMapper objectMapper;
+    private final McpToolProvider toolProvider;
 
     public ModelioMcpClient(String sseUrl) {
-        this.sseUrl = sseUrl;
-        this.objectMapper = new ObjectMapper();
-        
         // Initialize MCP transport and client
         HttpMcpTransport transport = new HttpMcpTransport.Builder()
                 .sseUrl(sseUrl)
@@ -34,72 +30,35 @@ public class ModelioMcpClient {
         this.mcpClient = new DefaultMcpClient.Builder()
                 .transport(transport)
                 .build();
+                
+        // Create tool provider for dynamic tool discovery (follows ModelioBot pattern)
+        this.toolProvider = McpToolProvider.builder()
+                .mcpClients(mcpClient)
+                .build();
     }
 
-    public String createUmlClass(String name, String packageUuid) throws Exception {
-        try {
-            // Create tool execution request for class creation using the correct tool name
-            // and parameters format expected by the MCP server
-            Map<String, Object> argumentsMap = Map.of(
-                "name", name,
-                "metaclassType", "Standard.Class"  // Standard UML Class metaclass
-            );
-            
-            // Convert Map to JSON string
-            String argumentsJson = objectMapper.writeValueAsString(argumentsMap);
-            
-            ToolExecutionRequest request = ToolExecutionRequest.builder()
-                    .name("createUmlElement")  // Correct tool name from the MCP server
-                    .arguments(argumentsJson)  // JSON string instead of Map
-                    .build();
-                    
-            // Execute the tool call
-            String result = mcpClient.executeTool(request);
-            return result;
-            
-        } catch (Exception e) {
-            throw new Exception("MCP create failed: " + e.getMessage(), e);
-        }
-    }
-    
     /**
-     * Create a generic UML element with specified metaclass type
+     * Get the MCP tool provider for LangChain4j integration
      */
-    public String createUmlElement(String name, String metaclassType) throws Exception {
-        try {
-            Map<String, Object> argumentsMap = Map.of(
-                "name", name,
-                "metaclassType", metaclassType
-            );
-            
-            // Convert Map to JSON string
-            String argumentsJson = objectMapper.writeValueAsString(argumentsMap);
-            
-            ToolExecutionRequest request = ToolExecutionRequest.builder()
-                    .name("createUmlElement")
-                    .arguments(argumentsJson)  // JSON string instead of Map
-                    .build();
-                    
-            String result = mcpClient.executeTool(request);
-            return result;
-            
-        } catch (Exception e) {
-            throw new Exception("MCP create failed: " + e.getMessage(), e);
-        }
+    public McpToolProvider getToolProvider() {
+        return toolProvider;
     }
-    
+
     /**
-     * List available MCP tools for debugging
+     * List available MCP tools dynamically
      */
-    public void listAvailableTools() {
+    public List<ToolSpecification> listAvailableTools() {
         try {
+            List<ToolSpecification> tools = mcpClient.listTools();
             System.out.println("=== Available MCP Tools ===");
-            mcpClient.listTools().forEach(tool -> 
+            tools.forEach(tool -> 
                 System.out.println("Tool: " + tool.name() + " - " + tool.description())
             );
             System.out.println("============================");
+            return tools;
         } catch (Exception e) {
             System.err.println("Failed to list MCP tools: " + e.getMessage());
+            return List.of();
         }
     }
     
