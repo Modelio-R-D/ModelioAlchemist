@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -20,6 +24,8 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.service.AiServices;
 import com.docaposte.modelioalchemist.langchain.impl.PolicyAwareAzureChatModel;
+import com.docaposte.modelioalchemist.langchain.impl.AzureEndpointResolver;
+import com.docaposte.modelioalchemist.langchain.impl.HttpPolicies;
 /**
  * Service LangChain4j unifié pour ModelioAlchemist suivant le pattern de ModelioBot.
  * Implémentation poolée : réutilise le client MCP, le fournisseur d'outils, et un petit pool d'instances UmlModelingAssistant.
@@ -132,7 +138,7 @@ public class LangchainService {
         AiServices<UmlModelingAssistant> builder = AiServices.builder(UmlModelingAssistant.class)
                 .chatModel(sharedChatModel)
                 .chatMemory(memory)
-                .maxSequentialToolsInvocations(100);  // Permettre la création de modèles UML complexes (classes + attributs + associations)
+                .maxSequentialToolsInvocations(300);  // Permettre la création de modèles UML complexes (classes + attributs + associations)
                 
         if (sharedToolProvider != null) {
             builder.toolProvider(sharedToolProvider);
@@ -168,8 +174,29 @@ public class LangchainService {
      * en utilisant l'approche poolée partagée de ModelioBot.
      */
     public static String generateModelFromPlantUML(String plantUMLContent, String requirementsDocuments, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
-        debug("generateModelFromPlantUML plantLen=" + (plantUMLContent == null ? -1 : plantUMLContent.length()) + 
-              ", reqDocsLen=" + (requirementsDocuments == null ? -1 : requirementsDocuments.length()));
+        return generateModelFromPlantUMLInternal(plantUMLContent, requirementsDocuments, null, mcpSseUrl, chatModel);
+    }
+    
+    /**
+     * Méthode interne qui gère la génération avec optionnel répertoire de sortie
+     */
+    private static String generateModelFromPlantUMLInternal(String plantUMLContent, String requirementsDocuments, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
+        System.out.println("=== LANGCHAIN SERVICE DEBUG ===");
+        System.out.println("generateModelFromPlantUMLInternal called");
+        System.out.println("requirementsDocuments null check: " + (requirementsDocuments == null));
+        if (requirementsDocuments != null) {
+            System.out.println("requirementsDocuments length: " + requirementsDocuments.length());
+            System.out.println("requirementsDocuments empty check: " + requirementsDocuments.trim().isEmpty());
+            System.out.println("First 100 chars: " + requirementsDocuments.substring(0, Math.min(100, requirementsDocuments.length())));
+        }
+        System.out.println("outputDirectory: " + outputDirectory);
+        System.out.println("=== END DEBUG ===");
+        
+        debug("🔍 generateModelFromPlantUML called with:");
+        debug("   plantUMLContent length: " + (plantUMLContent == null ? -1 : plantUMLContent.length()));
+        debug("   requirementsDocuments length: " + (requirementsDocuments == null ? -1 : requirementsDocuments.length()));
+        debug("   outputDirectory: " + (outputDirectory == null ? "null" : outputDirectory));
+        debug("   mcpSseUrl: " + mcpSseUrl);
         
         PooledUmlAssistant pa = null;
         try {
@@ -181,13 +208,69 @@ public class LangchainService {
             // Injecter les ressources MCP (limité)
             injectMcpResources(chatMemory);
             
-            // Injecter les documents d'analyse dans le contexte (priorité)
+            // Parser et injecter les exigences extraites des documents d'analyse
+            List<Requirement> parsedRequirements = new ArrayList<>();
+            debug("🔍 Checking requirementsDocuments: " + (requirementsDocuments == null ? "NULL" : "NOT NULL"));
+            debug("🔍 Requirements documents empty check: " + (requirementsDocuments != null ? requirementsDocuments.trim().isEmpty() : "N/A"));
             if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
-                String reqSnippet = requirementsDocuments.length() > 15000 ? 
-                        requirementsDocuments.substring(0, 15000) + "\n... (truncated)" : requirementsDocuments;
-                        
-                chatMemory.add(UserMessage.from("Context - Requirements and Analysis Documents:\n" + reqSnippet));
-                debug("Injected requirements documents: " + reqSnippet.length() + " chars");
+                debug("✅ Processing requirements documents - length: " + requirementsDocuments.length());
+                // DEBUG: Sauvegarder le contenu pour analyse
+                debug("🔍 Attempting to save requirements_input.txt to: " + (outputDirectory == null ? "TEMP" : outputDirectory));
+                saveDebugFile(requirementsDocuments, "requirements_input.txt", outputDirectory);
+                debug("✅ Successfully saved requirements_input.txt");
+                
+                // Parser automatiquement les exigences
+                debug("🔍 Starting requirements parsing...");
+                parsedRequirements = parseRequirementsFromDocuments(requirementsDocuments);
+                debug("✅ Parsing completed - found " + parsedRequirements.size() + " requirements");
+                
+                // DEBUG: Sauvegarder les requirements parsées
+                if (!parsedRequirements.isEmpty()) {
+                    StringBuilder parsedReqLog = new StringBuilder();
+                    parsedReqLog.append("=== PARSED REQUIREMENTS DEBUG ===\n\n");
+                    parsedReqLog.append("Total parsed: ").append(parsedRequirements.size()).append("\n\n");
+                    
+                    for (int i = 0; i < parsedRequirements.size(); i++) {
+                        Requirement req = parsedRequirements.get(i);
+                        parsedReqLog.append(String.format("Requirement %d:\n", i + 1));
+                        parsedReqLog.append(String.format("  ID: %s\n", req.id));
+                        parsedReqLog.append(String.format("  Title: %s\n", req.title));
+                        parsedReqLog.append(String.format("  Description: %s\n", req.description));
+                        parsedReqLog.append(String.format("  Category: %s\n", req.category));
+                        parsedReqLog.append(String.format("  Priority: %s\n\n", req.priority));
+                    }
+                    
+                    saveDebugFile(parsedReqLog.toString(), "parsed_requirements.txt", outputDirectory);
+                    debug("Saved parsed requirements debug file");
+                } else {
+                    saveDebugFile("NO REQUIREMENTS PARSED - Check patterns and input format", "parsed_requirements_EMPTY.txt", outputDirectory);
+                    debug("❌ NO REQUIREMENTS PARSED - saved empty debug file");
+                }
+                
+                // Injecter les exigences structurées dans le contexte
+                if (!parsedRequirements.isEmpty()) {
+                    StringBuilder reqContext = new StringBuilder();
+                    reqContext.append("Extracted Requirements from Analysis Documents:\n\n");
+                    
+                    for (Requirement req : parsedRequirements) {
+                        reqContext.append(String.format("ID: %s\n", req.id));
+                        reqContext.append(String.format("Title: %s\n", req.title));
+                        reqContext.append(String.format("Description: %s\n", req.description));
+                        reqContext.append(String.format("Category: %s\n", req.category));
+                        reqContext.append(String.format("Priority: %s\n\n", req.priority));
+                    }
+                    
+                    chatMemory.add(UserMessage.from(reqContext.toString()));
+                    debug("Injected " + parsedRequirements.size() + " structured requirements");
+                } else {
+                    debug("❌ NO requirements documents provided!");
+                    debug("   requirementsDocuments == null: " + (requirementsDocuments == null));
+                    if (requirementsDocuments != null) {
+                        debug("   requirementsDocuments.trim().isEmpty(): " + requirementsDocuments.trim().isEmpty());
+                        debug("   requirementsDocuments.length(): " + requirementsDocuments.length());
+                        debug("   First 100 chars: " + requirementsDocuments.substring(0, Math.min(100, requirementsDocuments.length())));
+                    }
+                }
             }
             
             // Injecter le snippet PlantUML dans le contexte
@@ -215,7 +298,7 @@ public class LangchainService {
             }
             
             // Créer le prompt pour l'assistant
-            String prompt = createModelGenerationPrompt(plantUMLContent, requirementsDocuments);
+            String prompt = createModelGenerationPrompt(plantUMLContent, requirementsDocuments, parsedRequirements);
             
             // Laisser l'assistant IA gérer la création du modèle avec les outils MCP disponibles
             String result = pa.assistant.createUmlModel(prompt);
@@ -235,6 +318,13 @@ public class LangchainService {
      */
     public static String generateModelFromPlantUML(String plantUMLContent, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
         return generateModelFromPlantUML(plantUMLContent, null, mcpSseUrl, chatModel);
+    }
+    
+    /**
+     * Génère un modèle UML avec documents d'analyse et répertoire de sortie pour les fichiers de debug
+     */
+    public static String generateModelFromPlantUML(String plantUMLContent, String requirementsDocuments, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
+        return generateModelFromPlantUMLInternal(plantUMLContent, requirementsDocuments, outputDirectory, mcpSseUrl, chatModel);
     }
 
     // Injecter des extraits de ressources MCP sélectionnées dans la mémoire de chat.
@@ -267,17 +357,289 @@ public class LangchainService {
         
         if (injected > 0) debug("Injected " + injected + " MCP resource snippet(s)");
     }
+    
+    /**
+     * Parse automatiquement les exigences à partir des documents d'analyse
+     * Supporte plusieurs formats courants d'exigences
+     */
+    private static List<Requirement> parseRequirementsFromDocuments(String documentsText) {
+        List<Requirement> requirements = new ArrayList<>();
+        
+        if (documentsText == null || documentsText.trim().isEmpty()) {
+            debug("parseRequirementsFromDocuments: documentsText is null or empty");
+            return requirements;
+        }
+        
+        debug("parseRequirementsFromDocuments: input length = " + documentsText.length());
+        debug("parseRequirementsFromDocuments: first 200 chars = " + 
+              documentsText.substring(0, Math.min(200, documentsText.length())));
+        
+        try {
+            // Pattern 1: Format REQ001: Description (le plus courant)
+            Pattern reqPattern1 = Pattern.compile(
+                "(?i)(REQ[_-]?\\d+)\\s*[:.] *(.+?)(?=REQ[_-]?\\d+|$)", 
+                Pattern.DOTALL
+            );
+            
+            // Pattern 2: Format [REQ-001] Description
+            Pattern reqPattern2 = Pattern.compile(
+                "\\[(REQ[_-]?\\d+)\\] *(.+?)(?=\\[REQ[_-]?\\d+\\]|$)", 
+                Pattern.DOTALL
+            );
+            
+            // Pattern 3: Format "Exigence 001: Description" ou "Requirement 001: Description"
+            Pattern reqPattern3 = Pattern.compile(
+                "(?i)(Exigence|Requirement)\\s+(\\d+)\\s*[:.] *(.+?)(?=(?:Exigence|Requirement)\\s+\\d+|$)", 
+                Pattern.DOTALL
+            );
+            
+            // Pattern 4: Format numéroté simple "1. Description", "2. Description"
+            Pattern reqPattern4 = Pattern.compile(
+                "(?m)^\\s*(\\d+)\\. *(.+?)(?=^\\s*\\d+\\.|$)", 
+                Pattern.DOTALL
+            );
+            
+            // Pattern 5: Lignes qui commencent par des mots-clés d'exigences
+            Pattern reqPattern5 = Pattern.compile(
+                "(?im)^\\s*(Le système|The system|L'application|The application|Il faut|Must|Shall).{10,}$"
+            );
+            
+            // Pattern 6: Format du pipeline ModelioAlchemist "EX-001: description"
+            Pattern reqPattern6 = Pattern.compile(
+                "(EX-\\d+)\\s*[:.] *(.+?)(?=EX-\\d+|$)", 
+                Pattern.DOTALL
+            );
+            
+            // Pattern 7: Lignes débutant par des puces ou numéros dans les rapports
+            Pattern reqPattern7 = Pattern.compile(
+                "(?m)^\\s*[-•*]\\s*(.{20,})$"
+            );
+            
+            debug("Tentative d'extraction avec Pattern 1 (REQ001:)");
+            extractWithPattern(documentsText, reqPattern1, requirements, "REQ");
+            
+            if (requirements.isEmpty()) {
+                debug("Tentative d'extraction avec Pattern 2 ([REQ-001])");
+                extractWithPattern(documentsText, reqPattern2, requirements, "BRACKET");
+            }
+            
+            if (requirements.isEmpty()) {
+                debug("Tentative d'extraction avec Pattern 3 (Exigence 001:)");
+                extractWithPattern(documentsText, reqPattern3, requirements, "WORD");
+            }
+            
+            if (requirements.isEmpty()) {
+                debug("Tentative d'extraction avec Pattern 4 (1. Description)");
+                extractWithPattern(documentsText, reqPattern4, requirements, "NUMBERED");
+            }
+            
+            if (requirements.isEmpty()) {
+                debug("Tentative d'extraction avec Pattern 5 (phrases d'exigences)");
+                extractRequirementSentences(documentsText, reqPattern5, requirements);
+            }
+            
+            if (requirements.isEmpty()) {
+                debug("Tentative d'extraction avec Pattern 6 (EX-001: format pipeline)");
+                extractWithPattern(documentsText, reqPattern6, requirements, "PIPELINE");
+            }
+            
+            if (requirements.isEmpty()) {
+                debug("Tentative d'extraction avec Pattern 7 (listes à puces)");
+                extractRequirementSentences(documentsText, reqPattern7, requirements);
+            }
+            
+            // Post-traitement : nettoyer les descriptions
+            for (int i = 0; i < requirements.size(); i++) {
+                Requirement req = requirements.get(i);
+                String cleanDesc = cleanRequirementDescription(req.description);
+                String category = detectRequirementCategory(cleanDesc);
+                String priority = detectRequirementPriority(cleanDesc);
+                
+                requirements.set(i, new Requirement(req.id, req.title, cleanDesc, category, priority));
+            }
+            
+            debug("Extraction terminée: " + requirements.size() + " exigences trouvées");
+            
+            // Debug : afficher les premières exigences trouvées
+            for (int i = 0; i < Math.min(3, requirements.size()); i++) {
+                debug("Requirement " + i + ": " + requirements.get(i).toString());
+            }
+            
+        } catch (Exception e) {
+            debug("Erreur lors du parsing des exigences: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return requirements;
+    }
+    
+    /**
+     * Extrait les exigences avec un pattern donné
+     */
+    private static void extractWithPattern(String text, Pattern pattern, List<Requirement> requirements, String patternType) {
+        Matcher matcher = pattern.matcher(text);
+        int count = 0;
+        
+        while (matcher.find() && count < 100) { // Limite pour éviter les boucles infinies
+            String id, description;
+            
+            switch (patternType) {
+                case "REQ":
+                case "BRACKET":
+                case "PIPELINE":
+                    id = matcher.group(1).trim();
+                    description = matcher.group(2).trim();
+                    break;
+                case "WORD":
+                    id = "REQ" + String.format("%03d", Integer.parseInt(matcher.group(2)));
+                    description = matcher.group(3).trim();
+                    break;
+                case "NUMBERED":
+                    id = "REQ" + String.format("%03d", Integer.parseInt(matcher.group(1)));
+                    description = matcher.group(2).trim();
+                    break;
+                default:
+                    continue;
+            }
+            
+            if (!description.isEmpty() && description.length() > 10) {
+                requirements.add(new Requirement(id, description));
+                count++;
+            }
+        }
+        
+        debug("Pattern " + patternType + " a trouvé " + count + " exigences");
+    }
+    
+    /**
+     * Extrait les phrases qui ressemblent à des exigences
+     */
+    private static void extractRequirementSentences(String text, Pattern pattern, List<Requirement> requirements) {
+        Matcher matcher = pattern.matcher(text);
+        int count = 0;
+        
+        while (matcher.find() && count < 50) {
+            String sentence = matcher.group().trim();
+            
+            if (sentence.length() > 20 && sentence.length() < 500) {
+                String id = "REQ" + String.format("%03d", count + 1);
+                requirements.add(new Requirement(id, sentence));
+                count++;
+            }
+        }
+        
+        debug("Pattern sentences a trouvé " + count + " exigences");
+    }
+    
+    /**
+     * Nettoie la description d'une exigence
+     */
+    private static String cleanRequirementDescription(String description) {
+        if (description == null) return "";
+        
+        return description
+            .replaceAll("\\s+", " ")  // Normaliser les espaces
+            .replaceAll("[\\r\\n]+", " ")  // Supprimer les retours à la ligne
+            .replaceAll("(?i)(priorité|priority)\\s*[:=]\\s*\\w+", "")  // Supprimer info priorité
+            .replaceAll("(?i)(catégorie|category)\\s*[:=]\\s*\\w+", "")  // Supprimer info catégorie
+            .trim();
+    }
+    
+    /**
+     * Détecte la catégorie d'une exigence basée sur son contenu
+     */
+    private static String detectRequirementCategory(String description) {
+        String lowerDesc = description.toLowerCase();
+        
+        if (lowerDesc.contains("sécurité") || lowerDesc.contains("security") || 
+            lowerDesc.contains("authentification") || lowerDesc.contains("authorization") ||
+            lowerDesc.contains("chiffrement") || lowerDesc.contains("encryption")) {
+            return "Security";
+        }
+        
+        if (lowerDesc.contains("performance") || lowerDesc.contains("temps de réponse") ||
+            lowerDesc.contains("response time") || lowerDesc.contains("débit") ||
+            lowerDesc.contains("throughput") || lowerDesc.contains("latence")) {
+            return "Performance";
+        }
+        
+        if (lowerDesc.contains("interface") || lowerDesc.contains("ui") || 
+            lowerDesc.contains("utilisateur") || lowerDesc.contains("user") ||
+            lowerDesc.contains("ergonomie") || lowerDesc.contains("usability")) {
+            return "UI/UX";
+        }
+        
+        if (lowerDesc.contains("intégration") || lowerDesc.contains("integration") ||
+            lowerDesc.contains("api") || lowerDesc.contains("service") ||
+            lowerDesc.contains("connexion") || lowerDesc.contains("connection")) {
+            return "Integration";
+        }
+        
+        return "Functional";  // Par défaut
+    }
+    
+    /**
+     * Détecte la priorité d'une exigence basée sur son contenu
+     */
+    private static String detectRequirementPriority(String description) {
+        String lowerDesc = description.toLowerCase();
+        
+        if (lowerDesc.contains("critique") || lowerDesc.contains("critical") ||
+            lowerDesc.contains("obligatoire") || lowerDesc.contains("mandatory") ||
+            lowerDesc.contains("essentiel") || lowerDesc.contains("essential")) {
+            return "High";
+        }
+        
+        if (lowerDesc.contains("optionnel") || lowerDesc.contains("optional") ||
+            lowerDesc.contains("souhaitable") || lowerDesc.contains("nice to have") ||
+            lowerDesc.contains("bonus")) {
+            return "Low";
+        }
+        
+        return "Medium";  // Par défaut
+    }
+    
+    /**
+     * Méthode de debug pour sauvegarder le contenu dans un fichier
+     */
+    private static void saveDebugFile(String content, String filename) {
+        saveDebugFile(content, filename, null);
+    }
+    
+    /**
+     * Méthode de debug pour sauvegarder le contenu dans un fichier avec répertoire optionnel
+     */
+    private static void saveDebugFile(String content, String filename, String outputDirectory) {
+        try {
+            String debugPath;
+            if (outputDirectory != null && !outputDirectory.trim().isEmpty()) {
+                // Utiliser le répertoire spécifié (comme le pipeline)
+                debugPath = outputDirectory + "/" + filename;
+            } else {
+                // Fallback vers %TEMP%
+                debugPath = System.getProperty("java.io.tmpdir") + "/" + filename;
+            }
+            
+            try (FileWriter writer = new FileWriter(debugPath)) {
+                writer.write(content);
+                debug("Debug file saved: " + debugPath);
+            }
+        } catch (IOException e) {
+            debug("Failed to save debug file: " + e.getMessage());
+        }
+    }
 
     /**
      * Crée un prompt inspiré de ModelioBot - pour génération Requirements → Use Cases → Classes
      */
-    private static String createModelGenerationPrompt(String plantUMLContent, String requirementsDocuments) {
+    private static String createModelGenerationPrompt(String plantUMLContent, String requirementsDocuments, List<Requirement> parsedRequirements) {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append("You are a Modelio modeling assistant with access to MCP tools for comprehensive model creation.\n\n");
         
         prompt.append("## Mission\n");
-        prompt.append("Create a complete software model in Modelio following this sequence: Requirements → Use Cases → Classes.\n");
+        prompt.append("Create a complete software model in Modelio following this sequence: Requirements → Use Cases → Classes → Associations.\n");
+        prompt.append("You MUST use the available MCP tools to create every single element.\n\n");
         
         // Section requirements documents si disponible
         if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
@@ -287,11 +649,22 @@ public class LangchainService {
             prompt.append("Analyze the PlantUML diagram and create ALL corresponding elements with proper organization.\n");
         }
         
-        // Section documents d'analyse si disponible
-        if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
+        // Section exigences parsées si disponible
+        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
+            prompt.append("## Parsed Requirements Available\n");
+            prompt.append("The following requirements have been automatically extracted from the analysis documents:\n\n");
+            
+            for (Requirement req : parsedRequirements) {
+                prompt.append(String.format("- **%s**: %s (Category: %s, Priority: %s)\n", 
+                    req.id, req.description, req.category, req.priority));
+            }
+            
+            prompt.append("\n🚨 MANDATORY: Create these EXACT requirements in Modelio using MCP tools.\n");
+            prompt.append("Use the requirement creation tools with the provided ID, description, category, and priority.\n\n");
+        } else if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
             prompt.append("## Requirements and Analysis Documents Available\n");
             prompt.append("The requirements documents have been provided in the chat context.\n");
-            prompt.append("Use these documents to extract and create proper requirements in Modelio.\n");
+            prompt.append("🚨 MANDATORY: Use MCP tools to extract and create proper requirements in Modelio.\n");
             prompt.append("Establish traceability: Requirements → Use Cases → Classes.\n\n");
         }
         
@@ -300,48 +673,64 @@ public class LangchainService {
         prompt.append(plantUMLContent);
         prompt.append("\n```\n\n");
         
-        prompt.append("## MANDATORY Execution Sequence\n");
-        if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
-            prompt.append("1. **Requirements Creation**: Import requirements from provided analysis documents\n");
+        prompt.append("## MANDATORY Execution Sequence - USE MCP TOOLS FOR EACH STEP\n");
+        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
+            prompt.append("1. **🚨 Requirements Creation (MANDATORY)**: Use MCP requirement creation tools for each parsed requirement\n");
+            prompt.append("   - Create " + parsedRequirements.size() + " requirements using their exact details\n");
+            prompt.append("   - Use tools that create analyst requirement elements\n");
+        } else if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
+            prompt.append("1. **🚨 Requirements Creation (MANDATORY)**: Use MCP tools to import requirements from analysis documents\n");
         } else {
-            prompt.append("1. **Requirements Creation**: Create placeholder requirements if no documents provided\n");
+            prompt.append("1. **🚨 Requirements Creation (MANDATORY)**: Use MCP tools to create placeholder requirements\n");
         }
-        prompt.append("2. **Package Structure**: Create packages to organize the model\n");
+        prompt.append("2. **Package Structure**: Use MCP tools to create packages\n");
+        prompt.append("   - Create 'Requirements' package for all requirements\n");
         prompt.append("   - Create 'Use Cases' package for use case diagrams\n");
         prompt.append("   - Create 'Domain Model' package for business classes\n");
-        prompt.append("3. **Use Cases & Actors**: Create use cases and actors\n");
+        prompt.append("3. **Use Cases & Actors**: Use MCP tools to create use cases and actors\n");
         prompt.append("   - Create actors (users, external systems)\n");
         prompt.append("   - Create use cases for main functionalities\n");
         prompt.append("   - Create associations between actors and use cases\n");
-        prompt.append("4. **Domain Classes**: Create all classes with attributes and associations\n");
-        prompt.append("5. **Verify**: Ensure complete model with all relationships\n\n");
+        prompt.append("4. **Domain Classes**: Use MCP tools to create all classes with attributes\n");
+        prompt.append("5. **🚨 CRITICAL: Associations Creation (MANDATORY)**: Use MCP association tools\n");
+        prompt.append("   - This step is MANDATORY and often forgotten\n");
+        prompt.append("   - Parse ALL PlantUML relationships: -->, --|>, --o, --*, etc.\n");
+        prompt.append("   - Use MCP tools to create associations ONLY after all classes exist\n");
+        prompt.append("   - YOU MUST EXPLICITLY USE ASSOCIATION CREATION TOOLS\n");
+        prompt.append("6. **Verify**: Ensure complete model with all relationships\n\n");
         
-        prompt.append("## Core Instructions\n");
+        prompt.append("## Core Instructions - MCP TOOLS USAGE\n");
+        prompt.append("- 🚨 YOU MUST USE MCP TOOLS FOR EVERY ELEMENT CREATION\n");
         prompt.append("- Work sequentially: complete each phase before moving to the next\n");
         prompt.append("- Keep track of UUIDs for all created elements for relationships\n");
         prompt.append("- Create meaningful names for requirements based on PlantUML analysis\n");
         prompt.append("- Organize elements in appropriate packages for maintainability\n");
         prompt.append("- Use 'String' as fallback type for complex/unknown attribute types\n\n");
         
-        prompt.append("## Requirements Guidelines\n");
-        prompt.append("- Requirements should come from existing analysis documents (functional, technical, RSSI, RSE)\n");
-        prompt.append("- If requirements documents are available, import/reference those existing requirements\n");
-        prompt.append("- Only create placeholder requirements if no existing analysis is provided\n");
-        prompt.append("- Example placeholder format: 'REQ001: System shall manage user authentication'\n");
-        prompt.append("- Focus on linking the PlantUML model to existing business requirements\n");
-        prompt.append("- Ask user for requirements documents if available for proper traceability\n");
-        prompt.append("- Traceability: Requirements → Use Cases → Classes should reflect real project needs\n\n");
+        prompt.append("## 🚨 REQUIREMENTS CREATION - MANDATORY ACTION\n");
+        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
+            prompt.append("- YOU MUST CREATE ALL " + parsedRequirements.size() + " PARSED REQUIREMENTS\n");
+            prompt.append("- Use MCP requirement creation tools for each requirement\n");
+            prompt.append("- Create each requirement exactly as specified with ID, description, category, and priority\n");
+            prompt.append("- Do not skip any parsed requirement - they are all mandatory\n");
+        } else {
+            prompt.append("- WARNING: No requirements were parsed from the provided documents\n");
+            prompt.append("- Create placeholder requirements using MCP tools based on PlantUML analysis\n");
+            prompt.append("- Example format: 'REQ001: System shall manage user authentication'\n");
+        }
+        prompt.append("- Requirements are ANALYST REQUIREMENT elements in Modelio\n");
+        prompt.append("- Use appropriate MCP tools that create requirement elements\n\n");
         
-        prompt.append("## Use Case Guidelines\n");
-        prompt.append("- Identify actors (users, external systems) from PlantUML context\n");
-        prompt.append("- Create use cases for main functionalities: 'Manage Products', 'Process Orders'\n");
-        prompt.append("- Create actors like: 'Customer', 'Administrator', 'External System'\n");
-        prompt.append("- Link actors to relevant use cases with associations\n\n");
+        prompt.append("## Use Case Guidelines - MCP TOOLS\n");
+        prompt.append("- Use MCP tools to identify and create actors (users, external systems)\n");
+        prompt.append("- Use MCP tools to create use cases for main functionalities: 'Manage Products', 'Process Orders'\n");
+        prompt.append("- Use MCP tools to create actors like: 'Customer', 'Administrator', 'External System'\n");
+        prompt.append("- Use MCP tools to link actors to relevant use cases with associations\n\n");
         
-        prompt.append("## Package Organization\n");
-        prompt.append("- 'Requirements' package: all requirements\n");
-        prompt.append("- 'Use Cases' package: actors, use cases, and their relationships\n");
-        prompt.append("- 'Domain Model' package: business classes, attributes, associations\n");
+        prompt.append("## Package Organization - MCP TOOLS\n");
+        prompt.append("- Use MCP package creation tools for 'Requirements' package: all requirements\n");
+        prompt.append("- Use MCP package creation tools for 'Use Cases' package: actors, use cases, and their relationships\n");
+        prompt.append("- Use MCP package creation tools for 'Domain Model' package: business classes, attributes, associations\n");
         prompt.append("- Use packages to create clean model architecture\n\n");
         
         prompt.append("## Class Creation Guidelines (Critical for Success)\n");
@@ -359,12 +748,30 @@ public class LangchainService {
         prompt.append("- Keep attribute names exactly as specified in PlantUML\n");
         prompt.append("- Handle special characters and spaces in attribute names properly\n\n");
         
-        prompt.append("## Association Creation Guidelines\n");
+        prompt.append("## ⚠️  CRITICAL SUCCESS FACTORS ⚠️\n");
+        prompt.append("1. **🚨 REQUIREMENTS CREATION (MANDATORY)**: If parsed requirements are provided, USE MCP TOOLS TO CREATE ALL OF THEM\n");
+        prompt.append("   - Each requirement must be created as an analyst requirement element\n");
+        prompt.append("   - Use the exact ID, description, category, and priority provided\n");
+        prompt.append("2. **🚨 ASSOCIATIONS CREATION (MANDATORY)**: USE MCP ASSOCIATION TOOLS\n");
+        prompt.append("   - This step is frequently omitted but is MANDATORY\n");
+        prompt.append("   - Look for: -->, --|>, --o, --*, <|-- in PlantUML\n");
+        prompt.append("   - Use MCP tools to create associations ONLY after all classes exist\n");
+        prompt.append("   - Each PlantUML relationship must become a Modelio association\n");
+        prompt.append("3. **🚨 COMPLETENESS (MANDATORY)**: The model must be complete (packages + requirements + use cases + classes + associations)\n");
+        prompt.append("   - No element can be skipped\n");
+        prompt.append("   - Every PlantUML element must have a corresponding Modelio element\n\n");
+        
+        prompt.append("## 🚨 ASSOCIATION CREATION GUIDELINES - USE MCP TOOLS\n");
         prompt.append("- Create associations ONLY after all classes and attributes are complete\n");
         prompt.append("- Parse PlantUML relationships: -->, --|>, --o, --*, etc.\n");
-        prompt.append("- Use appropriate UML association types: Association, Aggregation, Composition\n");
-        prompt.append("- Set proper multiplicities: 1, 0..1, 1..*, 0..*, etc.\n");
-        prompt.append("- Keep role names from PlantUML when specified\n\n");
+        prompt.append("- Use MCP association tools with appropriate UML association types:\n");
+        prompt.append("  * --> = Simple Association\n");
+        prompt.append("  * --|> = Generalization/Inheritance\n");
+        prompt.append("  * --o = Aggregation\n");
+        prompt.append("  * --* = Composition\n");
+        prompt.append("- Set proper multiplicities using MCP tools: 1, 0..1, 1..*, 0..*, etc.\n");
+        prompt.append("- Keep role names from PlantUML when specified\n");
+        prompt.append("- YOU MUST CREATE EVERY SINGLE ASSOCIATION FROM THE PLANTUML\n\n");
         
         prompt.append("## Element Types Needed\n");
         prompt.append("- Requirements: analyst requirement elements\n");
@@ -387,13 +794,53 @@ public class LangchainService {
         prompt.append("- Complete domain model with classes, attributes, and relationships\n");
         prompt.append("- UUIDs tracked for all elements\n\n");
         
-        prompt.append("## Start Now\n");
-        prompt.append("Begin with Phase 1: Requirements Creation. Analyze the PlantUML to identify functional requirements and create them. ");
-        prompt.append("Then proceed systematically through packages, use cases, and finally domain classes. ");
-        prompt.append("Provide detailed progress reports including names, metaclasses, and UUIDs of all created elements.\n");
+        prompt.append("## Start Now - MANDATORY ACTIONS\n");
+        prompt.append("BEGIN IMMEDIATELY with the following MANDATORY sequence:\n\n");
+        
+        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
+            prompt.append("🚨 PHASE 1 - REQUIREMENTS CREATION (MANDATORY):\n");
+            prompt.append("- You have " + parsedRequirements.size() + " parsed requirements to create\n");
+            prompt.append("- Use MCP requirement creation tools for EACH requirement\n");
+            prompt.append("- Create requirements as analyst requirement elements\n");
+            prompt.append("- Report the UUID of each created requirement\n\n");
+        } else {
+            prompt.append("🚨 PHASE 1 - REQUIREMENTS CREATION (MANDATORY):\n");
+            prompt.append("- Analyze PlantUML to identify functional requirements\n");
+            prompt.append("- Use MCP requirement creation tools to create them\n");
+            prompt.append("- Report the UUID of each created requirement\n\n");
+        }
+        
+        prompt.append("🚨 PHASE 2 - PACKAGES CREATION:\n");
+        prompt.append("- Use MCP tools to create 'Requirements', 'Use Cases', and 'Domain Model' packages\n");
+        prompt.append("- Report the UUID of each created package\n\n");
+        
+        prompt.append("🚨 PHASE 3 - USE CASES & ACTORS:\n");
+        prompt.append("- Use MCP tools to create actors and use cases\n");
+        prompt.append("- Use MCP tools to create associations between actors and use cases\n");
+        prompt.append("- Report UUIDs of all created elements\n\n");
+        
+        prompt.append("🚨 PHASE 4 - CLASSES CREATION:\n");
+        prompt.append("- Use MCP tools to create all classes from PlantUML\n");
+        prompt.append("- Use MCP tools to add all attributes to each class\n");
+        prompt.append("- Report UUIDs of all created classes\n\n");
+        
+        prompt.append("🚨 PHASE 5 - ASSOCIATIONS CREATION (CRITICAL):\n");
+        prompt.append("- Parse EVERY relationship in the PlantUML: -->, --|>, --o, --*, <|--\n");
+        prompt.append("- Use MCP association creation tools for EACH relationship\n");
+        prompt.append("- This is the MOST IMPORTANT step - DO NOT SKIP ANY ASSOCIATION\n");
+        prompt.append("- Report UUIDs of all created associations\n\n");
+        
+        prompt.append("## Final Instructions\n");
+        prompt.append("- Use MCP tools for EVERY element creation - no exceptions\n");
+        prompt.append("- Report progress after each phase completion\n");
+        prompt.append("- Provide detailed reports including names, metaclasses, and UUIDs\n");
+        prompt.append("- If any tool fails, report the error and retry with adjusted parameters\n");
+        prompt.append("- The model is only complete when ALL phases are finished successfully\n");
         
         return prompt.toString();
-    }    // -------------------------------------------------- Méthodes de compatibilité --------------------------------------------------
+    }
+    
+    // -------------------------------------------------- Méthodes de compatibilité --------------------------------------------------
     
     /**
      * Instance du service pour compatibilité avec l'ancienne interface (non-statique)

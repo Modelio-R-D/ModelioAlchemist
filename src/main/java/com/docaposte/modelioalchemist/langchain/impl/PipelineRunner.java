@@ -110,6 +110,11 @@ public class PipelineRunner {
         // parse JSON
         JsonNode root = mapper.readTree(classifiedJson);
 
+        // Stocker tous les rapports d'agents pour les inclure dans les requirements
+        StringBuilder allAgentReports = new StringBuilder();
+        String plantUMLContent = "";
+        String modelDescription = "";
+
         for (String key : new String[]{"technique", "rssi", "fonctionnel", "rse", "ecoconception"}) {
             String ctx = "";
             if (root.has(key) && root.get(key) != null) {
@@ -155,6 +160,10 @@ public class PipelineRunner {
             Files.writeString(outDir.resolve(key + "_report.txt"), report);
             System.out.println("Saved report for " + key);
 
+            // Collecter tous les rapports pour les requirements
+            allAgentReports.append("=== ").append(key.toUpperCase()).append(" ANALYSIS ===\n");
+            allAgentReports.append(report).append("\n\n");
+
             if ("fonctionnel".equals(key)) {
                 // Prompt amélioré pour la description du modèle
                 String modelPrompt = """
@@ -188,6 +197,9 @@ public class PipelineRunner {
                     """;
                 String modelDesc = llm.runPrompt(modelPrompt, report);
                 Files.writeString(outDir.resolve("model_description.txt"), modelDesc);
+                
+                // Stocker pour utilisation ultérieure
+                modelDescription = modelDesc;
 
                 String puml = ""; // Déclarer puml en dehors du bloc if
                 if (modelDesc != null && !modelDesc.trim().isEmpty()) {
@@ -215,26 +227,62 @@ public class PipelineRunner {
                     puml = llm.runPrompt(pumlPrompt, modelDesc);
                     Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
                     System.out.println("PlantUML generated.");
+                    
+                    // Stocker pour utilisation ultérieure
+                    plantUMLContent = puml;
                 } else {
                     System.out.println("No model description available - skipping PlantUML generation");
                     puml = "@startuml\nnote \"No model description available\" as N1\n@enduml";
                     Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-                }
-
-                // Génération du modèle UML dans Modelio via MCP
-                System.out.println("Generating UML model in Modelio via MCP...");
-                try {
-                    // Utiliser le client MCP directement
-                    String mcpReport = mcp.generateModelFromPlantUML(puml);
-                    Files.writeString(outDir.resolve("modelio_mcp_report.txt"), mcpReport);
-                    System.out.println("Modelio MCP report saved.");
                     
-                } catch (Exception e) {
-                    String errorMsg = "MCP failed: " + e.getMessage();
-                    System.err.println(errorMsg);
-                    Files.writeString(outDir.resolve("modelio_mcp_error.txt"), errorMsg);
+                    // Stocker pour utilisation ultérieure
+                    plantUMLContent = puml;
                 }
             }
+        }
+
+        // Génération du modèle UML dans Modelio via MCP avec TOUS les rapports d'agents
+        if (!plantUMLContent.isEmpty()) {
+            System.out.println("Generating UML model in Modelio via MCP with ALL agent reports...");
+            try {
+                // Préparer les documents d'analyse pour le parsing des requirements
+                StringBuilder requirementsDocuments = new StringBuilder();
+                
+                // Inclure le texte extrait original qui contient toutes les exigences
+                requirementsDocuments.append("=== EXTRACTED REQUIREMENTS ===\n");
+                requirementsDocuments.append(extracted).append("\n\n");
+                
+                // Inclure TOUS les rapports d'agents (technique, rssi, fonctionnel, rse, ecoconception)
+                requirementsDocuments.append(allAgentReports.toString());
+                
+                // Inclure la description du modèle pour le contexte
+                if (!modelDescription.isEmpty()) {
+                    requirementsDocuments.append("=== MODEL DESCRIPTION ===\n");
+                    requirementsDocuments.append(modelDescription).append("\n\n");
+                }
+                
+                System.out.println("📋 Requirements documents assembled from ALL agents:");
+                System.out.println("   - Original extracted text");
+                System.out.println("   - Technical analysis report");
+                System.out.println("   - RSSI security report");
+                System.out.println("   - Functional analysis report");
+                System.out.println("   - RSE responsibility report");
+                System.out.println("   - Ecoconception sustainability report");
+                System.out.println("   - Model description");
+                System.out.println("   Total content length: " + requirementsDocuments.length() + " characters");
+                
+                // Utiliser la nouvelle méthode avec requirements documents et output directory
+                String mcpReport = mcp.generateModelFromPlantUMLWithRequirements(plantUMLContent, requirementsDocuments.toString(), outDir.toString());
+                Files.writeString(outDir.resolve("modelio_mcp_report.txt"), mcpReport);
+                System.out.println("Modelio MCP report saved.");
+                
+            } catch (Exception e) {
+                String errorMsg = "MCP failed: " + e.getMessage();
+                System.err.println(errorMsg);
+                Files.writeString(outDir.resolve("modelio_mcp_error.txt"), errorMsg);
+            }
+        } else {
+            System.out.println("No PlantUML content available - skipping MCP generation");
         }
 
         System.out.println("Pipeline finished.");

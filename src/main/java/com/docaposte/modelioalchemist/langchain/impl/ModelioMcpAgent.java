@@ -28,4 +28,31 @@ public class ModelioMcpAgent {
             chatModel
         );
     }
+    
+    /**
+     * Génère un modèle UML dans Modelio à partir du contenu PlantUML et des documents d'analyse
+     * pour parser automatiquement les requirements.
+     */
+    public String generateModelFromPlantUMLWithRequirements(String plantUMLContent, String requirementsDocuments) {
+        return LangchainService.generateModelFromPlantUML(
+            plantUMLContent,
+            requirementsDocuments,
+            mcpSseUrl, 
+            chatModel
+        );
+    }
+    
+    /**
+     * Génère un modèle UML dans Modelio à partir du contenu PlantUML et des documents d'analyse
+     * avec répertoire de sortie pour les fichiers de debug.
+     */
+    public String generateModelFromPlantUMLWithRequirements(String plantUMLContent, String requirementsDocuments, String outputDirectory) {
+        return LangchainService.generateModelFromPlantUML(
+            plantUMLContent,
+            requirementsDocuments,
+            outputDirectory,
+            mcpSseUrl, 
+            chatModel
+        );
+    }
 }
