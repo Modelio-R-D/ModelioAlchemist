@@ -1,8 +1,8 @@
 package com.docaposte.modelioalchemist.handlers.commands;
 
-import java.util.List;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import com.docaposte.modelioalchemist.langchain.impl.Main;
 import com.modeliosoft.modelio.javadesigner.annotations.objid;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -36,7 +36,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                 selectedElementInfo = "\nSelected element: " + element.getName() + 
                                     " (" + element.getMClass().getName() + ")";
             }
-            
+    
             MessageDialog.openInformation(
                 Display.getDefault().getActiveShell(),
                 "Processing PDF",
@@ -54,7 +54,6 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                 e.printStackTrace();
             }
         }
-        
     }
 
     @objid ("083fb4d9-a211-47b9-8edf-f7569ae45814")
@@ -72,7 +71,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
     /**
      * Calcule le répertoire de sortie basé sur l'élément sélectionné dans Modelio
      */
-    @objid ("52f085fa-f3ca-4cb8-a5d4-e43d7391f13c")
+    @objid ("9e117774-ddb3-4b4e-9770-d2d788b1e2fb")
     private String calculateOutputDirectory(List<MObject> selectedElements, IModuleContext context) {
         try {
             // D'abord, essayons de trouver le projet à partir de l'élément sélectionné
@@ -84,7 +83,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                     return projectPath.resolve("modelioalchemist-output").toString();
                 }
             }
-            
+    
             // Méthode de secours : utiliser la structure du projet du contexte
             Path projectRoot = null;
             try {
@@ -93,7 +92,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                     return projectRoot.resolve("modelioalchemist-output").toString();
                 }
             } catch (Exception ignored) {}
-            
+    
             // Dernier recours : utiliser le chemin des ressources du module
             if (context.getConfiguration() != null) {
                 Path moduleRes = context.getConfiguration().getModuleResourcesPath();
@@ -107,7 +106,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
             System.err.println("Erreur lors du calcul du répertoire de sortie: " + e.getMessage());
             e.printStackTrace();
         }
-        
+
         // Répertoire de secours si aucune méthode ne fonctionne
         return Paths.get(System.getProperty("user.home"), "modelioalchemist-output").toString();
     }
@@ -115,7 +114,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
     /**
      * Récupère le chemin du projet Modelio à partir d'un élément sélectionné
      */
-    @objid ("63f085fa-f3ca-4cb8-a5d4-e43d7391f14c")
+    @objid ("17f042f1-0840-4364-85c7-70a98721dfbc")
     private Path getProjectPathFromElement(MObject element, IModuleContext context) {
         try {
             // Remonter la hiérarchie jusqu'au projet racine
@@ -124,7 +123,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                 // Vérifier si c'est un projet
                 if (current instanceof org.modelio.metamodel.mda.Project) {
                     org.modelio.metamodel.mda.Project project = (org.modelio.metamodel.mda.Project) current;
-                    
+            
                     // Essayer de récupérer le chemin du projet
                     // Dans Modelio, le projet peut avoir des informations sur son emplacement
                     String projectName = project.getName();
@@ -140,11 +139,11 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                     }
                     break;
                 }
-                
+        
                 // Remonter au parent
                 current = current.getCompositionOwner();
             }
-            
+    
             // Si on n'a pas trouvé de projet, essayer via la session
             if (context.getModelingSession() != null) {
                 var modelRoots = context.getModelingSession().getModel().getModelRoots();
@@ -163,7 +162,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
         } catch (Exception e) {
             System.err.println("Erreur lors de la récupération du chemin du projet: " + e.getMessage());
         }
-        
+
         return null;
     }
 

@@ -17,7 +17,6 @@ public class ModelioAlchemistPeerModule implements IModelioAlchemistPeerModule {
     public  ModelioAlchemistPeerModule(final ModelioAlchemistModule module, final IModuleAPIConfiguration peerConfiguration) {
         this.module = module;
         this.peerConfiguration = peerConfiguration;
-        
     }
 
     @objid ("05b9d584-b595-4ca4-a8a1-3c5364cef6b9")

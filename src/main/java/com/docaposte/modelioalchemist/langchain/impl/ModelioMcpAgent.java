@@ -55,4 +55,28 @@ public class ModelioMcpAgent {
             chatModel
         );
     }
+    
+    /**
+     * Crée les exigences dans Modelio à partir des exigences filtrées
+     */
+    public String createRequirementsInModelio(String filteredRequirementsJson, String outputDirectory) {
+        return LangchainService.createRequirementsInModelio(
+            filteredRequirementsJson,
+            outputDirectory,
+            mcpSseUrl,
+            chatModel
+        );
+    }
+    
+    /**
+     * Crée le modèle de classes UML dans Modelio à partir des exigences analysées
+     */
+    public String createUmlClassModel(String analysisResults, String outputDirectory) {
+        return LangchainService.createUmlClassModel(
+            analysisResults,
+            outputDirectory,
+            mcpSseUrl,
+            chatModel
+        );
+    }
 }

@@ -29,7 +29,6 @@ public class ModelioAlchemistModule extends AbstractJavaModule {
         this.lifeCycleHandler  = new ModelioAlchemistLifeCycleHandler(this);
         this.peerModule = new ModelioAlchemistPeerModule(this, moduleContext.getPeerConfiguration());
         init();
-        
     }
 
     @objid ("fc0dd19c-d0fb-4b30-84a2-559556701f34")
@@ -55,7 +54,7 @@ public class ModelioAlchemistModule extends AbstractJavaModule {
     @objid ("ab2344f1-bec8-4494-9254-946fd6bd8f9f")
     @Override
     public IParameterEditionModel getParametersEditionModel() {
-           return super.getParametersEditionModel();
+        return super.getParametersEditionModel();
     }
 
     @objid ("cd44da1f-bc37-4dc7-893b-14486b33aa6b")

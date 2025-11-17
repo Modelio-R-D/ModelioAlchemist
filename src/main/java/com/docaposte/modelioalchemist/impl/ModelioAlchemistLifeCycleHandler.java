@@ -26,7 +26,7 @@ public class ModelioAlchemistLifeCycleHandler extends DefaultModuleLifeCycleHand
     }
 
     /**
-     * @param mdaPath @return
+     * @return
      */
     @objid ("ceb07837-65d6-4c1c-bf0b-f0e91bbc6e19")
     public static boolean install(final String modelioPath, final String mdaPath) throws ModuleException {

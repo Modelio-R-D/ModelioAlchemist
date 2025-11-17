@@ -56,34 +56,123 @@ public class PipelineRunner {
         Files.writeString(outDir.resolve("extracted_agent_text.txt"), extracted);
         System.out.println("Extractor agent output saved.");
 
-        // 3) classifier agent - prompt amélioré avec validation et exemples
-        String classifierPrompt = """
-            Vous êtes un expert en classification d'exigences système. Analysez le texte et classifiez CHAQUE exigence selon ces catégories EXACTES :
+        // 2.5) NOUVEAU : Requirements Filter Agent - Étape de pré-traitement intelligent
+        String requirementsFilterPrompt = """
+            Vous êtes un expert en identification d'exigences système. Votre mission est de FILTRER le texte pour ne conserver QUE les vraies exigences opérationnelles.
             
+            CRITÈRES STRICTS pour qu'un élément soit une VRAIE exigence :
+            ✅ ACCEPTER : Exigences qui décrivent des capacités, contraintes, ou comportements spécifiques du système
+            - "Le système doit permettre..."
+            - "L'application doit supporter..."
+            - "La performance doit être inférieure à..."
+            - "Les données doivent être chiffrées..."
+            - "L'utilisateur doit pouvoir..."
+            
+            ❌ REJETER : Éléments qui ne sont PAS des exigences opérationnelles
+            - Titres de sections ("Objectif du document", "Fonctionnalités principales")
+            - Descriptions générales ("Ce document décrit...")
+            - Contexte ou introduction
+            - Références bibliographiques
+            - Artefacts de formatage (**Pour EX-XXX**, ***Note***, etc.)
+            - Résumés ou conclusions
+            
+            INSTRUCTIONS :
+            1. Parcourez TOUT le texte ligne par ligne
+            2. Ne gardez QUE les phrases qui sont de vraies exigences
+            3. Reformulez chaque exigence retenue de manière claire et actionnable
+            4. Numérotez les vraies exigences (REQ-001, REQ-002, etc.)
+            5. Ajoutez une catégorie estimée (Functional, Technical, Security, Performance)
+            6. Ajoutez un niveau de priorité estimé (High, Medium, Low)
+            
+            FORMAT DE SORTIE - JSON uniquement :
+            {
+              "filtered_requirements": [
+                {
+                  "id": "REQ-001",
+                  "description": "Le système doit permettre l'authentification des utilisateurs via SSO",
+                  "category": "Security",
+                  "priority": "High"
+                },
+                {
+                  "id": "REQ-002", 
+                  "description": "La base de données doit supporter au moins 1000 utilisateurs concurrents",
+                  "category": "Performance",
+                  "priority": "Medium"
+                }
+              ],
+              "rejected_items": [
+                "Objectif du document",
+                "Fonctionnalités principales",
+                "**Pour EX-011**:"
+              ],
+              "statistics": {
+                "total_items_analyzed": 45,
+                "requirements_retained": 23,
+                "items_rejected": 22
+              }
+            }
+            
+            Texte à filtrer :
+            """;
+        
+        String filteredRequirements = llm.runPrompt(requirementsFilterPrompt, extracted);
+        
+        // Extraire le JSON de la réponse
+        String filteredJson = JsonUtils.extractFirstJson(filteredRequirements);
+        if (filteredJson == null) {
+            filteredJson = filteredRequirements;
+        }
+        Files.writeString(outDir.resolve("filtered_requirements.json"), filteredJson);
+        System.out.println("Requirements filter output saved.");
+
+        // Valider et rapporter les statistiques de filtrage
+        try {
+            JsonNode filterResults = mapper.readTree(filteredJson);
+            if (filterResults.has("statistics")) {
+                JsonNode stats = filterResults.get("statistics");
+                int total = stats.get("total_items_analyzed").asInt();
+                int retained = stats.get("requirements_retained").asInt();
+                int rejected = stats.get("items_rejected").asInt();
+                
+                System.out.println("📊 Requirements filtering statistics:");
+                System.out.println("   - Total items analyzed: " + total);
+                System.out.println("   - True requirements retained: " + retained);
+                System.out.println("   - False positives rejected: " + rejected);
+                System.out.println("   - Retention rate: " + (total > 0 ? (retained * 100 / total) : 0) + "%");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not parse filter statistics: " + e.getMessage());
+        }
+
+        // 3) classifier agent - utilise maintenant les exigences FILTRÉES
+        String classifierPrompt = """
+            Vous êtes un expert en classification d'exigences système. Vous recevez une liste de VRAIES exigences déjà filtrées.
+            
+            Classifiez CHAQUE exigence selon ces catégories EXACTES :
             - "technique" : Architecture système, technologies, performances, intégrations, API, protocoles, infrastructure
             - "rssi" : Sécurité, authentification, autorisation, chiffrement, audit, conformité sécuritaire, protection des données
             - "fonctionnel" : Fonctionnalités métier, cas d'usage, processus, règles de gestion, interfaces utilisateur
             - "rse" : Responsabilité sociale, éthique, impact social, gouvernance, transparence
             - "ecoconception" : Efficacité énergétique, empreinte carbone, développement durable, optimisation des ressources
             
-            INSTRUCTIONS CRITIQUES:
-            1. Chaque exigence doit être classée (aucune perte autorisée)
-            2. Si une exigence touche plusieurs catégories, la dupliquer dans chaque catégorie pertinente
-            3. Conservez le texte COMPLET de chaque exigence (pas de résumé)
-            4. Numérotez chaque exigence pour traçabilité (EX-001, EX-002...)
+            INSTRUCTIONS :
+            1. Prenez les exigences filtrées du JSON fourni (champ "filtered_requirements")
+            2. Classifiez chaque exigence selon sa catégorie naturelle
+            3. Conservez l'ID et la description exacte de chaque exigence
+            4. Si une exigence touche plusieurs catégories, la dupliquer dans chaque catégorie
             
-            Retournez UNIQUEMENT un objet JSON valide avec cette structure exacte :
+            Retournez UNIQUEMENT un objet JSON valide avec cette structure :
             {
-              "technique": ["EX-001: texte complet exigence 1", "EX-005: texte complet exigence 5"],
-              "rssi": ["EX-002: texte complet exigence 2"],
-              "fonctionnel": ["EX-003: texte complet exigence 3", "EX-001: texte complet exigence 1"],
-              "rse": ["EX-004: texte complet exigence 4"],
-              "ecoconception": ["EX-006: texte complet exigence 6"]
+              "technique": ["REQ-001: texte complet exigence 1", "REQ-005: texte complet exigence 5"],
+              "rssi": ["REQ-002: texte complet exigence 2"],
+              "fonctionnel": ["REQ-003: texte complet exigence 3"],
+              "rse": ["REQ-004: texte complet exigence 4"],
+              "ecoconception": ["REQ-006: texte complet exigence 6"]
             }
             
-            Texte à classifier :
+            Exigences filtrées à classifier (JSON) :
             """;
-        String classified = llm.runPrompt(classifierPrompt, extracted);
+        String classified = llm.runPrompt(classifierPrompt, filteredJson);
 
         // attempt to find JSON in the response
         String classifiedJson = JsonUtils.extractFirstJson(classified);
@@ -161,84 +250,125 @@ public class PipelineRunner {
             System.out.println("Saved report for " + key);
 
             // Collecter tous les rapports pour les requirements
-            allAgentReports.append("=== ").append(key.toUpperCase()).append(" ANALYSIS ===\n");
+            allAgentReports.append("=== ").append(key.toUpperCase()).append(" ANALYSIS ===").append("\n");
             allAgentReports.append(report).append("\n\n");
+        }
+        
+        // Après avoir collecté TOUS les rapports, générer la description du modèle unifiée
+        if (allAgentReports.length() > 0) {
+            System.out.println("Generating unified model description from ALL agent reports...");
+            
+            // Prompt amélioré pour la description du modèle unifié
+            String modelPrompt = """
+                Vous êtes un architecte système expert en modélisation UML complète. 
+                
+                À partir de TOUS les rapports d'analyse (fonctionnel, technique, sécurité, RSE, éco-conception), 
+                identifiez TOUS les éléments du modèle système complet :
+                
+                1. CLASSES MÉTIER (fonctionnel) :
+                   - Entités du domaine métier
+                   - Objets de gestion et de traitement
+                   - Services métier principaux
+                
+                2. CLASSES TECHNIQUES (infrastructure) :
+                   - Couches de persistance et accès aux données
+                   - Services d'intégration et APIs
+                   - Composants d'architecture technique
+                
+                3. CLASSES SÉCURITÉ (RSSI) :
+                   - Gestion de l'authentification et autorisation
+                   - Chiffrement et protection des données
+                   - Audit et traçabilité sécuritaire
+                
+                4. CLASSES TRANSVERSES (RSE, éco-conception) :
+                   - Monitoring et métriques de performance
+                   - Optimisation des ressources
+                   - Gestion des logs et audit environnemental
+                
+                5. RELATIONS COMPLÈTES :
+                   - Associations entre couches métier et technique
+                   - Dépendances sécuritaires
+                   - Interfaces entre tous les composants
+                   - Cardinalités précises (1..1, 1..*, etc.)
+                
+                6. ARCHITECTURE ORGANISÉE :
+                   - Packages par domaine (métier, technique, sécurité)
+                   - Séparation claire des responsabilités
+                   - Interfaces bien définies
+                
+                OBJECTIF : Créer un modèle système COMPLET qui reflète TOUS les aspects identifiés.
+                
+                IMPORTANT : 
+                - Intégrez TOUTES les analyses (ne perdez aucune information)
+                - Conservez la traçabilité avec les références EX-XXX
+                - Organisez en couches cohérentes (métier, technique, sécurité, transverse)
+                - Soyez précis sur les noms (ils deviendront les noms des classes UML)
+                
+                Tous les rapports d'analyse à modéliser :
+                """;
+            String modelDesc = llm.runPrompt(modelPrompt, allAgentReports.toString());
+            Files.writeString(outDir.resolve("model_description.txt"), modelDesc);
+            
+            // Stocker pour utilisation ultérieure
+            modelDescription = modelDesc;
+            
+            System.out.println("Unified model description generated from all agent reports.");
 
-            if ("fonctionnel".equals(key)) {
-                // Prompt amélioré pour la description du modèle
-                String modelPrompt = """
-                    Vous êtes un architecte logiciel expert en modélisation UML. 
+            
+            // Générer le PlantUML à partir de la description unifiée
+            String puml = ""; // Déclarer puml en dehors du bloc if
+            if (modelDesc != null && !modelDesc.trim().isEmpty()) {
+                // Prompt amélioré pour PlantUML unifié
+                String pumlPrompt = """
+                    Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
+                    Générez un diagramme de classes UML COMPLET intégrant TOUS les aspects du système.
                     
-                    À partir des exigences fonctionnelles analysées, identifiez TOUS les éléments du modèle de données :
+                    RÈGLES STRICTES :
+                    1. Commencez par @startuml et finissez par @enduml
+                    2. Organisez en PACKAGES par domaine :
+                       - package "Business" { } // Classes métier
+                       - package "Technical" { } // Infrastructure
+                       - package "Security" { } // Sécurité
+                       - package "Monitoring" { } // Transverse
+                    3. Utilisez les NOMS EXACTS des classes identifiées (pas de synonymes)
+                    4. Incluez TOUS les attributs et méthodes mentionnés
+                    5. Modélisez TOUTES les relations (métier, technique, sécurité)
+                    6. Respectez la syntaxe PlantUML correcte
+                    7. Ajoutez des commentaires pour la traçabilité (ex: ' EX-001: exigence fonctionnelle)
                     
-                    1. ENTITÉS/CLASSES : Listez chaque objet métier mentionné
-                       - Nom exact de la classe
-                       - Responsabilités et rôle
-                       - Attributs identifiés (avec types si possible)
-                       - Méthodes/opérations principales
+                    SYNTAXE PlantUML attendue :
+                    - Classes : class NomClasse { +attribut: type +methode() }
+                    - Relations : ClasseA --> ClasseB : "relation"
+                    - Cardinalités : ClasseA "1" --> "0..*" ClasseB
+                    - Héritage : ClasseParent <|-- ClasseEnfant
+                    - Composition : ClasseA *-- ClasseB
+                    - Agrégation : ClasseA o-- ClasseB
                     
-                    2. RELATIONS : Analysez TOUTES les interactions
-                       - Associations (qui est lié à quoi)
-                       - Compositions/Agrégations 
-                       - Héritages
-                       - Cardinalités (1..1, 1..*, etc.)
+                    VÉRIFICATION : Le diagramme doit refléter :
+                    - Toutes les classes métier (fonctionnel)
+                    - Toutes les classes techniques (infrastructure)
+                    - Toutes les classes sécuritaires (RSSI)
+                    - Toutes les classes transverses (RSE, éco-conception)
+                    - Toutes leurs relations et interactions
                     
-                    3. RÈGLES MÉTIER : Contraintes et validations à modéliser
-                    
-                    4. INTERFACES : Services et API à exposer
-                    
-                    IMPORTANT : 
-                    - Basez-vous UNIQUEMENT sur les exigences analysées
-                    - Ne perdez aucune information des exigences fonctionnelles
-                    - Conservez la traçabilité avec les références EX-XXX
-                    - Soyez précis sur les noms (ils deviendront les noms des classes)
-                    
-                    Rapport d'exigences fonctionnelles à modéliser :
+                    Description complète du système à transformer en PlantUML :
                     """;
-                String modelDesc = llm.runPrompt(modelPrompt, report);
-                Files.writeString(outDir.resolve("model_description.txt"), modelDesc);
+                puml = llm.runPrompt(pumlPrompt, modelDesc);
+                Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
+                System.out.println("Complete PlantUML generated from unified model description.");
                 
                 // Stocker pour utilisation ultérieure
-                modelDescription = modelDesc;
-
-                String puml = ""; // Déclarer puml en dehors du bloc if
-                if (modelDesc != null && !modelDesc.trim().isEmpty()) {
-                    // Prompt amélioré pour PlantUML
-                    String pumlPrompt = """
-                        Vous êtes un expert PlantUML. Générez un diagramme de classes UML complet et précis.
-                        
-                        RÈGLES STRICTES :
-                        1. Commencez par @startuml et finissez par @enduml
-                        2. Utilisez les NOMS EXACTS des classes identifiées (pas de synonymes)
-                        3. Incluez TOUS les attributs mentionnés
-                        4. Modélisez TOUTES les relations identifiées
-                        5. Respectez la syntaxe PlantUML correcte
-                        6. Ajoutez des commentaires pour la traçabilité (ex: ' EX-001: exigence X)
-                        
-                        Syntaxe PlantUML attendue :
-                        - Classes : class NomClasse { +attribut: type +methode() }
-                        - Relations : ClasseA --> ClasseB : "relation"
-                        - Cardinalités : ClasseA "1" --> "0..*" ClasseB
-                        
-                        VÉRIFICATION : Le diagramme doit couvrir TOUTES les classes et relations de la description.
-                        
-                        Description du modèle à transformer en PlantUML :
-                        """;
-                    puml = llm.runPrompt(pumlPrompt, modelDesc);
-                    Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-                    System.out.println("PlantUML generated.");
-                    
-                    // Stocker pour utilisation ultérieure
-                    plantUMLContent = puml;
-                } else {
-                    System.out.println("No model description available - skipping PlantUML generation");
-                    puml = "@startuml\nnote \"No model description available\" as N1\n@enduml";
-                    Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-                    
-                    // Stocker pour utilisation ultérieure
-                    plantUMLContent = puml;
-                }
+                plantUMLContent = puml;
+            } else {
+                System.out.println("No unified model description available - skipping PlantUML generation");
+                puml = "@startuml\nnote \"No unified model description available\" as N1\n@enduml";
+                Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
+                
+                // Stocker pour utilisation ultérieure
+                plantUMLContent = puml;
             }
+        } else {
+            System.out.println("No agent reports available - skipping model generation");
         }
 
         // Génération du modèle UML dans Modelio via MCP avec TOUS les rapports d'agents
@@ -271,10 +401,29 @@ public class PipelineRunner {
                 System.out.println("   - Model description");
                 System.out.println("   Total content length: " + requirementsDocuments.length() + " characters");
                 
-                // Utiliser la nouvelle méthode avec requirements documents et output directory
-                String mcpReport = mcp.generateModelFromPlantUMLWithRequirements(plantUMLContent, requirementsDocuments.toString(), outDir.toString());
-                Files.writeString(outDir.resolve("modelio_mcp_report.txt"), mcpReport);
-                System.out.println("Modelio MCP report saved.");
+                // 🎆 NOUVELLE ARCHITECTURE : Création séparée des exigences et des classes UML
+                
+                // 1) Créer les exigences dans Modelio à partir des exigences filtrées
+                System.out.println("🗺️ Step 1: Creating requirements in Modelio...");
+                String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString());
+                Files.writeString(outDir.resolve("modelio_requirements_report.txt"), requirementsReport);
+                System.out.println("✅ Requirements created in Modelio");
+                
+                // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
+                System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
+                String classModelReport = mcp.createUmlClassModel(plantUMLContent, outDir.toString());
+                Files.writeString(outDir.resolve("modelio_classmodel_report.txt"), classModelReport);
+                System.out.println("✅ UML class model created in Modelio from PlantUML");
+                
+                // Résumé final
+                StringBuilder finalSummary = new StringBuilder();
+                finalSummary.append("=== MODELIO CREATION SUMMARY ===\n\n");
+                finalSummary.append("1. REQUIREMENTS CREATION:\n").append(requirementsReport).append("\n\n");
+                finalSummary.append("2. UML CLASS MODEL CREATION:\n").append(classModelReport).append("\n\n");
+                finalSummary.append("=== END SUMMARY ===\n");
+                
+                Files.writeString(outDir.resolve("modelio_creation_summary.txt"), finalSummary.toString());
+                System.out.println("📋 Final summary saved to modelio_creation_summary.txt");
                 
             } catch (Exception e) {
                 String errorMsg = "MCP failed: " + e.getMessage();

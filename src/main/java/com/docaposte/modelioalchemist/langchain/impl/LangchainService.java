@@ -10,6 +10,8 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -26,6 +28,9 @@ import dev.langchain4j.service.AiServices;
 import com.docaposte.modelioalchemist.langchain.impl.PolicyAwareAzureChatModel;
 import com.docaposte.modelioalchemist.langchain.impl.AzureEndpointResolver;
 import com.docaposte.modelioalchemist.langchain.impl.HttpPolicies;
+import com.docaposte.modelioalchemist.langchain.impl.JsonUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 /**
  * Service LangChain4j unifié pour ModelioAlchemist suivant le pattern de ModelioBot.
  * Implémentation poolée : réutilise le client MCP, le fournisseur d'outils, et un petit pool d'instances UmlModelingAssistant.
@@ -327,6 +332,132 @@ public class LangchainService {
         return generateModelFromPlantUMLInternal(plantUMLContent, requirementsDocuments, outputDirectory, mcpSseUrl, chatModel);
     }
 
+    /**
+     * Crée les exigences dans Modelio à partir des exigences filtrées
+     */
+    public static String createRequirementsInModelio(String filteredRequirementsJson, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
+        ensureInfrastructureInitialized(mcpSseUrl, chatModel);
+        
+        try {
+            debug("🎯 Creating requirements in Modelio from filtered JSON...");
+            
+            // Parse les exigences filtrées
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(filteredRequirementsJson);
+            
+            if (!root.has("filtered_requirements")) {
+                return "❌ No filtered_requirements found in JSON";
+            }
+            
+            StringBuilder requirementsPrompt = new StringBuilder();
+            requirementsPrompt.append("Créez les exigences suivantes dans Modelio :\n\n");
+            
+            JsonNode filteredReqs = root.get("filtered_requirements");
+            int reqCount = 0;
+            for (JsonNode reqNode : filteredReqs) {
+                String id = reqNode.get("id").asText();
+                String description = reqNode.get("description").asText();
+                String category = reqNode.get("category").asText();
+                String priority = reqNode.get("priority").asText();
+                
+                requirementsPrompt.append(String.format("EXIGENCE %s:\n", id));
+                requirementsPrompt.append(String.format("- Description: %s\n", description));
+                requirementsPrompt.append(String.format("- Catégorie: %s\n", category));
+                requirementsPrompt.append(String.format("- Priorité: %s\n\n", priority));
+                reqCount++;
+            }
+            
+            debug("📝 Creating " + reqCount + " requirements in Modelio...");
+            
+            PooledUmlAssistant pa = borrowAssistant();
+            if (pa == null) {
+                return "❌ Could not borrow assistant for requirements creation";
+            }
+            
+            try {
+                String result = pa.assistant.createUmlModel(requirementsPrompt.toString());
+                debug("✅ Requirements creation completed");
+                
+                // Sauvegarder le rapport
+                if (outputDirectory != null) {
+                    Files.writeString(Path.of(outputDirectory).resolve("requirements_creation_report.txt"), result);
+                }
+                
+                return result;
+            } finally {
+                try {
+                    ASSISTANT_POOL.offer(pa);
+                } catch (Exception e) {
+                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            debug("❌ Error creating requirements in Modelio: " + e.getMessage());
+            return "❌ Error creating requirements: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Crée le modèle de classes UML dans Modelio à partir des résultats d'analyse
+     */
+    public static String createUmlClassModel(String analysisResults, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
+        ensureInfrastructureInitialized(mcpSseUrl, chatModel);
+        
+        try {
+            debug("🏗️ Creating UML class model in Modelio from PlantUML diagram...");
+            
+            String modelPrompt = """
+                Analysez le diagramme PlantUML suivant et créez un modèle de classes UML complet et fidèle dans Modelio.
+                
+                Votre mission :
+                1. Parser TOUTES les classes définies dans le PlantUML
+                2. Créer chaque classe avec TOUS ses attributs et méthodes
+                3. Respecter EXACTEMENT les types et noms spécifiés
+                4. Créer TOUTES les associations/relations définies (-->, --|>, --o, --*, etc.)
+                5. Organiser en packages si définis dans le PlantUML
+                6. Préserver les cardinalités et rôles des relations
+                
+                Instructions techniques :
+                - Utilisez les outils MCP Modelio pour créer chaque élément
+                - Travaillez séquentiellement : classes d'abord, puis relations
+                - Gardez les noms EXACTS du PlantUML (pas de "amélioration")
+                - Pour les types complexes, utilisez 'String' comme fallback
+                - Créez les packages si spécifiés (package "NomPackage" { })
+                
+                Diagramme PlantUML à implémenter dans Modelio :
+                
+                """ + analysisResults;
+            
+            PooledUmlAssistant pa = borrowAssistant();
+            if (pa == null) {
+                return "❌ Could not borrow assistant for UML model creation";
+            }
+            
+            try {
+                String result = pa.assistant.createUmlModel(modelPrompt);
+                debug("✅ UML class model creation completed");
+                
+                // Sauvegarder le rapport
+                if (outputDirectory != null) {
+                    Files.writeString(Path.of(outputDirectory).resolve("uml_model_creation_report.txt"), result);
+                }
+                
+                return result;
+            } finally {
+                try {
+                    ASSISTANT_POOL.offer(pa);
+                } catch (Exception e) {
+                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            debug("❌ Error creating UML model in Modelio: " + e.getMessage());
+            return "❌ Error creating UML model: " + e.getMessage();
+        }
+    }
+
     // Injecter des extraits de ressources MCP sélectionnées dans la mémoire de chat.
     private static void injectMcpResources(ChatMemory chatMemory) {
         if (cachedResources == null || cachedResources.isEmpty()) return;
@@ -371,19 +502,121 @@ public class LangchainService {
         }
         
         debug("parseRequirementsFromDocuments: input length = " + documentsText.length());
-        debug("parseRequirementsFromDocuments: first 200 chars = " + 
-              documentsText.substring(0, Math.min(200, documentsText.length())));
+        debug("parseRequirementsFromDocuments: using AI-based requirements filtering instead of regex patterns");
         
         try {
-            // Pattern 1: Format REQ001: Description (le plus courant)
-            Pattern reqPattern1 = Pattern.compile(
-                "(?i)(REQ[_-]?\\d+)\\s*[:.] *(.+?)(?=REQ[_-]?\\d+|$)", 
-                Pattern.DOTALL
-            );
+            // Utiliser le Requirements Filter Agent intelligent au lieu des regex permissives
+            String requirementsFilterPrompt = """
+                Vous êtes un expert en identification d'exigences système. Votre mission est de FILTRER le texte pour ne conserver QUE les vraies exigences opérationnelles.
+                
+                CRITÈRES STRICTS pour qu'un élément soit une VRAIE exigence :
+                ✅ ACCEPTER : Exigences qui décrivent des capacités, contraintes, ou comportements spécifiques du système
+                - "Le système doit permettre..."
+                - "L'application doit supporter..."
+                - "La base de données doit gérer..."
+                - "L'interface doit afficher..."
+                - "Le temps de réponse doit être inférieur à..."
+                - "Les données doivent être chiffrées..."
+                
+                ❌ REJETER ABSOLUMENT : Tout ce qui N'EST PAS une exigence concrète
+                - Titres de sections ("Objectif du Document", "Fonctionnalités Principales", "Spécifications Techniques")
+                - Descriptions génériques ("Ce chapitre présente...")
+                - Références bibliographiques
+                - Artefacts de formatage (**Pour EX-XXX**, ***Note***, etc.)
+                - Résumés ou conclusions
+                
+                FORMAT DE SORTIE - JSON uniquement :
+                {
+                  "filtered_requirements": [
+                    {
+                      "id": "REQ-001",
+                      "description": "Le système doit permettre l'authentification des utilisateurs via SSO",
+                      "category": "Security",
+                      "priority": "High"
+                    }
+                  ],
+                  "rejected_items": ["Objectif du document", "Fonctionnalités principales"],
+                  "statistics": {
+                    "total_items_analyzed": 45,
+                    "requirements_retained": 23,
+                    "items_rejected": 22
+                  }
+                }
+                
+                Texte à filtrer :
+                """;
             
-            // Pattern 2: Format [REQ-001] Description
-            Pattern reqPattern2 = Pattern.compile(
-                "\\[(REQ[_-]?\\d+)\\] *(.+?)(?=\\[REQ[_-]?\\d+\\]|$)", 
+            // Obtenir une instance temporaire d'assistant pour le filtrage
+            PooledUmlAssistant filterAssistant = borrowAssistant();
+            if (filterAssistant == null) {
+                debug("❌ Could not borrow assistant for requirements filtering");
+                return requirements; // fallback vide
+            }
+            
+            try {
+                // Exécuter le filtrage IA en utilisant createUmlModel
+                String filteredResponse = filterAssistant.assistant.createUmlModel(requirementsFilterPrompt + documentsText);
+                debug("AI filter response length: " + filteredResponse.length());
+                
+                // Parser le JSON de réponse  
+                String filteredJson = JsonUtils.extractFirstJson(filteredResponse);
+                if (filteredJson == null) {
+                    filteredJson = filteredResponse;
+                }
+                
+                // Parser le JSON avec Jackson
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(filteredJson);
+                
+                if (root.has("filtered_requirements")) {
+                    JsonNode filteredReqs = root.get("filtered_requirements");
+                    if (filteredReqs.isArray()) {
+                        for (JsonNode reqNode : filteredReqs) {
+                            String id = reqNode.get("id").asText("REQ-????");
+                            String description = reqNode.get("description").asText("");
+                            String category = reqNode.get("category").asText("Functional");
+                            String priority = reqNode.get("priority").asText("Medium");
+                            
+                            if (!description.trim().isEmpty()) {
+                                requirements.add(new Requirement(id, id, description, category, priority));
+                            }
+                        }
+                    }
+                }
+                
+                // Log des statistiques si disponibles
+                if (root.has("statistics")) {
+                    JsonNode stats = root.get("statistics");
+                    int total = stats.get("total_items_analyzed").asInt(0);
+                    int retained = stats.get("requirements_retained").asInt(0);
+                    int rejected = stats.get("items_rejected").asInt(0);
+                    
+                    debug("📊 AI Requirements filtering statistics:");
+                    debug("   - Total items analyzed: " + total);
+                    debug("   - True requirements retained: " + retained);
+                    debug("   - False positives rejected: " + rejected);
+                    debug("   - Retention rate: " + (total > 0 ? (retained * 100 / total) : 0) + "%");
+                }
+                
+            } finally {
+                // Retourner l'assistant au pool
+                try {
+                    ASSISTANT_POOL.offer(filterAssistant);
+                } catch (Exception e) {
+                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            debug("Erreur lors du filtrage IA des exigences: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        debug("parseRequirementsFromDocuments: extracted " + requirements.size() + " requirements using AI filtering");
+        return requirements;
+    }
+
+    /** 
                 Pattern.DOTALL
             );
             

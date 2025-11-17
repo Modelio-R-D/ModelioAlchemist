@@ -32,6 +32,32 @@ public class Main {
     }
 
     /**
+     * Point d'entrée spécialisé pour TMA (Tierce Maintenance Applicative) avec répertoire de sortie personnalisé
+     */
+    public static void tmaWithOutputDir(String[] args, String outputDir) throws Exception {
+        if (args.length < 1) {
+            throw new IllegalArgumentException("Usage: tmaWithOutputDir(args, outputDir) - PDF path required");
+        }
+        String pdfPath = args[0];
+        
+        System.out.println("[TMA-Main] 🚀 Starting TMA pipeline for: " + pdfPath);
+        System.out.println("[TMA-Main] 📁 Output directory: " + outputDir);
+        
+        runTmaPipeline(pdfPath, outputDir);
+        
+        System.out.println("[TMA-Main] ✅ TMA pipeline completed");
+    }
+
+    /**
+     * Pipeline TMA spécialisé avec répertoire de sortie configurable
+     */
+    private static void runTmaPipeline(String pdfPath, String outputDir) throws Exception {
+        // Pour l'instant, utiliser le même pipeline principal 
+        // TODO: Plus tard on pourra créer une logique spécialisée TMA si nécessaire
+        runPipeline(pdfPath, outputDir);
+    }
+
+    /**
      * Pipeline principal avec répertoire de sortie configurable
      */
     private static void runPipeline(String pdfPath, String outputDir) throws Exception {

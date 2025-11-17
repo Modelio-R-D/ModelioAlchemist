@@ -1,0 +1,40 @@
+CAHIER DES CHARGES TMA - MAINTENANCE APPLICATIVE
+
+1. NIVEAU DE SERVICE (SLA)
+- Délai de prise en compte des incidents critiques : 4h
+- Disponibilité minimale garantie : 99.5%
+- Temps de rétablissement maximum : 24h
+- Délai de traitement des demandes d'évolution : 15 jours ouvrés
+
+2. COMPÉTENCES REQUISES
+- Expertise Java/J2EE obligatoire
+- Connaissance des bases de données Oracle et PostgreSQL
+- Maîtrise des environnements Linux et Windows Server
+- Expérience en administration Tomcat et Apache
+- Certification ITIL v3 Foundation souhaitée
+
+3. ORGANISATION
+- Équipe dédiée de 3 personnes minimum
+- Astreinte 24h/24 7j/7 pour les incidents critiques
+- Points de contact réguliers (hebdomadaires)
+- Responsable de projet désigné avec 5 ans d'expérience minimum
+
+4. PRESTATIONS TECHNIQUES
+- Maintenance corrective (correction des anomalies)
+- Maintenance évolutive (nouvelles fonctionnalités)
+- Support utilisateur niveau 3
+- Veille technologique et conseils d'évolution
+- Documentation technique et fonctionnelle
+
+5. PERFORMANCE
+- Temps de réponse des applications < 2 secondes
+- Capacité de montée en charge : +50% d'utilisateurs simultanés
+- Sauvegarde quotidienne avec RTO de 2h
+
+6. PILOTAGE
+- Tableau de bord mensuel avec indicateurs SLA
+- Rapports d'activité trimestriels
+- Comité de pilotage mensuel
+- Plan de continuité d'activité (PCA) à jour
+
+Ce fichier de test permet de valider l'extraction des exigences TMA.
