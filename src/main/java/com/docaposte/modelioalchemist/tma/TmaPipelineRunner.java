@@ -168,7 +168,7 @@ public class TmaPipelineRunner {
                     mcpReport = "MCP execution completed but no detailed report was generated.";
                 }
                 
-                Files.writeString(outDir.resolve("modelio_tma_report.txt"), mcpReport);
+                Files.writeString(outDir.resolve("modelio_mcp_tma_report.txt"), mcpReport);
                 debug("✅ TMA requirements created in Modelio. Report length: " + mcpReport.length());
                 
             } catch (Exception e) {

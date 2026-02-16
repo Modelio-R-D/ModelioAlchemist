@@ -37,82 +37,149 @@ public class PipelineRunner {
         Files.writeString(outDir.resolve("extracted_text.txt"), rawText);
         System.out.println("Extracted text saved.");
 
-        // 2) extractor agent - prompt amélioré pour conserver toutes les exigences  
-        String extractorPrompt = "Vous êtes un expert en extraction de documents techniques. Votre mission est d'extraire TOUTES les informations importantes du document, en particulier :\n" +
-            "\n" +
-            "1. TOUTES les exigences fonctionnelles (même celles qui semblent mineures)\n" +
-            "2. TOUTES les contraintes techniques \n" +
-            "3. TOUS les aspects de sécurité et RSSI\n" +
-            "4. TOUTES les exigences RSE et écoconception\n" +
-            "5. Tous les détails sur l'architecture, les composants, les interfaces\n" +
-            "6. Toutes les règles métier et processus\n" +
-            "\n" +
-            "IMPORTANT: Ne résumez pas, ne filtrez pas, ne perdez aucune information. \n" +
-            "Conservez les détails techniques, les références, les normes mentionnées.\n" +
-            "Structurez le texte de manière claire mais gardez l'exhaustivité.\n" +
-            "\n" +
-            "Texte à traiter :";
+        // 2) extractor agent - prompt amélioré pour conserver toutes les exigences avec regroupement thématique
+        String extractorPrompt = """
+            Vous êtes un expert en extraction de documents d'appels d'offres et de cahiers des charges.
+            Votre mission est d'extraire TOUTES les informations importantes du document en les regroupant par thèmes cohérents.
+            
+            STRUCTURE DE SORTIE ATTENDUE :
+            
+            === CONTEXTE ET OBJECTIFS ===
+            - Objectif général du projet
+            - Contexte métier et organisationnel
+            - Enjeux et finalités
+            
+            === EXIGENCES FONCTIONNELLES MÉTIER ===
+            - Fonctionnalités principales et secondaires
+            - Processus métier à supporter
+            - Règles de gestion
+            - Interactions utilisateurs
+            - Workflows et enchaînements
+            
+            === EXIGENCES TECHNIQUES ET ARCHITECTURE ===
+            - Architecture système et composants
+            - Technologies imposées ou recommandées
+            - Interfaces et intégrations
+            - Performances et volumétries
+            - Contraintes d'infrastructure
+            
+            === EXIGENCES SÉCURITÉ ET RSSI ===
+            - Authentification et autorisation
+            - Chiffrement et protection des données
+            - Audit et traçabilité
+            - Conformité réglementaire
+            - Gestion des risques
+            
+            === EXIGENCES QUALITÉ ET MÉTHODES ===
+            - Tests et recettes
+            - Documentation
+            - Méthodes de développement
+            - Assurance qualité
+            - Livrables attendus
+            
+            === EXIGENCES RSE ET ÉCOCONCEPTION ===
+            - Impact environnemental
+            - Efficacité énergétique
+            - Développement durable
+            - Responsabilité sociale
+            
+            === CONTRAINTES PROJET ===
+            - Délais et planning
+            - Budget et coûts
+            - Ressources humaines
+            - Contraintes organisationnelles
+            
+            INSTRUCTIONS CRITIQUES :
+            - Gardez TOUTE l'information sans résumer
+            - Conservez les références exactes (ex: EX-001, article X.Y)
+            - Maintenez le niveau de détail technique
+            - Précisez le contexte pour chaque exigence
+            - Identifiez les interdépendances entre exigences
+            - Distinguez les exigences obligatoires des recommandations
+            
+            Texte à traiter :""";
         String extracted = llm.runPrompt(extractorPrompt, rawText);
         Files.writeString(outDir.resolve("extracted_agent_text.txt"), extracted);
         System.out.println("Extractor agent output saved.");
 
         // 2.5) NOUVEAU : Requirements Filter Agent - Étape de pré-traitement intelligent
         String requirementsFilterPrompt = """
-            Vous êtes un expert en identification d'exigences système. Votre mission est de FILTRER le texte pour ne conserver QUE les vraies exigences opérationnelles.
+            Vous êtes un expert en analyse d'appels d'offres et spécialiste en ingénierie des exigences.
+            Votre mission : identifier et contextualiser TOUTES les vraies exigences opérationnelles.
             
-            CRITÈRES STRICTS pour qu'un élément soit une VRAIE exigence :
-            ✅ ACCEPTER : Exigences qui décrivent des capacités, contraintes, ou comportements spécifiques du système
-            - "Le système doit permettre..."
-            - "L'application doit supporter..."
-            - "La performance doit être inférieure à..."
-            - "Les données doivent être chiffrées..."
-            - "L'utilisateur doit pouvoir..."
+            APPROCHE INCLUSIVE : ACCEPTER LARGEMENT LES VRAIES EXIGENCES
             
-            ❌ REJETER : Éléments qui ne sont PAS des exigences opérationnelles
-            - Titres de sections ("Objectif du document", "Fonctionnalités principales")
-            - Descriptions générales ("Ce document décrit...")
-            - Contexte ou introduction
-            - Références bibliographiques
-            - Artefacts de formatage (**Pour EX-XXX**, ***Note***, etc.)
-            - Résumés ou conclusions
+            ✅ ACCEPTER PRIORITAIREMENT - Exigences explicites :
+            - "Le système doit/devra/permet..." (capacités fonctionnelles)
+            - "L'application/plateforme doit..." (contraintes techniques)
+            - "Les données doivent/sont..." (règles de gestion)
+            - "L'utilisateur doit/peut..." (fonctionnalités utilisateur)
+            - "Il est obligatoire/requis/nécessaire..." (contraintes)
             
-            INSTRUCTIONS :
-            1. Parcourez TOUT le texte ligne par ligne
-            2. Ne gardez QUE les phrases qui sont de vraies exigences
-            3. Reformulez chaque exigence retenue de manière claire et actionnable
-            4. Numérotez les vraies exigences (REQ-001, REQ-002, etc.)
-            5. Ajoutez une catégorie estimée (Functional, Technical, Security, Performance)
-            6. Ajoutez un niveau de priorité estimé (High, Medium, Low)
+            ✅ ACCEPTER LARGEMENT - Contraintes et exigences diverses :
+            - Contraintes de performance, délais, volumes
+            - Standards, normes, certifications (RGPD, ISO, SecNumcloud)
+            - Contraintes d'hébergement et d'infrastructure
+            - Exigences de sécurité et authentification
+            - Contraintes d'intégration et d'interopérabilité
+            - Exigences de disponibilité et support
+            - Règles métier et processus
+            - Contraintes contractuelles et réglementaires
             
-            FORMAT DE SORTIE - JSON uniquement :
+            ❌ REJETER UNIQUEMENT - Éléments vraiment non-opérationnels :
+            - Titres de sections isolés ("1.2.3 Titre")
+            - Textes de présentation pure ("Cette section décrit...")
+            - Instructions de rédaction ("Le candidat doit répondre...")
+            - Références bibliographiques seules
+            - Numérotation et mise en forme pure
+            
+            ⚠️ TRAITER AVEC BIENVEILLANCE :
+            - Transformer les descriptions en exigences quand c'est pertinent
+            - Conserver les contraintes même si implicites
+            - Garder les règles métier même générales
+            - Préserver les critères de qualité et conformité
+            - EN CAS DE DOUTE : CONSERVER plutôt que rejeter
+            
+            INSTRUCTIONS DE TRAITEMENT INCLUSIVES :
+            1. PRINCIPE GÉNÉRAL : En cas de doute, conservez l'exigence
+            2. Pour chaque élément d'information :
+               - Si c'est une contrainte → CONSERVER
+               - Si c'est une capacité demandée → CONSERVER  
+               - Si c'est une règle ou obligation → CONSERVER
+               - Reformulez clairement si nécessaire
+               - Conservez TOUJOURS les références (EX-XXX)
+            3. Objectif : taux de rétention 40-60% (pas 15%)
+            4. Préférez l'inclusion à l'exclusion pour préserver l'information
+            
+            FORMAT DE SORTIE - JSON structuré :
             {
               "filtered_requirements": [
                 {
                   "id": "REQ-001",
-                  "description": "Le système doit permettre l'authentification des utilisateurs via SSO",
-                  "category": "Security",
-                  "priority": "High"
-                },
-                {
-                  "id": "REQ-002", 
-                  "description": "La base de données doit supporter au moins 1000 utilisateurs concurrents",
-                  "category": "Performance",
-                  "priority": "Medium"
+                  "original_ref": "EX-015",
+                  "description": "Le système doit permettre l'authentification des utilisateurs via SSO avec les comptes Active Directory de l'organisation",
+                  "category": "Sécurité",
+                  "priority": "Haute",
+                  "context": "Gestion des accès utilisateurs",
+                  "business_impact": "Critique pour la sécurité",
+                  "dependencies": ["REQ-002"]
                 }
               ],
-              "rejected_items": [
-                "Objectif du document",
-                "Fonctionnalités principales",
-                "**Pour EX-011**:"
-              ],
+              "contextual_insights": {
+                "domain_specific_rules": [],
+                "regulatory_constraints": [],
+                "integration_requirements": []
+              },
+              "rejected_items": [],
               "statistics": {
-                "total_items_analyzed": 45,
-                "requirements_retained": 23,
-                "items_rejected": 22
+                "total_items_analyzed": 0,
+                "requirements_retained": 0,
+                "items_rejected": 0,
+                "requirements_by_category": {}
               }
             }
             
-            Texte à filtrer :
+            Texte structuré à analyser :
             """;
         
         String filteredRequirements = llm.runPrompt(requirementsFilterPrompt, extracted);
@@ -146,31 +213,78 @@ public class PipelineRunner {
 
         // 3) classifier agent - utilise maintenant les exigences FILTRÉES
         String classifierPrompt = """
-            Vous êtes un expert en classification d'exigences système. Vous recevez une liste de VRAIES exigences déjà filtrées.
+            Vous êtes un architecte système expert en classification d'exigences pour appels d'offres.
+            Votre mission : organiser les exigences par domaines d'expertise tout en préservant les contextes métier.
             
-            Classifiez CHAQUE exigence selon ces catégories EXACTES :
-            - "technique" : Architecture système, technologies, performances, intégrations, API, protocoles, infrastructure
-            - "rssi" : Sécurité, authentification, autorisation, chiffrement, audit, conformité sécuritaire, protection des données
-            - "fonctionnel" : Fonctionnalités métier, cas d'usage, processus, règles de gestion, interfaces utilisateur
-            - "rse" : Responsabilité sociale, éthique, impact social, gouvernance, transparence
-            - "ecoconception" : Efficacité énergétique, empreinte carbone, développement durable, optimisation des ressources
+            CATÉGORIES DE CLASSIFICATION :
             
-            INSTRUCTIONS :
-            1. Prenez les exigences filtrées du JSON fourni (champ "filtered_requirements")
-            2. Classifiez chaque exigence selon sa catégorie naturelle
-            3. Conservez l'ID et la description exacte de chaque exigence
-            4. Si une exigence touche plusieurs catégories, la dupliquer dans chaque catégorie
+            "technique" - Infrastructure et Architecture :
+            - Architecture système, patterns, composants
+            - Technologies imposées, frameworks, langages
+            - Performances, volumétries, scalabilité
+            - Intégrations, APIs, protocoles, formats
+            - Infrastructure, déploiement, monitoring
+            - Contraintes techniques spécifiques
             
-            Retournez UNIQUEMENT un objet JSON valide avec cette structure :
+            "rssi" - Sécurité et Conformité :
+            - Authentification, autorisation, SSO
+            - Chiffrement, protection des données
+            - Audit, traçabilité, logs de sécurité
+            - Conformité RGPD, normes sécuritaires
+            - Gestion des risques, plan de continuité
+            - Contrôles d'accès et habilitations
+            
+            "fonctionnel" - Métier et Processus :
+            - Fonctionnalités principales et secondaires
+            - Processus métier, workflows, validation
+            - Règles de gestion spécifiques au domaine
+            - Interface utilisateur, ergonomie
+            - Gestion des données métier
+            - Cas d'usage et scénarios opérationnels
+            
+            "rse" - Gouvernance et Responsabilité :
+            - Transparence, traçabilité des décisions
+            - Éthique, protection des utilisateurs
+            - Accessibilité, inclusion numérique
+            - Gouvernance des données
+            - Impact social, responsabilité
+            
+            "ecoconception" - Durabilité et Efficacité :
+            - Efficacité énergétique, optimisation
+            - Empreinte carbone, impact environnemental
+            - Réutilisabilité, modularité
+            - Optimisation des ressources
+            - Durée de vie, maintenabilité
+            
+            RÈGLES DE CLASSIFICATION :
+            1. Analysez le contexte métier de chaque exigence
+            2. Identifiez la catégorie PRINCIPALE (impact majeur)
+            3. Si impact significatif sur plusieurs catégories → dupliquer avec adaptation contextuelle
+            4. Conservez les références originales (REQ-XXX, EX-XXX)
+            5. Enrichissez avec le contexte métier spécifique
+            6. Regroupez les exigences connexes logiquement
+            
+            FORMAT DE SORTIE - JSON enrichi :
             {
-              "technique": ["REQ-001: texte complet exigence 1", "REQ-005: texte complet exigence 5"],
-              "rssi": ["REQ-002: texte complet exigence 2"],
-              "fonctionnel": ["REQ-003: texte complet exigence 3"],
-              "rse": ["REQ-004: texte complet exigence 4"],
-              "ecoconception": ["REQ-006: texte complet exigence 6"]
+              "technique": [
+                {
+                  "requirement_id": "REQ-001",
+                  "original_ref": "EX-015",
+                  "description": "texte complet avec contexte",
+                  "technical_domain": "architecture|performance|integration|infrastructure",
+                  "business_context": "contexte métier spécifique"
+                }
+              ],
+              "rssi": [...],
+              "fonctionnel": [...],
+              "rse": [...],
+              "ecoconception": [...],
+              "cross_category_links": [
+                {"source": "REQ-001", "target": "REQ-005", "relationship": "dependency"}
+              ]
             }
             
-            Exigences filtrées à classifier (JSON) :
+            Exigences à classifier avec enrichissement contextuel :
             """;
         String classified = llm.runPrompt(classifierPrompt, filteredJson);
 
@@ -191,9 +305,25 @@ public class PipelineRunner {
         Files.writeString(outDir.resolve("requirements_validation.txt"), validationReport);
         System.out.println("Requirements validation: " + (validation.isValid ? "✅ PASSED" : "❌ FAILED"));
         
+        // NOUVEAU : Validation de la contextualisation enrichie
+        RequirementContextValidator.ContextValidationResult contextValidation = 
+            RequirementContextValidator.validateContextualization(extracted, classifiedJson);
+        
+        String contextValidationReport = RequirementContextValidator.generateContextValidationReport(contextValidation);
+        Files.writeString(outDir.resolve("context_validation.txt"), contextValidationReport);
+        System.out.println("Context validation: " + (contextValidation.isValid ? "✅ PASSED" : "⚠️ NEEDS ATTENTION"));
+        
         if (!validation.isValid) {
             System.err.println("⚠️  WARNING: Some requirements may have been lost during classification!");
             System.err.println("Missing: " + validation.missingRequirements.size() + " requirements");
+        }
+        
+        if (!contextValidation.isValid) {
+            System.err.println("⚠️  WARNING: Some requirements lack proper contextualization!");
+            System.err.println("Missing contexts: " + contextValidation.missingContexts.size());
+            System.err.println("Contextualization rate: " + 
+                (contextValidation.totalRequirements > 0 ? 
+                    (contextValidation.contextualizedRequirements * 100 / contextValidation.totalRequirements) : 0) + "%");
         }
 
         // parse JSON
@@ -205,49 +335,100 @@ public class PipelineRunner {
         String modelDescription = "";
 
         for (String key : new String[]{"technique", "rssi", "fonctionnel", "rse", "ecoconception"}) {
-            String ctx = "";
+            StringBuilder ctx = new StringBuilder();
             if (root.has(key) && root.get(key) != null) {
-                JsonNode node = root.get(key);
-                if (!node.isNull()) {
-                    ctx = node.toString();
+                JsonNode categoryNode = root.get(key);
+                if (!categoryNode.isNull() && categoryNode.isArray()) {
+                    // Nouveau format enrichi : extraire les descriptions des objets
+                    for (JsonNode reqNode : categoryNode) {
+                        if (reqNode.has("description")) {
+                            String reqId = reqNode.has("requirement_id") ? reqNode.get("requirement_id").asText() : "REQ-UNK";
+                            String originalRef = reqNode.has("original_ref") ? reqNode.get("original_ref").asText() : "";
+                            String description = reqNode.get("description").asText();
+                            String businessContext = reqNode.has("business_context") ? reqNode.get("business_context").asText() : "";
+                            
+                            // Reconstituer au format attendu par les prompts suivants
+                            ctx.append(reqId);
+                            if (!originalRef.isEmpty()) {
+                                ctx.append(" (").append(originalRef).append(")");
+                            }
+                            ctx.append(": ").append(description);
+                            if (!businessContext.isEmpty()) {
+                                ctx.append(" [Contexte: ").append(businessContext).append("]");
+                            }
+                            ctx.append("\n");
+                        }
+                    }
+                } else if (categoryNode.isArray()) {
+                    // Format ancien (tableau de strings) : fallback
+                    for (JsonNode item : categoryNode) {
+                        ctx.append(item.asText()).append("\n");
+                    }
                 }
             }
             
             // Skip if no content available for this category
-            if (ctx.isEmpty() || ctx.equals("\"\"") || ctx.equals("{}") || ctx.equals("[]")) {
+            if (ctx.length() == 0 || ctx.toString().trim().isEmpty()) {
                 System.out.println("Skipping " + key + " - no content available");
                 Files.writeString(outDir.resolve(key + "_report.txt"), "No content available for category: " + key);
                 continue;
             }
             
-            // Prompt amélioré pour l'analyse par catégorie
+            // Prompt amélioré pour l'analyse par catégorie avec contextualisation métier
             String agentPrompt = """
-                Vous êtes un expert en analyse d'exigences pour la catégorie "%s".
+                Vous êtes un expert en %s pour projets d'appels d'offres publics et privés.
                 
-                Analysez en détail TOUTES les exigences de cette catégorie et produisez un rapport structuré comprenant :
+                MISSION : Analysez exhaustivement les exigences de votre domaine en préservant le contexte métier.
                 
-                1. INVENTAIRE EXHAUSTIF : Listez et numérotez chaque exigence (gardez les références EX-XXX)
-                2. ANALYSE DÉTAILLÉE : Pour chaque exigence, analysez :
-                   - L'impact sur le système
-                   - Les contraintes techniques
-                   - Les dépendances avec d'autres exigences
-                   - Les risques et points d'attention
-                3. SYNTHÈSE ARCHITECTURALE : Impact global sur l'architecture système
-                4. RECOMMANDATIONS : Actions concrètes pour satisfaire ces exigences
-                5. POINTS DE VIGILANCE : Risques de non-conformité ou de perte d'exigences
+                STRUCTURE D'ANALYSE ATTENDUE :
+                
+                === INVENTAIRE CONTEXTUALISÉ ===
+                Pour chaque exigence :
+                - Référence et ID (REQ-XXX, EX-XXX)
+                - Contexte métier spécifique
+                - Impact sur l'architecture globale
+                - Niveau de criticité business
+                - Interdépendances identifiées
+                
+                === REGROUPEMENT THÉMATIQUE ===
+                Organisez les exigences par sous-domaines cohérents :
+                %s
+                
+                === ANALYSE D'IMPACT SYSTÈME ===
+                - Impact sur les autres domaines (transversalité)
+                - Contraintes techniques induites
+                - Risques de non-conformité
+                - Complexité de mise en œuvre
+                
+                === RECOMMANDATIONS OPÉRATIONNELLES ===
+                - Solutions techniques concrètes
+                - Bonnes pratiques du domaine
+                - Standards et normes applicables
+                - Méthodes de validation et test
+                
+                === POINTS DE VIGILANCE PROJET ===
+                - Risques d'oubli ou de perte d'exigences
+                - Éléments nécessitant éclaircissement
+                - Contraintes d'intégration avec l'existant
+                - Planning et ressources nécessaires
                 
                 CRITÈRES DE QUALITÉ :
-                - Aucune exigence ne doit être omise ou résumée
-                - Conservez la traçabilité (références EX-XXX)
-                - Identifiez les liens entre exigences
-                - Proposez des solutions concrètes
+                - ❌ Aucune exigence ne doit être omise
+                - ✅ Préservez la traçabilité (références originales)
+                - ✅ Contextualisez chaque exigence dans son domaine métier
+                - ✅ Identifiez les liens avec les autres domaines
+                - ✅ Proposez des solutions concrètes et éprouvées
                 
-                Exigences à analyser pour la catégorie %s :
-                """.formatted(key.toUpperCase(), key);
+                Exigences à analyser pour le domaine %s :
+                """.formatted(
+                    getDomainExpertise(key), 
+                    getDomainSubCategories(key),
+                    key.toUpperCase()
+                );
             
-            String report = llm.runPrompt(agentPrompt, ctx);
+            String report = llm.runPrompt(agentPrompt, ctx.toString());
             Files.writeString(outDir.resolve(key + "_report.txt"), report);
-            System.out.println("Saved report for " + key);
+            System.out.println("Saved report for " + key + " (" + ctx.toString().split("\n").length + " requirements processed)");
 
             // Collecter tous les rapports pour les requirements
             allAgentReports.append("=== ").append(key.toUpperCase()).append(" ANALYSIS ===").append("\n");
@@ -318,38 +499,91 @@ public class PipelineRunner {
             // Générer le PlantUML à partir de la description unifiée
             String puml = ""; // Déclarer puml en dehors du bloc if
             if (modelDesc != null && !modelDesc.trim().isEmpty()) {
-                // Prompt amélioré pour PlantUML unifié
+                // Prompt amélioré pour PlantUML unifié avec use cases et types corrects
                 String pumlPrompt = """
                     Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
-                    Générez un diagramme de classes UML COMPLET intégrant TOUS les aspects du système.
+                    Générez PLUSIEURS diagrammes UML COMPLETS : classes, use cases et séquences.
                     
-                    RÈGLES STRICTES :
-                    1. Commencez par @startuml et finissez par @enduml
-                    2. Organisez en PACKAGES par domaine :
-                       - package "Business" { } // Classes métier
-                       - package "Technical" { } // Infrastructure
-                       - package "Security" { } // Sécurité
-                       - package "Monitoring" { } // Transverse
-                    3. Utilisez les NOMS EXACTS des classes identifiées (pas de synonymes)
-                    4. Incluez TOUS les attributs et méthodes mentionnés
-                    5. Modélisez TOUTES les relations (métier, technique, sécurité)
-                    6. Respectez la syntaxe PlantUML correcte
-                    7. Ajoutez des commentaires pour la traçabilité (ex: ' EX-001: exigence fonctionnelle)
+                    STRUCTURE OBLIGATOIRE - Générez EXACTEMENT ce format :
                     
-                    SYNTAXE PlantUML attendue :
-                    - Classes : class NomClasse { +attribut: type +methode() }
-                    - Relations : ClasseA --> ClasseB : "relation"
-                    - Cardinalités : ClasseA "1" --> "0..*" ClasseB
-                    - Héritage : ClasseParent <|-- ClasseEnfant
-                    - Composition : ClasseA *-- ClasseB
-                    - Agrégation : ClasseA o-- ClasseB
+                    1. DIAGRAMME DE CLASSES (obligatoire) :
+                    @startuml Classes
+                    !theme plain
                     
-                    VÉRIFICATION : Le diagramme doit refléter :
-                    - Toutes les classes métier (fonctionnel)
-                    - Toutes les classes techniques (infrastructure)
-                    - Toutes les classes sécuritaires (RSSI)
-                    - Toutes les classes transverses (RSE, éco-conception)
-                    - Toutes leurs relations et interactions
+                    package "Business" {
+                      class NomExact {
+                        +id: int
+                        +nom: String  
+                        +date: String
+                        +status: String
+                        +methode()
+                      }
+                    }
+                    
+                    package "Technical" {
+                      class ServiceClass {
+                        +processData()
+                        +validateInput()
+                      }
+                    }
+                    
+                    package "Securite" {
+                      class AuthService {
+                        +authenticate(): boolean
+                        +authorize(): boolean
+                      }
+                    }
+                    
+                    ' RELATIONS OBLIGATOIRES avec cardinalités
+                    Business.ClasseA "1" --> "0..*" Business.ClasseB : "gère"
+                    Business.ClasseC *-- Business.ClasseD : "contient"
+                    Technical.ServiceClass --> Business.ClasseA : "utilise"
+                    @enduml
+                    
+                    2. DIAGRAMME DE USE CASES (obligatoire) :
+                    @startuml UseCases
+                    !theme plain
+                    
+                    actor "Utilisateur" as User
+                    actor "Administrateur" as Admin
+                    actor "Système Externe" as ExtSys
+                    
+                    rectangle "Système de Gestion" {
+                      usecase "Gérer candidatures" as UC1
+                      usecase "Suivre projets" as UC2
+                      usecase "Générer rapports" as UC3
+                      usecase "Administrer système" as UC4
+                      usecase "Authentifier utilisateur" as UC5
+                    }
+                    
+                    User --> UC1 : "soumet"
+                    User --> UC2 : "consulte"
+                    Admin --> UC3 : "génère"
+                    Admin --> UC4 : "configure"
+                    UC1 --> UC5 : "<<include>>"
+                    UC2 --> UC5 : "<<include>>"
+                    @enduml
+                    
+                    RÈGLES STRICTES TYPES MODELIO :
+                    - Utilisez UNIQUEMENT : String, int, boolean, float
+                    - JAMAIS : Date, Integer, Boolean, LocalDate (incompatibles Modelio)
+                    - Pour dates : utilisez String
+                    - Pour nombres : utilisez int ou float
+                    - Pour identifiants : utilisez int
+                    
+                    RÈGLES RELATIONS OBLIGATOIRES :
+                    - Créez TOUJOURS des associations entre classes liées
+                    - Utilisez les cardinalités (1, 0..1, 0..*, 1..*)
+                    - Nommez les relations ("gère", "contient", "utilise")
+                    - Modélisez l'héritage avec <|--
+                    - Modélisez la composition avec *--
+                    - Modélisez l'agrégation avec o--
+                    
+                    OBLIGATIONS USE CASES :
+                    - Identifiez TOUS les acteurs du système
+                    - Créez des use cases pour chaque fonctionnalité
+                    - Utilisez <<include>> pour les dépendances
+                    - Utilisez <<extend>> pour les cas optionnels
                     
                     Description complète du système à transformer en PlantUML :
                     """;
@@ -406,24 +640,24 @@ public class PipelineRunner {
                 // 1) Créer les exigences dans Modelio à partir des exigences filtrées
                 System.out.println("🗺️ Step 1: Creating requirements in Modelio...");
                 String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString());
-                Files.writeString(outDir.resolve("modelio_requirements_report.txt"), requirementsReport);
+                Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
                 System.out.println("✅ Requirements created in Modelio");
                 
                 // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
                 System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
                 String classModelReport = mcp.createUmlClassModel(plantUMLContent, outDir.toString());
-                Files.writeString(outDir.resolve("modelio_classmodel_report.txt"), classModelReport);
+                Files.writeString(outDir.resolve("modelio_mcp_classmodel_report.txt"), classModelReport);
                 System.out.println("✅ UML class model created in Modelio from PlantUML");
                 
                 // Résumé final
                 StringBuilder finalSummary = new StringBuilder();
-                finalSummary.append("=== MODELIO CREATION SUMMARY ===\n\n");
-                finalSummary.append("1. REQUIREMENTS CREATION:\n").append(requirementsReport).append("\n\n");
-                finalSummary.append("2. UML CLASS MODEL CREATION:\n").append(classModelReport).append("\n\n");
-                finalSummary.append("=== END SUMMARY ===\n");
+                finalSummary.append("=== MODELIO MCP CREATION SUMMARY ===\n\n");
+                finalSummary.append("1. MCP REQUIREMENTS CREATION:\n").append(requirementsReport).append("\n\n");
+                finalSummary.append("2. MCP UML CLASS MODEL CREATION:\n").append(classModelReport).append("\n\n");
+                finalSummary.append("=== END MCP SUMMARY ===\n");
                 
-                Files.writeString(outDir.resolve("modelio_creation_summary.txt"), finalSummary.toString());
-                System.out.println("📋 Final summary saved to modelio_creation_summary.txt");
+                Files.writeString(outDir.resolve("modelio_mcp_creation_summary.txt"), finalSummary.toString());
+                System.out.println("📋 Final MCP summary saved to modelio_mcp_creation_summary.txt");
                 
             } catch (Exception e) {
                 String errorMsg = "MCP failed: " + e.getMessage();
@@ -435,5 +669,63 @@ public class PipelineRunner {
         }
 
         System.out.println("Pipeline finished.");
+    }
+    
+    /**
+     * Retourne l'expertise spécialisée selon le domaine pour contextualiser l'analyse
+     */
+    private String getDomainExpertise(String domain) {
+        return switch (domain) {
+            case "technique" -> "architecture système et infrastructure technique";
+            case "rssi" -> "sécurité informatique et conformité réglementaire";
+            case "fonctionnel" -> "analyse métier et processus opérationnels";
+            case "rse" -> "responsabilité sociale et gouvernance";
+            case "ecoconception" -> "développement durable et efficacité énergétique";
+            default -> "analyse système généraliste";
+        };
+    }
+    
+    /**
+     * Retourne les sous-catégories d'analyse par domaine
+     */
+    private String getDomainSubCategories(String domain) {
+        return switch (domain) {
+            case "technique" -> """
+                - Architecture applicative et patterns
+                - Infrastructure, déploiement, cloud
+                - Performance, scalabilité, disponibilité
+                - Intégrations, APIs, protocoles
+                - Technologies, frameworks, composants
+                """;
+            case "rssi" -> """
+                - Authentification, autorisation, SSO
+                - Protection des données, chiffrement
+                - Audit, traçabilité, logs sécurité
+                - Conformité RGPD, normes sécuritaires
+                - Gestion des risques, continuité
+                """;
+            case "fonctionnel" -> """
+                - Processus métier, workflows
+                - Fonctionnalités principales et secondaires
+                - Règles de gestion, validation
+                - Interface utilisateur, ergonomie
+                - Gestion des données métier
+                """;
+            case "rse" -> """
+                - Transparence, gouvernance
+                - Éthique, protection utilisateurs
+                - Accessibilité, inclusion numérique
+                - Impact social, responsabilité
+                - Conformité réglementaire sociale
+                """;
+            case "ecoconception" -> """
+                - Efficacité énergétique, optimisation
+                - Empreinte carbone, impact environnemental
+                - Réutilisabilité, modularité, durabilité
+                - Optimisation des ressources
+                - Maintenabilité, évolutivité
+                """;
+            default -> "- Analyse générale par sous-domaines";
+        };
     }
 }

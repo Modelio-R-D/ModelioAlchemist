@@ -201,8 +201,8 @@ public class TmaRequirementsExtractor {
             ID: TMA-001
             TITLE: [Titre court de l'exigence]
             DESCRIPTION: [Description détaillée]
-            CATEGORY: [SLA / Competences / Organisational / Technical / Performance / Governance]
-            PRIORITY: [High / Medium / Low]
+            CATEGORY: [SLA / Compétences / Organisationnel / Technique / Performance / Pilotage]
+            PRIORITY: [Haute / Moyenne / Basse]
             SOURCE: [Section du cahier des charges]
             MEASURABLE: [Critères de vérification]
             VALUES: [Valeurs chiffrées si applicable]
@@ -222,8 +222,8 @@ public class TmaRequirementsExtractor {
             ID: TMA-001
             TITLE: Maintien des compétences sur 4 ans
             DESCRIPTION: Le titulaire doit maintenir pendant toute la durée du marché, sans interruption, un niveau constant de compétences des intervenants
-            CATEGORY: Competences
-            PRIORITY: High
+            CATEGORY: Compétences
+            PRIORITY: Haute
             SOURCE: 3.2 Ressources humaines
             MEASURABLE: Audit des CV, certifications, plan de formation
             VALUES: Durée = 4 ans

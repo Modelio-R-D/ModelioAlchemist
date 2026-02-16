@@ -14,12 +14,12 @@ public class Requirement {
         this.id = id != null ? id : "";
         this.title = title != null ? title : "";
         this.description = description != null ? description : "";
-        this.category = category != null ? category : "Functional";
-        this.priority = priority != null ? priority : "Medium";
+        this.category = category != null ? category : "Fonctionnel";
+        this.priority = priority != null ? priority : "Moyenne";
     }
     
     public Requirement(String id, String description) {
-        this(id, id, description, "Functional", "Medium");
+        this(id, id, description, "Fonctionnel", "Moyenne");
     }
     
     @Override
