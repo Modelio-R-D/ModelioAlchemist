@@ -30,7 +30,7 @@ Accelerate UML modeling in Modelio 6.1.1 by letting LangChain4j + Azure OpenAI i
 - **Modelio** 6.1.1 (module `binaryversion` in `module.xml`).
 - **Java** 17 (configured via `maven-compiler-plugin`).
 - **Maven** 3.9+.
-- **Modelio MCP Server** module running in the same workspace (provides the SSE endpoint consumed by `ModelioMcpAgent`).
+- **Modelio MCP Server** module running in the same workspace (provides the Streamable HTTP endpoint consumed by `ModelioMcpAgent`).
 - **Azure OpenAI access** (API gateway token or Azure AD token) compatible with LangChain4j 1.3.x.
 
 ## Build & Install
@@ -48,13 +48,13 @@ The build copies all runtime dependencies to `target/lib/`, assembles `target/Mo
 | `AZURE_OPENAI_AD_TOKEN` | ✅ | Subscription key or AAD token used by `HttpPolicies.auth()` to hit your Azure OpenAI / API Gateway endpoint. |
 | `AZURE_OPENAI_BASE_URL` | ➖ (default `https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-4o`) | Base URL passed to `AzureEndpointResolver`. |
 | `AZURE_OPENAI_DEPLOYMENT` | ➖ | Deployment name when the base URL does not embed it (e.g., `gpt-4o`). |
-| `MODELIO_MCP_URL` | ➖ (default `http://localhost:8080/sse`) | SSE endpoint exposed by the Modelio MCP server module. |
+| `MODELIO_MCP_URL` | ➖ (default `http://localhost:8083/mcp`) | Streamable HTTP endpoint exposed by the Modelio MCP server module. |
 
 These can be defined globally, via a startup script, or inside Modelio’s launcher `.bat`/`.sh` so that the module inherits them.
 
 ## Using the Module inside Modelio
 1. **Install + activate** ModelioAlchemist in your project.
-2. **Ensure the MCP server** module is running (the MCP status console should show `/sse` ready).
+2. **Ensure the MCP server** module is running (the MCP status console should show `/mcp` ready).
 3. **Configure Azure variables** in the environment used to launch Modelio.
 4. **Open a project** and right-click any element (package, root, etc.) to access the module’s contextual commands:
 
@@ -110,4 +110,3 @@ The pipeline consistently drops machine-readable traces so you can feed downstre
 - Reuse the pooled `LangchainService` instead of instantiating new MCP clients.
 - Add sample inputs/outputs under `documents/` so reviewers can replay scenarios.
 - Run `mvn clean package` before submitting to ensure the `.jmdac` assembles correctly.
-

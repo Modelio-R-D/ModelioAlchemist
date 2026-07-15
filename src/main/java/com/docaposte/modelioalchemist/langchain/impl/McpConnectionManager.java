@@ -5,7 +5,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import dev.langchain4j.mcp.client.DefaultMcpClient;
-import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.McpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 
 /**
  * Manages a singleton MCP connection with basic retry/backoff and health checks.
@@ -23,7 +24,7 @@ public class McpConnectionManager {
     private final Duration timeout;
     private final Logger logger;
 
-    private volatile HttpMcpTransport transport;
+    private volatile McpTransport transport;
     private volatile DefaultMcpClient client;
 
     private final Object initLock = new Object();
@@ -45,8 +46,8 @@ public class McpConnectionManager {
 
     private void build() {
         try {
-            transport = new HttpMcpTransport.Builder()
-                .sseUrl(sseUrl)
+            transport = new StreamableHttpMcpTransport.Builder()
+                .url(sseUrl)
                 .timeout(timeout)
                 .logRequests(true)
                 .logResponses(false)
