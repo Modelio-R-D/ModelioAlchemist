@@ -1515,7 +1515,7 @@ public class LangchainService {
     private static com.azure.ai.openai.OpenAIAsyncClient buildClient(AzureEndpointResolver.AzureEndpointInfo info, String aadToken) {
         com.azure.ai.openai.OpenAIClientBuilder builder = new com.azure.ai.openai.OpenAIClientBuilder()
             .endpoint(info.endpoint)
-            .httpLogOptions(new com.azure.core.http.policy.HttpLogOptions().setLogLevel(com.azure.core.http.policy.HttpLogDetailLevel.BODY_AND_HEADERS))
+            .httpLogOptions(HttpPolicies.httpLogOptions())
             .addPolicy(HttpPolicies.auth(aadToken))
             .addPolicy(HttpPolicies.capture());
             

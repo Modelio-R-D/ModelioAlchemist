@@ -49,6 +49,7 @@ The build copies all runtime dependencies to `target/lib/`, assembles `target/Mo
 | `AZURE_OPENAI_BASE_URL` | ➖ (default `https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-4o`) | Base URL passed to `AzureEndpointResolver`. |
 | `AZURE_OPENAI_DEPLOYMENT` | ➖ | Deployment name when the base URL does not embed it (e.g., `gpt-4o`). |
 | `MODELIO_MCP_URL` | ➖ (default `http://localhost:8083/mcp`) | Streamable HTTP endpoint exposed by the Modelio MCP server module. |
+| `MODELIO_ALCHEMIST_HTTP_LOG_LEVEL` | ➖ (default `NONE`) | Azure HTTP log verbosity (`NONE`, `BASIC`, `HEADERS`, `BODY_AND_HEADERS`). Keep `NONE` for normal runs; increase only for troubleshooting. |
 
 These can be defined globally, via a startup script, or inside Modelio’s launcher `.bat`/`.sh` so that the module inherits them.
 
@@ -102,6 +103,7 @@ The pipeline consistently drops machine-readable traces so you can feed downstre
 ## Troubleshooting
 - **Missing Azure token** – the pipeline stops early with “Please set AZURE_OPENAI_AD_TOKEN” (see `Main`). Export the env var before launching Modelio.
 - **MCP connection failures** – `LangchainService` logs “Impossible de se connecter au serveur MCP Modelio”; verify the MCP server module is active and that `MODELIO_MCP_URL` points to the right host/port.
+- **HTTP request/response logs are too verbose** – ensure `MODELIO_ALCHEMIST_HTTP_LOG_LEVEL` is unset (or set to `NONE`). Use `BASIC`/`HEADERS`/`BODY_AND_HEADERS` only for temporary diagnostics.
 - **Empty requirement sets** – inspect `filtered_requirements.json` and `*_report.txt`; adjust the source PDF quality or tweak prompts in `PipelineRunner`/`TmaRequirementsExtractor` if your corpus uses different markers.
 - **Output directory issues** – handlers fall back to `%USERPROFILE%` when they cannot resolve the project root. Ensure your Modelio project is writable if you rely on in-project folders.
 
