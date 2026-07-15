@@ -67,7 +67,7 @@ public class Main {
         String apiKey = System.getenv("AZURE_OPENAI_AD_TOKEN");
         String baseUrl = System.getenv("AZURE_OPENAI_BASE_URL");
         String deployment = System.getenv("AZURE_OPENAI_DEPLOYMENT");
-        String mcpUrl = System.getenv("MODELIO_MCP_URL"); // e.g. http://localhost:8080/sse
+        String mcpUrl = System.getenv("MODELIO_MCP_URL"); // e.g. http://localhost:8083/mcp
 
         if (apiKey == null) {
             System.err.println("Please set AZURE_OPENAI_AD_TOKEN environment variable.");
@@ -77,7 +77,7 @@ public class Main {
             baseUrl = "https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-4o"; // default
         }
         if (mcpUrl == null) {
-            mcpUrl = "http://localhost:8080/sse"; // default
+            mcpUrl = "http://localhost:8083/mcp"; // default
         }
 
         System.out.println("Using Azure OpenAI configuration:");

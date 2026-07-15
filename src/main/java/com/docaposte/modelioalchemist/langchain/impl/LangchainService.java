@@ -22,7 +22,8 @@ import dev.langchain4j.mcp.client.McpReadResourceResult;
 import dev.langchain4j.mcp.client.McpResource;
 import dev.langchain4j.mcp.client.McpResourceContents;
 import dev.langchain4j.mcp.client.McpTextResourceContents;
-import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.McpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.service.AiServices;
@@ -48,14 +49,14 @@ public class LangchainService {
     // -------------------------------------------------- Configuration --------------------------------------------------
     private static final int POOL_SIZE = 2;                    // max assistants parallèles
     private static final long POOL_BORROW_TIMEOUT_MS = 5000;
-    private static final String DEFAULT_MCP_SSE_URL = "http://localhost:8080/sse";
+    private static final String DEFAULT_MCP_URL = "http://localhost:8083/mcp";
     
     // -------------------------------------------------- Infrastructure partagée (construite une fois) --------------------------------------------------
     private static volatile boolean infraInitialized = false;
     private static PolicyAwareAzureChatModel sharedChatModel;
     private static McpToolProvider sharedToolProvider;        // optionnel, peut être null
     private static DefaultMcpClient sharedMcpClient;          // pour shutdown; connexion unique
-    private static HttpMcpTransport sharedTransport;          // pour shutdown
+    private static McpTransport sharedTransport;          // pour shutdown
     private static final ArrayBlockingQueue<PooledUmlAssistant> ASSISTANT_POOL = new ArrayBlockingQueue<>(POOL_SIZE);
     
     // Cache des ressources MCP
@@ -68,12 +69,12 @@ public class LangchainService {
         if (infraInitialized) return;
         
         sharedChatModel = chatModel;
-        String actualMcpUrl = (mcpSseUrl != null && !mcpSseUrl.isEmpty()) ? mcpSseUrl : DEFAULT_MCP_SSE_URL;
+        String actualMcpUrl = (mcpSseUrl != null && !mcpSseUrl.isEmpty()) ? mcpSseUrl : DEFAULT_MCP_URL;
         
         // MCP
         try {
-            sharedTransport = new HttpMcpTransport.Builder()
-                    .sseUrl(actualMcpUrl)
+            sharedTransport = new StreamableHttpMcpTransport.Builder()
+                    .url(actualMcpUrl)
                     .timeout(Duration.ofMinutes(5))
                     .logRequests(true)
                     .logResponses(false)

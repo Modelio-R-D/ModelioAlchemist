@@ -2,7 +2,7 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
-import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.agent.tool.ToolSpecification;
 
@@ -20,8 +20,8 @@ public class ModelioMcpClient {
 
     public ModelioMcpClient(String sseUrl) {
         // Initialize MCP transport and client
-        HttpMcpTransport transport = new HttpMcpTransport.Builder()
-                .sseUrl(sseUrl)
+        StreamableHttpMcpTransport transport = new StreamableHttpMcpTransport.Builder()
+                .url(sseUrl)
                 .timeout(Duration.ofSeconds(60))
                 .logRequests(true)
                 .logResponses(false)
