@@ -641,12 +641,24 @@ public class PipelineRunner {
                 System.out.println("🗺️ Step 1: Creating requirements in Modelio...");
                 String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString());
                 Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
+                if (requirementsReport == null || requirementsReport.trim().isEmpty() ||
+                    requirementsReport.startsWith("❌") ||
+                    requirementsReport.startsWith("MCP_EXECUTION_FAILED:") ||
+                    requirementsReport.startsWith("[error:")) {
+                    throw new IllegalStateException("Requirements creation did not execute successfully via MCP.\n" + requirementsReport);
+                }
                 System.out.println("✅ Requirements created in Modelio");
                 
                 // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
                 System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
                 String classModelReport = mcp.createUmlClassModel(plantUMLContent, outDir.toString());
                 Files.writeString(outDir.resolve("modelio_mcp_classmodel_report.txt"), classModelReport);
+                if (classModelReport == null || classModelReport.trim().isEmpty() ||
+                    classModelReport.startsWith("❌") ||
+                    classModelReport.startsWith("MCP_EXECUTION_FAILED:") ||
+                    classModelReport.startsWith("[error:")) {
+                    throw new IllegalStateException("Class model creation did not execute successfully via MCP.\n" + classModelReport);
+                }
                 System.out.println("✅ UML class model created in Modelio from PlantUML");
                 
                 // Résumé final

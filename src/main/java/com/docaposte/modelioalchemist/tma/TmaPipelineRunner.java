@@ -166,6 +166,10 @@ public class TmaPipelineRunner {
                 if (mcpReport == null || mcpReport.trim().isEmpty()) {
                     debug("⚠️ Warning: MCP returned empty report");
                     mcpReport = "MCP execution completed but no detailed report was generated.";
+                } else if (mcpReport.startsWith("❌") ||
+                           mcpReport.startsWith("MCP_EXECUTION_FAILED:") ||
+                           mcpReport.startsWith("[error:")) {
+                    throw new RuntimeException(mcpReport);
                 }
                 
                 Files.writeString(outDir.resolve("modelio_mcp_tma_report.txt"), mcpReport);

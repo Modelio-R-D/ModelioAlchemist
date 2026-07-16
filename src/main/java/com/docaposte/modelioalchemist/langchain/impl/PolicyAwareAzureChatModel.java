@@ -2,6 +2,7 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -32,6 +33,34 @@ import com.azure.core.util.BinaryData;
 
 final class PolicyAwareAzureChatModel implements ChatModel {
 
+    static final class ToolExecutionTrace {
+        final String phaseName;
+        int chatRequests;
+        int toolSpecificationsOffered;
+        int modelRequestedToolCalls;
+        int toolResultMessagesSent;
+        boolean sawAnyToolCall;
+        final Set<String> offeredToolNames = new LinkedHashSet<>();
+        final Set<String> requestedToolNames = new LinkedHashSet<>();
+        final Set<String> toolResultIds = new LinkedHashSet<>();
+
+        ToolExecutionTrace(String phaseName) {
+            this.phaseName = phaseName;
+        }
+
+        String toSummary() {
+            return "MCP_TRACE phase=" + phaseName
+                    + " chatRequests=" + chatRequests
+                    + " toolSpecs=" + toolSpecificationsOffered
+                    + " requestedToolCalls=" + modelRequestedToolCalls
+                    + " toolResults=" + toolResultMessagesSent
+                    + " requestedTools=" + requestedToolNames
+                    + " offeredTools=" + offeredToolNames;
+        }
+    }
+
+    private static final ThreadLocal<ToolExecutionTrace> ACTIVE_TRACE = new ThreadLocal<>();
+
     private final OpenAIAsyncClient client;
     private final AzureEndpointResolver.AzureEndpointInfo info;
     private final double temperature;
@@ -47,11 +76,23 @@ final class PolicyAwareAzureChatModel implements ChatModel {
 
     public ChatResponse doChat(ChatRequest request) {
         try {
+            ToolExecutionTrace trace = ACTIVE_TRACE.get();
+            if (trace != null) {
+                trace.chatRequests++;
+            }
             List<ChatRequestMessage> azureMessages = toAzureMessages(request.messages());
             ChatCompletionsOptions opts = new ChatCompletionsOptions(azureMessages);
             Double temp = request.temperature(); if (temp == null) temp = temperature; if (temp != null) opts.setTemperature(temp);
             List<ToolSpecification> specs = request.toolSpecifications();
             if (specs != null && !specs.isEmpty()) {
+                if (trace != null) {
+                    trace.toolSpecificationsOffered = specs.size();
+                    for (ToolSpecification spec : specs) {
+                        if (spec != null && spec.name() != null) {
+                            trace.offeredToolNames.add(spec.name());
+                        }
+                    }
+                }
                 List<ChatCompletionsToolDefinition> toolDefs = new ArrayList<>();
                 for (ToolSpecification spec : specs) {
                     try {
@@ -78,6 +119,15 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                 } catch (Throwable outer) { /* ignore */ }
             }
             final String assistantText = assistantTextHolder[0];
+            if (trace != null && !toolCalls.isEmpty()) {
+                trace.sawAnyToolCall = true;
+                trace.modelRequestedToolCalls += toolCalls.size();
+                for (ToolExecutionRequest toolCall : toolCalls) {
+                    if (toolCall != null && toolCall.name() != null) {
+                        trace.requestedToolNames.add(toolCall.name());
+                    }
+                }
+            }
             AiMessage ai = toolCalls.isEmpty() ? AiMessage.from(assistantText) : AiMessage.from(assistantText, toolCalls);
             return ChatResponse.builder().aiMessage(ai).build();
         } catch (Throwable t) {
@@ -103,10 +153,29 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                 String toolCallId = tr.id();
                 if (toolCallId == null || !emittedToolCallIds.contains(toolCallId)) { continue; }
                 String content = tr.text(); if (content == null) content = "";
+                ToolExecutionTrace trace = ACTIVE_TRACE.get();
+                if (trace != null) {
+                    trace.toolResultMessagesSent++;
+                    trace.toolResultIds.add(toolCallId);
+                }
                 azureMessages.add(new ChatRequestToolMessage(content, toolCallId));
             }
         }
         return azureMessages;
+    }
+
+    static void startToolExecutionTrace(String phaseName) {
+        ACTIVE_TRACE.set(new ToolExecutionTrace(phaseName));
+    }
+
+    static ToolExecutionTrace finishToolExecutionTrace() {
+        ToolExecutionTrace trace = ACTIVE_TRACE.get();
+        ACTIVE_TRACE.remove();
+        return trace;
+    }
+
+    static ToolExecutionTrace currentToolExecutionTrace() {
+        return ACTIVE_TRACE.get();
     }
 
     private ChatRequestAssistantMessage buildAssistantWithToolCalls(AiMessage ai, List<ToolExecutionRequest> trs, Set<String> emittedToolCallIds) {

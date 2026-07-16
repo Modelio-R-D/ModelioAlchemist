@@ -29,6 +29,12 @@ public class ModelioMcpClient {
                 
         this.mcpClient = new DefaultMcpClient.Builder()
                 .transport(transport)
+                .initializationTimeout(Duration.ofSeconds(30))
+                .toolExecutionTimeout(Duration.ofMinutes(3))
+                .resourcesTimeout(Duration.ofSeconds(30))
+                .promptsTimeout(Duration.ofSeconds(30))
+                .pingTimeout(Duration.ofSeconds(15))
+                .toolExecutionTimeoutErrorMessage("MCP tool execution timed out. Increase timeout or reduce batch size.")
                 .build();
                 
         // Create tool provider for dynamic tool discovery (follows ModelioBot pattern)

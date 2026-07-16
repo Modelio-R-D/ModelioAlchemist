@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.mcp.McpToolProvider;
@@ -33,12 +35,18 @@ import com.docaposte.modelioalchemist.langchain.impl.HttpPolicies;
 import com.docaposte.modelioalchemist.langchain.impl.JsonUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * Service LangChain4j unifié pour ModelioAlchemist suivant le pattern de ModelioBot.
  * Implémentation poolée : réutilise le client MCP, le fournisseur d'outils, et un petit pool d'instances UmlModelingAssistant.
  * Évite la configuration de connexion par requête tout en gardant les conversations isolées.
  */
 public class LangchainService {
+    private static final Pattern REAL_UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
+    private static final Pattern PLACEHOLDER_UUID_VALUE_PATTERN = Pattern.compile("\"[^\"]*uuid[^\"]*\"\\s*:\\s*\"uuid-[^\"]+\"", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MANUAL_INSTRUCTIONS_PATTERN = Pattern.compile(
+            "(?i)(^|\\b)(?:étape\\s*1|step\\s*1|ouvrez?\\s+modelio|ouvrir\\s+modelio|suivez\\s+les\\s+étapes|vous\\s+pouvez\\s+trouver\\s+l['’]uuid|trouver\\s+l['’]uuid|assurez-vous\\s+d['’]avoir\\s+modelio|créez\\s+un\\s+nouveau\\s+projet)");
 
     // -------------------------------------------------- Logging --------------------------------------------------
     private static final boolean DEBUG = true;
@@ -50,6 +58,11 @@ public class LangchainService {
     private static final int POOL_SIZE = 2;                    // max assistants parallèles
     private static final long POOL_BORROW_TIMEOUT_MS = 5000;
     private static final String DEFAULT_MCP_URL = "http://localhost:8083/mcp";
+    private static final Duration MCP_INIT_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration MCP_TOOL_EXECUTION_TIMEOUT = Duration.ofMinutes(3);
+    private static final Duration MCP_RESOURCES_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration MCP_PROMPTS_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration MCP_PING_TIMEOUT = Duration.ofSeconds(15);
     
     // -------------------------------------------------- Infrastructure partagée (construite une fois) --------------------------------------------------
     private static volatile boolean infraInitialized = false;
@@ -61,6 +74,9 @@ public class LangchainService {
     
     // Cache des ressources MCP
     private static List<McpResource> cachedResources = new ArrayList<>();
+    private static List<String> cachedToolNames = new ArrayList<>();
+    private static List<ToolSpecification> cachedToolSpecifications = new ArrayList<>();
+    private static volatile String mcpInitErrorDetail;
 
     /**
      * Initialise l'infrastructure partagée (client MCP, modèle de chat, pool d'assistants)
@@ -82,11 +98,23 @@ public class LangchainService {
                     
             sharedMcpClient = new DefaultMcpClient.Builder()
                     .transport(sharedTransport)
+                    .initializationTimeout(MCP_INIT_TIMEOUT)
+                    .toolExecutionTimeout(MCP_TOOL_EXECUTION_TIMEOUT)
+                    .resourcesTimeout(MCP_RESOURCES_TIMEOUT)
+                    .promptsTimeout(MCP_PROMPTS_TIMEOUT)
+                    .pingTimeout(MCP_PING_TIMEOUT)
+                    .toolExecutionTimeoutErrorMessage("MCP tool execution timed out. Increase timeout or reduce batch size.")
                     .build();
                     
             try {
                 // Lister les outils
-                sharedMcpClient.listTools().forEach(ts -> debug("MCP Tool: " + ts.name()));
+                cachedToolSpecifications = sharedMcpClient.listTools();
+                cachedToolNames = cachedToolSpecifications.stream()
+                        .map(ts -> ts.name())
+                        .collect(Collectors.toList());
+                debug("Discovered " + cachedToolNames.size() + " MCP tool(s)");
+                cachedToolNames.forEach(toolName -> debug("MCP Tool: " + toolName));
+                logMcpToolDiagnostics(cachedToolSpecifications);
                 
                 try {
                     cachedResources = sharedMcpClient.listResources();
@@ -112,8 +140,11 @@ public class LangchainService {
             }
             
             sharedToolProvider = McpToolProvider.builder().mcpClients(sharedMcpClient).build();
+            mcpInitErrorDetail = null;
         } catch (Throwable t) { 
-            debug("MCP init failed (continuing without tools/resources): " + t.getMessage()); 
+            mcpInitErrorDetail = describeThrowable(t);
+            debug("MCP init failed: " + mcpInitErrorDetail);
+            throw new IllegalStateException("MCP initialization failed: " + mcpInitErrorDetail, t);
         }
         
         // Pré-chauffer le pool
@@ -174,6 +205,118 @@ public class LangchainService {
         ASSISTANT_POOL.offer(newAssistant()); // offrir un nouveau pour éviter le contexte résiduel
     }
 
+    private static String executeAssistantWithMcpTrace(PooledUmlAssistant pa, String phaseName, String prompt, String outputDirectory) throws IOException {
+        debug("MCP discovery snapshot for phase '" + phaseName + "': tools=" + cachedToolNames.size() + " " + cachedToolNames);
+        PolicyAwareAzureChatModel.startToolExecutionTrace(phaseName);
+        String result;
+        try {
+            result = pa.assistant.createUmlModel(prompt);
+        } finally {
+            PolicyAwareAzureChatModel.ToolExecutionTrace trace = PolicyAwareAzureChatModel.finishToolExecutionTrace();
+            String traceSummary = formatToolExecutionTrace(trace);
+            debug(traceSummary);
+            if (outputDirectory != null && !outputDirectory.trim().isEmpty()) {
+                saveDebugFile(traceSummary + System.lineSeparator(), phaseName + "_mcp_trace.txt", outputDirectory);
+            }
+            if (trace == null || trace.modelRequestedToolCalls <= 0) {
+                throw new IllegalStateException(
+                        "MCP_EXECUTION_FAILED: phase '" + phaseName + "' completed without MCP tool calls.");
+            }
+        }
+        return result;
+    }
+
+    private static String formatToolExecutionTrace(PolicyAwareAzureChatModel.ToolExecutionTrace trace) {
+        if (trace == null) {
+            return "MCP_TRACE phase=unknown status=no-trace";
+        }
+        return trace.toSummary();
+    }
+
+    private static void ensureMcpToolsAvailable() {
+        if (sharedToolProvider == null || cachedToolNames.isEmpty()) {
+            String detail = (mcpInitErrorDetail != null && !mcpInitErrorDetail.isBlank())
+                    ? mcpInitErrorDetail
+                    : "No MCP tools discovered from server";
+            throw new IllegalStateException("MCP tools unavailable: " + detail);
+        }
+    }
+
+    private static String describeThrowable(Throwable t) {
+        if (t == null) return "unknown";
+        StringBuilder sb = new StringBuilder();
+        Throwable current = t;
+        int depth = 0;
+        while (current != null && depth < 5) {
+            if (depth > 0) sb.append(" <- ");
+            sb.append(current.getClass().getName());
+            if (current.getMessage() != null && !current.getMessage().isBlank()) {
+                sb.append(": ").append(current.getMessage());
+            }
+            current = current.getCause();
+            depth++;
+        }
+        return sb.toString();
+    }
+
+    private static void logMcpToolDiagnostics(List<ToolSpecification> tools) {
+        if (tools == null || tools.isEmpty()) {
+            debug("MCP tool diagnostics: no tools returned by listTools()");
+            return;
+        }
+        for (int i = 0; i < tools.size(); i++) {
+            ToolSpecification spec = tools.get(i);
+            if (spec == null) {
+                debug("MCP Tool[" + i + "] = null");
+                continue;
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("MCP Tool[").append(i).append("] ");
+            sb.append("name='").append(nullToEmpty(spec.name())).append("'");
+            if (spec.description() != null && !spec.description().isBlank()) {
+                sb.append(" description='").append(truncate(spec.description(), 220)).append("'");
+            }
+
+            String schemaPreview;
+            try {
+                String schema = ToolSchemaBuilder.build(spec);
+                schemaPreview = truncate(schema, 1200);
+            } catch (Throwable schemaEx) {
+                schemaPreview = "SCHEMA_BUILD_ERROR: " + describeThrowable(schemaEx);
+            }
+            sb.append(" schemaPreview=").append(schemaPreview);
+
+            String reflectedParameters = invokeNoArgSafely(spec, "parameters");
+            if (reflectedParameters != null) {
+                sb.append(" reflected.parameters=").append(truncate(reflectedParameters, 600));
+            }
+            String reflectedInputSchema = invokeNoArgSafely(spec, "inputSchema");
+            if (reflectedInputSchema != null) {
+                sb.append(" reflected.inputSchema=").append(truncate(reflectedInputSchema, 600));
+            }
+            debug(sb.toString());
+        }
+    }
+
+    private static String invokeNoArgSafely(Object target, String methodName) {
+        try {
+            Object value = target.getClass().getMethod(methodName).invoke(target);
+            return value == null ? "null" : value.toString();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String truncate(String value, int maxLen) {
+        if (value == null) return "null";
+        if (value.length() <= maxLen) return value;
+        return value.substring(0, maxLen) + "...(truncated)";
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
     // -------------------------------------------------- API Publique (poolée) --------------------------------------------------
     
     /**
@@ -208,6 +351,7 @@ public class LangchainService {
         PooledUmlAssistant pa = null;
         try {
             ensureInfrastructureInitialized(mcpSseUrl, chatModel);
+            ensureMcpToolsAvailable();
             pa = borrowAssistant();
             
             ChatMemory chatMemory = pa.memory;
@@ -308,7 +452,7 @@ public class LangchainService {
             String prompt = createLegacyModelGenerationPrompt(plantUMLContent, requirementsDocuments, parsedRequirements);
             
             // Laisser l'assistant IA gérer la création du modèle avec les outils MCP disponibles
-            String result = pa.assistant.createUmlModel(prompt);
+            String result = executeAssistantWithMcpTrace(pa, "legacy_generation", prompt, outputDirectory);
             
             return result;
             
@@ -339,65 +483,136 @@ public class LangchainService {
      */
     public static String createRequirementsInModelio(String filteredRequirementsJson, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
         ensureInfrastructureInitialized(mcpSseUrl, chatModel);
+        ensureMcpToolsAvailable();
         
         try {
             debug("🎯 Creating requirements in Modelio from filtered JSON...");
             
-            // Parse les exigences filtrées
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(filteredRequirementsJson);
             
             if (!root.has("filtered_requirements")) {
                 return "❌ No filtered_requirements found in JSON";
             }
-            
-            StringBuilder requirementsPrompt = new StringBuilder();
-            requirementsPrompt.append("Créez les exigences suivantes dans Modelio :\n\n");
-            
+
             JsonNode filteredReqs = root.get("filtered_requirements");
-            int reqCount = 0;
+            if (!filteredReqs.isArray() || filteredReqs.isEmpty()) {
+                return "❌ filtered_requirements is empty";
+            }
+
+            List<Requirement> requirements = new ArrayList<>();
+            int index = 1;
             for (JsonNode reqNode : filteredReqs) {
-                String id = reqNode.get("id").asText();
-                String description = reqNode.get("description").asText();
-                String category = reqNode.get("category").asText();
-                String priority = reqNode.get("priority").asText();
-                
-                requirementsPrompt.append(String.format("EXIGENCE %s:\n", id));
-                requirementsPrompt.append(String.format("- Description: %s\n", description));
-                requirementsPrompt.append(String.format("- Catégorie: %s\n", category));
-                requirementsPrompt.append(String.format("- Priorité: %s\n\n", priority));
-                reqCount++;
+                requirements.add(new Requirement(
+                        reqNode.path("id").asText("REQ-" + index),
+                        reqNode.path("id").asText("REQ-" + index),
+                        reqNode.path("description").asText(""),
+                        reqNode.path("category").asText("Fonctionnel"),
+                        reqNode.path("priority").asText("Moyenne")));
+                index++;
             }
-            
-            debug("📝 Creating " + reqCount + " requirements in Modelio...");
-            
-            PooledUmlAssistant pa = borrowAssistant();
-            if (pa == null) {
-                return "❌ Could not borrow assistant for requirements creation";
+
+            String result = createRequirementsDirectlyViaMcp(requirements, outputDirectory);
+            validateMcpExecutionResult("requirements", result, "requirements_created", "exigences_creees");
+            debug("✅ Requirements creation completed");
+
+            if (outputDirectory != null) {
+                Files.writeString(Path.of(outputDirectory).resolve("requirements_creation_report.txt"), result);
             }
-            
-            try {
-                String result = pa.assistant.createUmlModel(requirementsPrompt.toString());
-                debug("✅ Requirements creation completed");
-                
-                // Sauvegarder le rapport
-                if (outputDirectory != null) {
-                    Files.writeString(Path.of(outputDirectory).resolve("requirements_creation_report.txt"), result);
-                }
-                
-                return result;
-            } finally {
-                try {
-                    ASSISTANT_POOL.offer(pa);
-                } catch (Exception e) {
-                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
-                }
-            }
-            
+
+            return result;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            debug("❌ Requirements creation interrupted: " + e.getMessage());
+            return "❌ Error creating requirements: interrupted while waiting for Modelio MCP";
         } catch (Exception e) {
             debug("❌ Error creating requirements in Modelio: " + e.getMessage());
             return "❌ Error creating requirements: " + e.getMessage();
         }
+    }
+
+    private static String createRequirementsDirectlyViaMcp(List<Requirement> requirements, String outputDirectory) throws IOException, InterruptedException {
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode createdRequirements = mapper.createArrayNode();
+        ArrayNode failedRequirements = mapper.createArrayNode();
+        StringBuilder executionTrace = new StringBuilder();
+
+        debug("📝 Creating " + requirements.size() + " requirements in Modelio via direct MCP calls...");
+
+        for (int i = 0; i < requirements.size(); i++) {
+            Requirement requirement = requirements.get(i);
+            ObjectNode arguments = mapper.createObjectNode();
+            arguments.put("type", "Requirement");
+            arguments.put("name", requirement.id);
+            arguments.put("definition", requirement.description);
+            ObjectNode analystProperties = arguments.putObject("analyst_properties");
+            analystProperties.put("categorie", requirement.category);
+            analystProperties.put("priorité", requirement.priority);
+
+            String argumentsJson = mapper.writeValueAsString(arguments);
+            executionTrace.append("REQ ").append(requirement.id).append(" args=").append(argumentsJson).append(System.lineSeparator());
+
+            String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                    .id("create-requirement-" + requirement.id)
+                    .name("analyst_createElement")
+                    .arguments(argumentsJson)
+                    .build());
+            executionTrace.append("REQ ").append(requirement.id).append(" response=")
+                    .append(truncate(response, 1200))
+                    .append(System.lineSeparator())
+                    .append(System.lineSeparator());
+
+            debug("MCP direct analyst_createElement for " + requirement.id + " -> " + truncate(response, 400));
+
+            String createdUuid = extractFirstRealUuid(response);
+            if (createdUuid == null) {
+                ObjectNode failedRequirement = failedRequirements.addObject();
+                failedRequirement.put("id", requirement.id);
+                failedRequirement.put("description", requirement.description);
+                failedRequirement.put("error", "No UUID returned by analyst_createElement");
+                failedRequirement.put("raw_response", truncate(response, 1200));
+                break;
+            }
+
+            ObjectNode createdRequirement = createdRequirements.addObject();
+            createdRequirement.put("id", requirement.id);
+            createdRequirement.put("uuid", createdUuid);
+            createdRequirement.put("description", requirement.description);
+            createdRequirement.put("category", requirement.category);
+            createdRequirement.put("priority", requirement.priority);
+
+            if (i < requirements.size() - 1) {
+                // Give Modelio time to process Analyst-side refreshes between transactions.
+                TimeUnit.MILLISECONDS.sleep(250);
+            }
+        }
+
+        if (outputDirectory != null) {
+            Files.writeString(Path.of(outputDirectory).resolve("requirements_direct_mcp_trace.txt"), executionTrace.toString());
+        }
+
+        ObjectNode report = mapper.createObjectNode();
+        report.set("requirements_created", createdRequirements);
+        report.put("total_requirements", createdRequirements.size());
+        if (failedRequirements.isEmpty()) {
+            report.putNull("package_uuid");
+        } else {
+            report.set("failed_requirements", failedRequirements);
+        }
+
+        String reportJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(report);
+        if (!failedRequirements.isEmpty() || createdRequirements.size() != requirements.size()) {
+            throw new IllegalStateException("MCP direct requirement creation stopped after "
+                    + createdRequirements.size() + "/" + requirements.size() + " items. Partial report:\n" + reportJson);
+        }
+
+        return reportJson;
+    }
+
+    private static String extractFirstRealUuid(String text) {
+        if (text == null || text.isBlank()) return null;
+        Matcher matcher = REAL_UUID_PATTERN.matcher(text);
+        return matcher.find() ? matcher.group() : null;
     }
 
     /**
@@ -406,6 +621,7 @@ public class LangchainService {
      */
     public static String createUmlClassModel(String analysisResults, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
         ensureInfrastructureInitialized(mcpSseUrl, chatModel);
+        ensureMcpToolsAvailable();
         
         StringBuilder finalReport = new StringBuilder();
         finalReport.append("=== CRÉATION DU MODÈLE UML EN 3 PHASES ===\n\n");
@@ -429,33 +645,36 @@ public class LangchainService {
             
             // PHASE 1 : Création des Requirements
             debug("📋 PHASE 1: Creating Requirements...");
-            String requirementsPrompt = createRequirementsPrompt(analysisResults, parsedRequirements, requirementsDocuments);
-            
-            PooledUmlAssistant pa1 = borrowAssistant();
-            if (pa1 == null) {
-                return "❌ Could not borrow assistant for requirements creation";
-            }
-            
             String requirementsResult;
-            try {
-                requirementsResult = pa1.assistant.createUmlModel(requirementsPrompt);
-                finalReport.append("PHASE 1 - REQUIREMENTS:\n").append(requirementsResult).append("\n\n");
-                
-                // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES
-                List<String> requirementsUUIDs = extractUUIDs(requirementsResult);
-                String requirementsJSON = extractJSONStructure(requirementsResult, "requirements_created");
-                
-                debug("✅ Requirements creation completed - UUIDs extracted: " + requirementsUUIDs.size());
-                if (requirementsJSON != null) {
-                    debug("📊 Requirements JSON structure extracted successfully");
+            if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
+                requirementsResult = createRequirementsDirectlyViaMcp(parsedRequirements, outputDirectory);
+            } else {
+                String requirementsPrompt = createRequirementsPrompt(analysisResults, parsedRequirements, requirementsDocuments);
+
+                PooledUmlAssistant pa1 = borrowAssistant();
+                if (pa1 == null) {
+                    return "❌ Could not borrow assistant for requirements creation";
                 }
-                
-            } finally {
+
                 try {
-                    ASSISTANT_POOL.offer(pa1);
-                } catch (Exception e) {
-                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                    requirementsResult = executeAssistantWithMcpTrace(pa1, "requirements_phase", requirementsPrompt, outputDirectory);
+                } finally {
+                    try {
+                        ASSISTANT_POOL.offer(pa1);
+                    } catch (Exception e) {
+                        debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                    }
                 }
+            }
+            validateMcpExecutionResult("requirements_phase", requirementsResult, "requirements_created", "exigences_creees");
+            finalReport.append("PHASE 1 - REQUIREMENTS:\n").append(requirementsResult).append("\n\n");
+             
+            List<String> requirementsUUIDs = extractUUIDs(requirementsResult);
+            String requirementsJSON = extractJSONStructure(requirementsResult, "requirements_created", "exigences_creees");
+            
+            debug("✅ Requirements creation completed - UUIDs extracted: " + requirementsUUIDs.size());
+            if (requirementsJSON != null) {
+                debug("📊 Requirements JSON structure extracted successfully");
             }
             
             // PHASE 2 : Création des Classes et Associations
@@ -469,12 +688,13 @@ public class LangchainService {
             
             String classesResult;
             try {
-                classesResult = pa2.assistant.createUmlModel(classesPrompt);
+                classesResult = executeAssistantWithMcpTrace(pa2, "domain_model_phase", classesPrompt, outputDirectory);
+                validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
                 finalReport.append("PHASE 2 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
-                
+                 
                 // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES  
                 List<String> classesUUIDs = extractUUIDs(classesResult);
-                String domainModelJSON = extractJSONStructure(classesResult, "domain_model_created");
+                String domainModelJSON = extractJSONStructure(classesResult, "domain_model_created", "modele_domaine_cree");
                 String asBuildPlantUML = extractPlantUMLDiagram(classesResult, "AS_BUILT_DOMAIN_MODEL");
                 
                 debug("✅ Classes and associations creation completed - UUIDs extracted: " + classesUUIDs.size());
@@ -504,7 +724,8 @@ public class LangchainService {
             
             String useCasesResult;
             try {
-                useCasesResult = pa3.assistant.createUmlModel(useCasesPrompt);
+                useCasesResult = executeAssistantWithMcpTrace(pa3, "use_cases_phase", useCasesPrompt, outputDirectory);
+                validateMcpExecutionResult("use_cases_phase", useCasesResult, "use_cases_created");
                 finalReport.append("PHASE 3 - USE CASES & ACTORS:\n").append(useCasesResult).append("\n\n");
                 
                 // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES
@@ -543,6 +764,10 @@ public class LangchainService {
             debug("✅ UML model creation completed using 3-phase approach");
             return finalReport.toString();
             
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            debug("❌ UML model creation interrupted: " + e.getMessage());
+            return "❌ Error in 3-phase UML model creation: interrupted while waiting for Modelio MCP";
         } catch (Exception e) {
             debug("❌ Error in 3-phase UML model creation: " + e.getMessage());
             return "❌ Error in 3-phase UML model creation: " + e.getMessage();
@@ -1023,18 +1248,18 @@ public class LangchainService {
         prompt.append("Après avoir créé toutes les exigences, générer ce format EXACT :\n\n");
         prompt.append("```json\n");
         prompt.append("{\n");
-        prompt.append("  \"exigences_creees\": [\n");
+        prompt.append("  \"requirements_created\": [\n");
         prompt.append("    {\n");
         prompt.append("      \"id\": \"EXG-001\",\n");
-        prompt.append("      \"uuid\": \"uuid-extrait-de-mcp\",\n");
+        prompt.append("      \"uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
         prompt.append("      \"description\": \"Le système doit...\",\n");
         prompt.append("      \"categorie\": \"Fonctionnelle\",\n");
         prompt.append("      \"priorite\": \"Haute\",\n");
         prompt.append("      \"elements_plantuml\": [\"Utilisateur\", \"Authentification\"]\n");
         prompt.append("    }\n");
         prompt.append("  ],\n");
-        prompt.append("  \"total_exigences\": 12,\n");
-        prompt.append("  \"uuid_package\": \"uuid-package-exigences\"\n");
+        prompt.append("  \"total_requirements\": 12,\n");
+        prompt.append("  \"package_uuid\": \"00000000-0000-0000-0000-000000000000\"\n");
         prompt.append("}\n");
         prompt.append("```\n\n");
         prompt.append("🔗 **elements_plantuml** : Lister les classes/acteurs PlantUML liés à cette exigence\n\n");
@@ -1045,7 +1270,7 @@ public class LangchainService {
         prompt.append("✅ Exigences correctement catégorisées et priorisées\n");
         prompt.append("✅ Toutes les descriptions en français\n\n");
         
-        prompt.append("COMMENCEZ MAINTENANT : Créez les exigences en utilisant les outils MCP.");
+        prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez les exigences avec les outils MCP et retournez uniquement le JSON demandé.");
         
         return prompt.toString();
     }
@@ -1141,12 +1366,12 @@ public class LangchainService {
         prompt.append("### 2. JSON DU MODÈLE DE DOMAINE STRUCTURÉ\n");
         prompt.append("```json\n");
         prompt.append("{\n");
-        prompt.append("  \"modele_domaine_cree\": {\n");
-        prompt.append("    \"uuid_package\": \"uuid-package-domaine\",\n");
+        prompt.append("  \"domain_model_created\": {\n");
+        prompt.append("    \"package_uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
         prompt.append("    \"classes\": [\n");
         prompt.append("      {\n");
         prompt.append("        \"nom\": \"Utilisateur\",\n");
-        prompt.append("        \"uuid\": \"uuid-classe\",\n");
+        prompt.append("        \"uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
         prompt.append("        \"attributs\": [{\"nom\": \"email\", \"type\": \"String\"}],\n");
         prompt.append("        \"exigences_liees\": [\"EXG-001\", \"EXG-003\"]\n");
         prompt.append("      }\n");
@@ -1169,7 +1394,7 @@ public class LangchainService {
         prompt.append("- --o = Aggregation\n");
         prompt.append("- --* = Composition\n\n");
         
-        prompt.append("START NOW: Create packages, classes, attributes, then associations.");
+        prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. START NOW: create packages, classes, attributes, then associations with MCP tools and return the as-built outputs only.");
         
         return prompt.toString();
     }
@@ -1283,12 +1508,12 @@ public class LangchainService {
         prompt.append("```json\n");
         prompt.append("{\n");
         prompt.append("  \"use_cases_created\": {\n");
-        prompt.append("    \"package_uuid\": \"usecase-package-uuid\",\n");
-        prompt.append("    \"actors\": [{\"name\": \"User\", \"uuid\": \"actor-uuid\"}],\n");
+        prompt.append("    \"package_uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
+        prompt.append("    \"actors\": [{\"name\": \"User\", \"uuid\": \"00000000-0000-0000-0000-000000000000\"}],\n");
         prompt.append("    \"use_cases\": [\n");
         prompt.append("      {\n");
         prompt.append("        \"name\": \"Login\",\n");
-        prompt.append("        \"uuid\": \"usecase-uuid\",\n");
+        prompt.append("        \"uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
         prompt.append("        \"actors\": [\"User\"],\n");
         prompt.append("        \"linked_requirements\": [\"REQ-001\"],\n");
         prompt.append("        \"domain_classes_used\": [\"User\", \"Authentication\"]\n");
@@ -1318,7 +1543,7 @@ public class LangchainService {
         prompt.append("🔗 Référencer les classes du modèle de domaine manipulées par les cas d'usage\n");
         prompt.append("🔗 Assurer une couverture complète des exigences fonctionnelles\n\n");
         
-        prompt.append("COMMENCEZ MAINTENANT : Créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations.");
+        prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.");
         
         return prompt.toString();
     }
@@ -1346,8 +1571,8 @@ public class LangchainService {
     /**
      * Extrait la structure JSON depuis un output d'agent
      */
-    private static String extractJSONStructure(String agentOutput, String jsonKey) {
-        if (agentOutput == null || jsonKey == null) return null;
+    private static String extractJSONStructure(String agentOutput, String... jsonKeys) {
+        if (agentOutput == null || jsonKeys == null || jsonKeys.length == 0) return null;
         
         try {
             // Chercher le bloc JSON avec la clé spécifiée
@@ -1357,19 +1582,46 @@ public class LangchainService {
             if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
                 String potentialJson = agentOutput.substring(jsonStart, jsonEnd + 1);
                 
-                // Vérifier si la clé recherchée est présente
-                if (potentialJson.contains("\"" + jsonKey + "\"")) {
-                    debug("📊 Extracted JSON structure for key: " + jsonKey);
-                    return potentialJson;
+                for (String jsonKey : jsonKeys) {
+                    if (jsonKey != null && potentialJson.contains("\"" + jsonKey + "\"")) {
+                        debug("📊 Extracted JSON structure for key: " + jsonKey);
+                        return potentialJson;
+                    }
                 }
             }
             
-            debug("⚠️ No JSON structure found for key: " + jsonKey);
+            debug("⚠️ No JSON structure found for keys: " + String.join(", ", jsonKeys));
             return null;
             
         } catch (Exception e) {
             debug("❌ Error extracting JSON structure: " + e.getMessage());
             return null;
+        }
+    }
+
+    private static void validateMcpExecutionResult(String phaseName, String result, String... expectedJsonKeys) {
+        if (result == null || result.trim().isEmpty()) {
+            throw new IllegalStateException("No output returned for phase '" + phaseName + "'");
+        }
+
+        String trimmed = result.trim();
+        if (trimmed.startsWith("MCP_EXECUTION_FAILED:") || trimmed.startsWith("❌") || trimmed.startsWith("[error:")) {
+            throw new IllegalStateException(trimmed);
+        }
+
+        if (MANUAL_INSTRUCTIONS_PATTERN.matcher(result).find()) {
+            throw new IllegalStateException(
+                    "The LLM returned manual instructions instead of executing MCP tools during phase '" + phaseName + "'");
+        }
+
+        if (PLACEHOLDER_UUID_VALUE_PATTERN.matcher(result).find() && !REAL_UUID_PATTERN.matcher(result).find()) {
+            throw new IllegalStateException(
+                    "The LLM returned placeholder UUID values instead of real MCP UUIDs during phase '" + phaseName + "'");
+        }
+
+        if (expectedJsonKeys != null && expectedJsonKeys.length > 0 && extractJSONStructure(result, expectedJsonKeys) == null) {
+            throw new IllegalStateException(
+                    "No structured JSON result was returned for phase '" + phaseName + "'");
         }
     }
 
