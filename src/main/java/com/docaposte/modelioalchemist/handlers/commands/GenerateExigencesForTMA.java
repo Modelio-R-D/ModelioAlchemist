@@ -45,38 +45,26 @@ public class GenerateExigencesForTMA extends DefaultModuleCommandHandler {
 
         if (selected != null) {
             System.out.println("[TMA] 📄 File selected: " + selected);
-    
-            String selectedElementInfo = "";
-            if (!selectedElements.isEmpty()) {
-                MObject element = selectedElements.get(0);
-                selectedElementInfo = "\nSelected element: " + element.getName() + 
-                                    " (" + element.getMClass().getName() + ")";
-                System.out.println("[TMA] 🎯 " + selectedElementInfo.trim());
-            }
-
-            MessageDialog.openInformation(
-                Display.getDefault().getActiveShell(),
-                "Processing TMA Requirements",
-                "Selected TMA document: " + selected + 
-                selectedElementInfo +
-                "\nOutput directory: " + outputDir
-            ); 
-
-            try {
-                System.out.println("[TMA] 🔄 Starting TMA pipeline...");
-        
-                // Appel au pipeline TMA spécialisé via Main (même pattern que GenerateFromPdfCommand)
-                Main.tmaWithOutputDir(new String[]{selected}, outputDir);
-        
-                System.out.println("[TMA] ✅ TMA pipeline completed successfully");
-                MessageDialog.openInformation(Display.getDefault().getActiveShell(), "TMA Analysis Complete", 
-                    "✅ TMA requirements analysis generated successfully in: " + outputDir);
-            } catch (Exception e) {
-                System.err.println("[TMA] ❌ Pipeline error: " + e.getMessage());
-                e.printStackTrace();
-                MessageDialog.openError(Display.getDefault().getActiveShell(), "TMA Analysis Error", 
-                    "❌ Error during TMA analysis: " + e.getMessage());
-            }
+            final String selectedFile = selected;
+            final String finalOutputDir = outputDir;
+            Thread worker = new Thread(() -> {
+                try {
+                    System.out.println("[TMA] 🔄 Starting TMA pipeline...");
+                    Main.tmaWithOutputDir(new String[]{selectedFile}, finalOutputDir);
+                    System.out.println("[TMA] ✅ TMA pipeline completed successfully");
+                    Display.getDefault().asyncExec(() -> MessageDialog.openInformation(
+                        Display.getDefault().getActiveShell(), "TMA Analysis Complete",
+                        "✅ TMA requirements analysis generated successfully in: " + finalOutputDir));
+                } catch (Exception e) {
+                    System.err.println("[TMA] ❌ Pipeline error: " + e.getMessage());
+                    e.printStackTrace();
+                    Display.getDefault().asyncExec(() -> MessageDialog.openError(
+                        Display.getDefault().getActiveShell(), "TMA Analysis Error",
+                        "❌ Error during TMA analysis: " + e.getMessage()));
+                }
+            }, "modelioalchemist-tma-pipeline");
+            worker.setDaemon(true);
+            worker.start();
         } else {
             System.out.println("[TMA] ⏹️ No file selected, operation cancelled");
         }

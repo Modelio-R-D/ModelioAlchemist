@@ -9,7 +9,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
             System.err.println("Usage: java -jar modelioalchemiste.jar <path-to-pdf>");
-            System.exit(1);
+            throw new IllegalArgumentException("PDF path is required");
         }
         String pdfPath = args[0];
         
@@ -70,8 +70,9 @@ public class Main {
         String mcpUrl = System.getenv("MODELIO_MCP_URL"); // e.g. http://localhost:8083/mcp
 
         if (apiKey == null) {
-            System.err.println("Please set AZURE_OPENAI_AD_TOKEN environment variable.");
-            System.exit(2);
+            throw new IllegalStateException(
+                "AZURE_OPENAI_AD_TOKEN environment variable is not set. " +
+                "Please configure it before running the pipeline.");
         }
         if (baseUrl == null) {
             baseUrl = "https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-4o"; // default

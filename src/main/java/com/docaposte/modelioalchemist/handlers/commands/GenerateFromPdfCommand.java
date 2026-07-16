@@ -30,29 +30,22 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
         String selected = dialog.open();
 
         if (selected != null) {
-            String selectedElementInfo = "";
-            if (!selectedElements.isEmpty()) {
-                MObject element = selectedElements.get(0);
-                selectedElementInfo = "\nSelected element: " + element.getName() + 
-                                    " (" + element.getMClass().getName() + ")";
-            }
-    
-            MessageDialog.openInformation(
-                Display.getDefault().getActiveShell(),
-                "Processing PDF",
-                "Selected file: " + selected + 
-                selectedElementInfo +
-                "\nOutput directory: " + outputDir
-            );
-
-            try {
-                // Appel à ton pipeline LangChain4J avec répertoire de sortie personnalisé
-                Main.mainWithOutputDir(new String[]{selected}, outputDir);
-                MessageDialog.openInformation(Display.getDefault().getActiveShell(), "Done", "✅ Model generated successfully in: " + outputDir);
-            } catch (Exception e) {
-                MessageDialog.openError(Display.getDefault().getActiveShell(), "Error", e.getMessage());
-                e.printStackTrace();
-            }
+            final String selectedFile = selected;
+            final String finalOutputDir = outputDir;
+            Thread worker = new Thread(() -> {
+                try {
+                    Main.mainWithOutputDir(new String[]{selectedFile}, finalOutputDir);
+                    Display.getDefault().asyncExec(() -> MessageDialog.openInformation(
+                        Display.getDefault().getActiveShell(), "Done",
+                        "✅ Model generated successfully in: " + finalOutputDir));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Display.getDefault().asyncExec(() -> MessageDialog.openError(
+                        Display.getDefault().getActiveShell(), "Error", e.getMessage()));
+                }
+            }, "modelioalchemist-pdf-pipeline");
+            worker.setDaemon(true);
+            worker.start();
         }
     }
 
