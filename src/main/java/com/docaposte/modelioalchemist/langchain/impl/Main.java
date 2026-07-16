@@ -75,7 +75,7 @@ public class Main {
                 "Please configure it before running the pipeline.");
         }
         if (baseUrl == null) {
-            baseUrl = "https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-4o"; // default
+            baseUrl = "https://apigatewayinnovation.azure-api.net/openai-api/deployments/" + OpenAiDefaults.DEPLOYMENT; // default
         }
         if (mcpUrl == null) {
             mcpUrl = "http://localhost:8083/mcp"; // default
@@ -83,7 +83,8 @@ public class Main {
 
         System.out.println("Using Azure OpenAI configuration:");
         System.out.println("  Base URL: " + baseUrl);
-        System.out.println("  Deployment: " + (deployment != null ? deployment : "default"));
+        System.out.println("  Deployment: " + (deployment != null ? deployment : OpenAiDefaults.DEPLOYMENT + " (default)"));
+        System.out.println("  API Version: " + OpenAiDefaults.API_VERSION);
         System.out.println("  MCP URL: " + mcpUrl);
 
         // Create LangchainService with Azure OpenAI support (compatibility mode for PipelineRunner)
@@ -104,13 +105,13 @@ public class Main {
     private static PolicyAwareAzureChatModel createChatModel(String apiKey, String baseUrl, String deployment) {
         // Resolve Azure endpoint and deployment
         AzureEndpointResolver.AzureEndpointInfo info = AzureEndpointResolver.resolve(
-            baseUrl, deployment != null ? deployment : "", "gpt-4o");
+            baseUrl, deployment != null ? deployment : "", OpenAiDefaults.DEPLOYMENT);
         
         // Build Azure OpenAI client
         com.azure.ai.openai.OpenAIAsyncClient client = buildClient(info, apiKey);
         
-        // Create chat model with temperature 0.9 (same as ModelioBot)
-        return new PolicyAwareAzureChatModel(client, info, 0.9);
+        // Create chat model with project defaults
+        return new PolicyAwareAzureChatModel(client, info, OpenAiDefaults.TEMPERATURE);
     }
     
     /**

@@ -2,6 +2,8 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import java.time.OffsetDateTime;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
@@ -17,6 +19,7 @@ import reactor.core.publisher.Mono;
 class HttpPolicies {
 
     private static final String HTTP_LOG_LEVEL_ENV = "MODELIO_ALCHEMIST_HTTP_LOG_LEVEL";
+    private static final Pattern API_VERSION_QUERY_PATTERN = Pattern.compile("([?&])api-version=[^&#]*", Pattern.CASE_INSENSITIVE);
 
     static HttpPipelinePolicy auth(String aadToken) {
         return (context, next) -> {
@@ -34,10 +37,25 @@ class HttpPolicies {
                 String original = context.getHttpRequest().getUrl().toString();
                 String adjusted = original;
                 if (original.contains("/openai/deployments/")) adjusted = original.replace("/openai/deployments/", "/openai-api/deployments/");
+                adjusted = enforceApiVersion(adjusted, OpenAiDefaults.API_VERSION);
                 if (!adjusted.equals(original)) { try { context.getHttpRequest().setUrl(adjusted); } catch (Throwable ignore) {} }
             } catch (Throwable ignore) {}
             return next.process();
         };
+    }
+
+    private static String enforceApiVersion(String url, String apiVersion) {
+        int fragmentIndex = url.indexOf('#');
+        String fragment = fragmentIndex >= 0 ? url.substring(fragmentIndex) : "";
+        String baseAndQuery = fragmentIndex >= 0 ? url.substring(0, fragmentIndex) : url;
+
+        Matcher matcher = API_VERSION_QUERY_PATTERN.matcher(baseAndQuery);
+        if (matcher.find()) {
+            return matcher.replaceFirst("$1api-version=" + apiVersion) + fragment;
+        }
+
+        String delimiter = baseAndQuery.contains("?") ? "&" : "?";
+        return baseAndQuery + delimiter + "api-version=" + apiVersion + fragment;
     }
 
     static TokenCredential staticTokenCredential(String token) {

@@ -46,10 +46,12 @@ The build copies all runtime dependencies to `target/lib/`, assembles `target/Mo
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `AZURE_OPENAI_AD_TOKEN` | ✅ | Subscription key or AAD token used by `HttpPolicies.auth()` to hit your Azure OpenAI / API Gateway endpoint. |
-| `AZURE_OPENAI_BASE_URL` | ➖ (default `https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-4o`) | Base URL passed to `AzureEndpointResolver`. |
-| `AZURE_OPENAI_DEPLOYMENT` | ➖ | Deployment name when the base URL does not embed it (e.g., `gpt-4o`). |
+| `AZURE_OPENAI_BASE_URL` | ➖ (default `https://apigatewayinnovation.azure-api.net/openai-api/deployments/gpt-5.4-mini`) | Base URL passed to `AzureEndpointResolver`. |
+| `AZURE_OPENAI_DEPLOYMENT` | ➖ | Deployment name when the base URL does not embed it (default: `gpt-5.4-mini`). |
 | `MODELIO_MCP_URL` | ➖ (default `http://localhost:8083/mcp`) | Streamable HTTP endpoint exposed by the Modelio MCP server module. |
 | `MODELIO_ALCHEMIST_HTTP_LOG_LEVEL` | ➖ (default `NONE`) | Azure HTTP log verbosity (`NONE`, `BASIC`, `HEADERS`, `BODY_AND_HEADERS`). Keep `NONE` for normal runs; increase only for troubleshooting. |
+
+The module now targets Azure OpenAI API version `2026-03-17` and uses a default chat temperature of `1.0`.
 
 These can be defined globally, via a startup script, or inside Modelio’s launcher `.bat`/`.sh` so that the module inherits them.
 

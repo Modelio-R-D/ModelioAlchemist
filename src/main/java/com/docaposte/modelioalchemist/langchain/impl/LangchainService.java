@@ -1715,10 +1715,10 @@ public class LangchainService {
     public LangchainService(String apiKey, String baseUrl, String deployment, boolean debug) {
         // Create PolicyAwareAzureChatModel for this instance
         AzureEndpointResolver.AzureEndpointInfo info = AzureEndpointResolver.resolve(
-            baseUrl, deployment != null ? deployment : "", "gpt-4o");
+            baseUrl, deployment != null ? deployment : "", OpenAiDefaults.DEPLOYMENT);
         
         com.azure.ai.openai.OpenAIAsyncClient client = buildClient(info, apiKey);
-        this.instanceChatModel = new PolicyAwareAzureChatModel(client, info, 0.9);
+        this.instanceChatModel = new PolicyAwareAzureChatModel(client, info, OpenAiDefaults.TEMPERATURE);
         
         if (debug) {
             debug("LangchainService instance created for compatibility");
