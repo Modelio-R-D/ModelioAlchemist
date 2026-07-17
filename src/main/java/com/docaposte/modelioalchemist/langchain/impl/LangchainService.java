@@ -44,9 +44,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class LangchainService {
     private static final String CANONICAL_REQUIREMENT_PREFIX = "EXG";
+    private static final String DEFAULT_REQUIREMENT_CONTAINER_NAME = "ModelioAlchemist Requirements";
+    private static final String DEFAULT_REQUIREMENT_CONTAINER_DEFINITION =
+            "Automatically created by ModelioAlchemist to store imported requirements.";
     private static final Pattern REAL_UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
     private static final Pattern PLACEHOLDER_UUID_VALUE_PATTERN = Pattern.compile("\"[^\"]*uuid[^\"]*\"\\s*:\\s*\"uuid-[^\"]+\"", Pattern.CASE_INSENSITIVE);
     private static final Pattern REQUIREMENT_ID_PATTERN = Pattern.compile("(?i)(?:REQ|EXG|EX)[-_\\s]?(\\d{1,6})");
+    private static final Pattern MISSING_REQUIREMENT_CONTAINER_PATTERN =
+            Pattern.compile("(?i)no\\s+requirementcontainer\\s+found");
     private static final Pattern MANUAL_INSTRUCTIONS_PATTERN = Pattern.compile(
             "(?i)(^|\\b)(?:étape\\s*1|step\\s*1|ouvrez?\\s+modelio|ouvrir\\s+modelio|suivez\\s+les\\s+étapes|vous\\s+pouvez\\s+trouver\\s+l['’]uuid|trouver\\s+l['’]uuid|assurez-vous\\s+d['’]avoir\\s+modelio|créez\\s+un\\s+nouveau\\s+projet)");
 
@@ -539,31 +544,19 @@ public class LangchainService {
         ArrayNode createdRequirements = mapper.createArrayNode();
         ArrayNode failedRequirements = mapper.createArrayNode();
         StringBuilder executionTrace = new StringBuilder();
+        String requirementContainerUuid = null;
 
         debug("📝 Creating " + requirements.size() + " requirements in Modelio via direct MCP calls...");
 
         for (int i = 0; i < requirements.size(); i++) {
             Requirement requirement = requirements.get(i);
-            ObjectNode arguments = mapper.createObjectNode();
-            arguments.put("type", "Requirement");
-            arguments.put("name", requirement.id);
-            arguments.put("definition", requirement.description);
-            ObjectNode analystProperties = arguments.putObject("analyst_properties");
-            analystProperties.put("categorie", requirement.category);
-            analystProperties.put("priorité", requirement.priority);
+            String response = createRequirementElement(requirement, requirementContainerUuid, mapper, executionTrace);
 
-            String argumentsJson = mapper.writeValueAsString(arguments);
-            executionTrace.append("REQ ").append(requirement.id).append(" args=").append(argumentsJson).append(System.lineSeparator());
-
-            String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
-                    .id("create-requirement-" + requirement.id)
-                    .name("analyst_createElement")
-                    .arguments(argumentsJson)
-                    .build());
-            executionTrace.append("REQ ").append(requirement.id).append(" response=")
-                    .append(truncate(response, 1200))
-                    .append(System.lineSeparator())
-                    .append(System.lineSeparator());
+            if (requirementContainerUuid == null && isMissingRequirementContainerError(response)) {
+                debug("📁 No RequirementContainer found. Creating one automatically before retrying " + requirement.id);
+                requirementContainerUuid = createRequirementContainer(outputDirectory, mapper, executionTrace);
+                response = createRequirementElement(requirement, requirementContainerUuid, mapper, executionTrace);
+            }
 
             debug("MCP direct analyst_createElement for " + requirement.id + " -> " + truncate(response, 400));
 
@@ -572,7 +565,7 @@ public class LangchainService {
                 ObjectNode failedRequirement = failedRequirements.addObject();
                 failedRequirement.put("id", requirement.id);
                 failedRequirement.put("description", requirement.description);
-                failedRequirement.put("error", "No UUID returned by analyst_createElement");
+                failedRequirement.put("error", extractMcpErrorMessage(response, "No UUID returned by analyst_createElement"));
                 failedRequirement.put("raw_response", truncate(response, 1200));
                 break;
             }
@@ -583,6 +576,9 @@ public class LangchainService {
             createdRequirement.put("description", requirement.description);
             createdRequirement.put("category", requirement.category);
             createdRequirement.put("priority", requirement.priority);
+            if (requirementContainerUuid != null) {
+                createdRequirement.put("container_uuid", requirementContainerUuid);
+            }
 
             if (i < requirements.size() - 1) {
                 // Give Modelio time to process Analyst-side refreshes between transactions.
@@ -597,9 +593,14 @@ public class LangchainService {
         ObjectNode report = mapper.createObjectNode();
         report.set("requirements_created", createdRequirements);
         report.put("total_requirements", createdRequirements.size());
-        if (failedRequirements.isEmpty()) {
+        if (requirementContainerUuid == null) {
             report.putNull("package_uuid");
+            report.putNull("container_uuid");
         } else {
+            report.put("package_uuid", requirementContainerUuid);
+            report.put("container_uuid", requirementContainerUuid);
+        }
+        if (!failedRequirements.isEmpty()) {
             report.set("failed_requirements", failedRequirements);
         }
 
@@ -610,6 +611,88 @@ public class LangchainService {
         }
 
         return reportJson;
+    }
+
+    private static String createRequirementElement(Requirement requirement, String containerUuid, ObjectMapper mapper,
+            StringBuilder executionTrace) throws IOException {
+        ObjectNode arguments = mapper.createObjectNode();
+        arguments.put("type", "Requirement");
+        arguments.put("name", requirement.id);
+        arguments.put("definition", requirement.description);
+        if (containerUuid != null && !containerUuid.isBlank()) {
+            arguments.put("container_uuid", containerUuid);
+        }
+        ObjectNode analystProperties = arguments.putObject("analyst_properties");
+        analystProperties.put("categorie", requirement.category);
+        analystProperties.put("priorité", requirement.priority);
+
+        return executeAnalystTool("REQ " + requirement.id, "create-requirement-" + requirement.id, "analyst_createElement",
+                arguments, mapper, executionTrace);
+    }
+
+    private static String createRequirementContainer(String outputDirectory, ObjectMapper mapper, StringBuilder executionTrace)
+            throws IOException {
+        ObjectNode arguments = mapper.createObjectNode();
+        arguments.put("type", "RequirementContainer");
+        arguments.put("name", DEFAULT_REQUIREMENT_CONTAINER_NAME);
+        arguments.put("definition", DEFAULT_REQUIREMENT_CONTAINER_DEFINITION);
+
+        String response = executeAnalystTool("CONTAINER auto-create", "create-requirement-container-" + System.nanoTime(),
+                "analyst_createContainer", arguments, mapper, executionTrace);
+        debug("MCP direct analyst_createContainer -> " + truncate(response, 400));
+
+        String containerUuid = extractFirstRealUuid(response);
+        if (containerUuid == null) {
+            throw new IllegalStateException("Unable to create RequirementContainer automatically. "
+                    + extractMcpErrorMessage(response, "No UUID returned by analyst_createContainer"));
+        }
+
+        if (outputDirectory != null) {
+            Files.writeString(Path.of(outputDirectory).resolve("requirements_container_creation_report.txt"), response);
+        }
+
+        return containerUuid;
+    }
+
+    private static String executeAnalystTool(String traceLabel, String requestId, String toolName, ObjectNode arguments,
+            ObjectMapper mapper, StringBuilder executionTrace) throws IOException {
+        String argumentsJson = mapper.writeValueAsString(arguments);
+        executionTrace.append(traceLabel).append(" args=").append(argumentsJson).append(System.lineSeparator());
+
+        String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id(requestId)
+                .name(toolName)
+                .arguments(argumentsJson)
+                .build());
+        executionTrace.append(traceLabel).append(" response=")
+                .append(truncate(response, 1200))
+                .append(System.lineSeparator())
+                .append(System.lineSeparator());
+        return response;
+    }
+
+    private static boolean isMissingRequirementContainerError(String response) {
+        return response != null && MISSING_REQUIREMENT_CONTAINER_PATTERN.matcher(response).find();
+    }
+
+    private static String extractMcpErrorMessage(String response, String fallbackMessage) {
+        if (response == null || response.isBlank()) {
+            return fallbackMessage;
+        }
+
+        try {
+            JsonNode root = new ObjectMapper().readTree(response);
+            if (root.path("isError").asBoolean(false)) {
+                String message = root.path("message").asText(null);
+                if (message != null && !message.isBlank()) {
+                    return message;
+                }
+            }
+        } catch (Exception e) {
+            debug("⚠️ Could not parse MCP error payload: " + e.getMessage());
+        }
+
+        return fallbackMessage + " | response=" + truncate(response, 400);
     }
 
     private static String extractFirstRealUuid(String text) {
