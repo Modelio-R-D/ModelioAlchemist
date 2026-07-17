@@ -675,12 +675,13 @@ public class PipelineRunner {
                 String errorMsg = "MCP failed: " + e.getMessage();
                 System.err.println(errorMsg);
                 Files.writeString(outDir.resolve("modelio_mcp_error.txt"), errorMsg);
+                throw new IllegalStateException(errorMsg, e);
             }
         } else {
             System.out.println("No PlantUML content available - skipping MCP generation");
         }
 
-        System.out.println("Pipeline finished.");
+        System.out.println("Pipeline finished successfully.");
     }
     
     /**
