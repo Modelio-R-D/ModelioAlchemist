@@ -9,7 +9,7 @@ import org.modelio.api.module.parameter.IParameterEditionModel;
 @objid ("3c75e949-2ada-4cab-92b5-1fc3c09aa20d")
 public class ModelioAlchemistModule extends AbstractJavaModule {
     @objid ("aef34222-a9dd-4785-b901-0ac52d6d1baa")
-    private static final String MODULE_IMAGE = "/res/icon/module.png";
+    private static final String MODULE_IMAGE = "/res/icon/gui/modelioAlchemist16_18_26.ICON.png";
 
     @objid ("0492b305-b635-4230-b043-6cb72fbbe841")
     private ModelioAlchemistPeerModule peerModule = null;
