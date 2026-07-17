@@ -43,8 +43,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * Évite la configuration de connexion par requête tout en gardant les conversations isolées.
  */
 public class LangchainService {
+    private static final String CANONICAL_REQUIREMENT_PREFIX = "EXG";
     private static final Pattern REAL_UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
     private static final Pattern PLACEHOLDER_UUID_VALUE_PATTERN = Pattern.compile("\"[^\"]*uuid[^\"]*\"\\s*:\\s*\"uuid-[^\"]+\"", Pattern.CASE_INSENSITIVE);
+    private static final Pattern REQUIREMENT_ID_PATTERN = Pattern.compile("(?i)(?:REQ|EXG|EX)[-_\\s]?(\\d{1,6})");
     private static final Pattern MANUAL_INSTRUCTIONS_PATTERN = Pattern.compile(
             "(?i)(^|\\b)(?:étape\\s*1|step\\s*1|ouvrez?\\s+modelio|ouvrir\\s+modelio|suivez\\s+les\\s+étapes|vous\\s+pouvez\\s+trouver\\s+l['’]uuid|trouver\\s+l['’]uuid|assurez-vous\\s+d['’]avoir\\s+modelio|créez\\s+un\\s+nouveau\\s+projet)");
 
@@ -503,9 +505,10 @@ public class LangchainService {
             List<Requirement> requirements = new ArrayList<>();
             int index = 1;
             for (JsonNode reqNode : filteredReqs) {
+                String normalizedId = normalizeRequirementId(reqNode.path("id").asText(null), index);
                 requirements.add(new Requirement(
-                        reqNode.path("id").asText("REQ-" + index),
-                        reqNode.path("id").asText("REQ-" + index),
+                        normalizedId,
+                        normalizedId,
                         reqNode.path("description").asText(""),
                         reqNode.path("category").asText("Fonctionnel"),
                         reqNode.path("priority").asText("Moyenne")));
@@ -890,7 +893,7 @@ public class LangchainService {
                     JsonNode filteredReqs = root.get("filtered_requirements");
                     if (filteredReqs.isArray()) {
                         for (JsonNode reqNode : filteredReqs) {
-                            String id = reqNode.get("id").asText("REQ-????");
+                            String id = normalizeRequirementId(reqNode.path("id").asText(null), requirements.size() + 1);
                             String description = reqNode.get("description").asText("");
                             String category = reqNode.get("category").asText("Fonctionnel");
                             String priority = reqNode.get("priority").asText("Moyenne");
@@ -1038,15 +1041,15 @@ public class LangchainService {
                 case "REQ":
                 case "BRACKET":
                 case "PIPELINE":
-                    id = matcher.group(1).trim();
+                    id = normalizeRequirementId(matcher.group(1).trim(), requirements.size() + 1);
                     description = matcher.group(2).trim();
                     break;
                 case "WORD":
-                    id = "REQ" + String.format("%03d", Integer.parseInt(matcher.group(2)));
+                    id = formatRequirementId(Integer.parseInt(matcher.group(2)));
                     description = matcher.group(3).trim();
                     break;
                 case "NUMBERED":
-                    id = "REQ" + String.format("%03d", Integer.parseInt(matcher.group(1)));
+                    id = formatRequirementId(Integer.parseInt(matcher.group(1)));
                     description = matcher.group(2).trim();
                     break;
                 default:
@@ -1073,7 +1076,7 @@ public class LangchainService {
             String sentence = matcher.group().trim();
             
             if (sentence.length() > 20 && sentence.length() < 500) {
-                String id = "REQ" + String.format("%03d", count + 1);
+                String id = formatRequirementId(requirements.size() + 1);
                 requirements.add(new Requirement(id, sentence));
                 count++;
             }
@@ -1094,6 +1097,21 @@ public class LangchainService {
             .replaceAll("(?i)(priorité|priority)\\s*[:=]\\s*\\w+", "")  // Supprimer info priorité
             .replaceAll("(?i)(catégorie|category)\\s*[:=]\\s*\\w+", "")  // Supprimer info catégorie
             .trim();
+    }
+
+    private static String normalizeRequirementId(String rawId, int fallbackIndex) {
+        if (rawId != null) {
+            Matcher idMatcher = REQUIREMENT_ID_PATTERN.matcher(rawId.trim());
+            if (idMatcher.find()) {
+                return formatRequirementId(Integer.parseInt(idMatcher.group(1)));
+            }
+        }
+        return formatRequirementId(fallbackIndex);
+    }
+
+    private static String formatRequirementId(int numericId) {
+        int safeNumericId = Math.max(1, numericId);
+        return CANONICAL_REQUIREMENT_PREFIX + "-" + String.format("%03d", safeNumericId);
     }
     
     /**
