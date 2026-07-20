@@ -106,6 +106,7 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                 if (!toolDefs.isEmpty()) opts.setTools(toolDefs);
             }
             RequestOptions reqOpts = new RequestOptions();
+            System.out.println("[AzureChatModel] Calling Azure OpenAI endpoint=" + info.endpoint + " deployment=" + info.deployment);
             com.azure.ai.openai.models.ChatCompletions completions = client.getChatCompletionsWithResponse(info.deployment, opts, reqOpts).block().getValue();
             final String[] assistantTextHolder = new String[]{""}; List<ToolExecutionRequest> toolCalls = new ArrayList<>();
             if (completions != null && completions.getChoices() != null && !completions.getChoices().isEmpty()) {
@@ -131,6 +132,7 @@ final class PolicyAwareAzureChatModel implements ChatModel {
             AiMessage ai = toolCalls.isEmpty() ? AiMessage.from(assistantText) : AiMessage.from(assistantText, toolCalls);
             return ChatResponse.builder().aiMessage(ai).build();
         } catch (Throwable t) {
+            System.err.println("[AzureChatModel] Failed calling endpoint=" + info.endpoint + " deployment=" + info.deployment + " cause=" + t);
             throw new RuntimeException("Azure chat model failure", t);
         }
     }
