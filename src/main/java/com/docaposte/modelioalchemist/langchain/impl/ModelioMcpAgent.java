@@ -60,9 +60,17 @@ public class ModelioMcpAgent {
      * Crée les exigences dans Modelio à partir des exigences filtrées
      */
     public String createRequirementsInModelio(String filteredRequirementsJson, String outputDirectory) {
+        return createRequirementsInModelio(filteredRequirementsJson, outputDirectory, null);
+    }
+
+    /**
+     * Crée les exigences dans Modelio à partir des exigences filtrées avec nom de document source.
+     */
+    public String createRequirementsInModelio(String filteredRequirementsJson, String outputDirectory, String sourceDocumentName) {
         return LangchainService.createRequirementsInModelio(
             filteredRequirementsJson,
             outputDirectory,
+            sourceDocumentName,
             mcpSseUrl,
             chatModel
         );

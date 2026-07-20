@@ -9,17 +9,23 @@ public class Requirement {
     public final String description;
     public final String category;
     public final String priority;
+    public final String origin;
     
-    public Requirement(String id, String title, String description, String category, String priority) {
+    public Requirement(String id, String title, String description, String category, String priority, String origin) {
         this.id = id != null ? id : "";
         this.title = title != null ? title : "";
         this.description = description != null ? description : "";
         this.category = category != null ? category : "Fonctionnel";
         this.priority = priority != null ? priority : "Moyenne";
+        this.origin = origin != null ? origin : "";
+    }
+
+    public Requirement(String id, String title, String description, String category, String priority) {
+        this(id, title, description, category, priority, "");
     }
     
     public Requirement(String id, String description) {
-        this(id, id, description, "Fonctionnel", "Moyenne");
+        this(id, id, description, "Fonctionnel", "Moyenne", "");
     }
     
     @Override
@@ -35,6 +41,7 @@ public class Requirement {
     public String getDescription() { return description; }
     public String getCategory() { return category; }
     public String getPriority() { return priority; }
+    public String getOrigin() { return origin; }
     
     /**
      * Méthode utilitaire pour créer une représentation courte

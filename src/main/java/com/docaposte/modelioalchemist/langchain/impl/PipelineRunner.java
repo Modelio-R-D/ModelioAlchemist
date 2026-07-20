@@ -29,6 +29,7 @@ public class PipelineRunner {
     public void run(String pdfPath, String outputDirPath) throws Exception {
         System.out.println("Starting pipeline for: " + pdfPath);
         System.out.println("Output directory: " + outputDirPath);
+        String sourceDocumentName = Path.of(pdfPath).getFileName().toString();
 
         // 1) extract raw text
         String rawText = PdfExtractor.extractText(pdfPath);
@@ -148,6 +149,7 @@ public class PipelineRunner {
                - Si c'est une règle ou obligation → CONSERVER
                - Reformulez clairement si nécessaire
                - Conservez TOUJOURS les références (EX-XXX)
+              - Extrayez l'origine exacte dans le document (section, sous-section, page, citation verbatim)
             3. Objectif : taux de rétention 40-60% (pas 15%)
             4. Préférez l'inclusion à l'exclusion pour préserver l'information
             
@@ -161,6 +163,8 @@ public class PipelineRunner {
                   "category": "Sécurité",
                   "priority": "Haute",
                   "context": "Gestion des accès utilisateurs",
+                  "source_location": "Section 3.2.1 - Authentification, page 14",
+                  "source_quote": "Le soumissionnaire devra proposer un mécanisme SSO interfacé avec l'Active Directory.",
                   "business_impact": "Critique pour la sécurité",
                   "dependencies": ["REQ-002"]
                 }
@@ -639,7 +643,7 @@ public class PipelineRunner {
                 
                 // 1) Créer les exigences dans Modelio à partir des exigences filtrées
                 System.out.println("🗺️ Step 1: Creating requirements in Modelio...");
-                String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString());
+                String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString(), sourceDocumentName);
                 Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
                 if (requirementsReport == null || requirementsReport.trim().isEmpty() ||
                     requirementsReport.startsWith("❌") ||

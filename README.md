@@ -66,7 +66,7 @@ These can be defined globally, via a startup script, or inside Modelio’s launc
 2. The pipeline creates `modelioalchemist-output` inside the Modelio project directory (falls back to `%USERPROFILE%/modelioalchemist-output`).
 3. Watch live status dialogs and check the output folder for:
 	- `extracted_text.txt`, `extracted_agent_text.txt` – raw vs. curated text.
-	- `filtered_requirements.json` – JSON that drives requirement creation.
+	- `filtered_requirements.json` – JSON that drives requirement creation, including precise origin metadata (`original_ref`, `source_location`, `source_quote`) used when creating Modelio requirements.
 	- `classified.json`, `*_report.txt` – category-specific analyses (technique, rssi, fonctionnel, rse, ecoconception).
 	- `requirements_validation.txt`, `context_validation.txt` – coverage diagnostics.
 	- `uml_model_3phase_report.txt`, PlantUML exports, and MCP execution logs.

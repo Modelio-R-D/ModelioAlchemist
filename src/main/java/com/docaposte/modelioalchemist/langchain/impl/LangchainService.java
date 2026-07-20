@@ -395,7 +395,8 @@ public class LangchainService {
                         parsedReqLog.append(String.format("  Title: %s\n", req.title));
                         parsedReqLog.append(String.format("  Description: %s\n", req.description));
                         parsedReqLog.append(String.format("  Category: %s\n", req.category));
-                        parsedReqLog.append(String.format("  Priority: %s\n\n", req.priority));
+                        parsedReqLog.append(String.format("  Priority: %s\n", req.priority));
+                        parsedReqLog.append(String.format("  Origin: %s\n\n", req.origin));
                     }
                     
                     saveDebugFile(parsedReqLog.toString(), "parsed_requirements.txt", outputDirectory);
@@ -415,7 +416,8 @@ public class LangchainService {
                         reqContext.append(String.format("Title: %s\n", req.title));
                         reqContext.append(String.format("Description: %s\n", req.description));
                         reqContext.append(String.format("Category: %s\n", req.category));
-                        reqContext.append(String.format("Priority: %s\n\n", req.priority));
+                        reqContext.append(String.format("Priority: %s\n", req.priority));
+                        reqContext.append(String.format("Origin: %s\n\n", req.origin));
                     }
                     
                     chatMemory.add(UserMessage.from(reqContext.toString()));
@@ -488,7 +490,12 @@ public class LangchainService {
     /**
      * Crée les exigences dans Modelio à partir des exigences filtrées
      */
-    public static String createRequirementsInModelio(String filteredRequirementsJson, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
+    public static String createRequirementsInModelio(
+            String filteredRequirementsJson,
+            String outputDirectory,
+            String sourceDocumentName,
+            String mcpSseUrl,
+            PolicyAwareAzureChatModel chatModel) {
         ensureInfrastructureInitialized(mcpSseUrl, chatModel);
         ensureMcpToolsAvailable();
         
@@ -511,12 +518,15 @@ public class LangchainService {
             int index = 1;
             for (JsonNode reqNode : filteredReqs) {
                 String normalizedId = normalizeRequirementId(reqNode.path("id").asText(null), index);
+                String description = reqNode.path("description").asText("");
+                String origin = buildRequirementOrigin(reqNode, sourceDocumentName, description);
                 requirements.add(new Requirement(
                         normalizedId,
                         normalizedId,
-                        reqNode.path("description").asText(""),
+                        description,
                         reqNode.path("category").asText("Fonctionnel"),
-                        reqNode.path("priority").asText("Moyenne")));
+                        reqNode.path("priority").asText("Moyenne"),
+                        origin));
                 index++;
             }
 
@@ -579,6 +589,7 @@ public class LangchainService {
             if (requirementContainerUuid != null) {
                 createdRequirement.put("container_uuid", requirementContainerUuid);
             }
+            createdRequirement.put("origin", requirement.origin);
 
             if (i < requirements.size() - 1) {
                 // Give Modelio time to process Analyst-side refreshes between transactions.
@@ -619,12 +630,19 @@ public class LangchainService {
         arguments.put("type", "Requirement");
         arguments.put("name", requirement.id);
         arguments.put("definition", requirement.description);
+        if (requirement.origin != null && !requirement.origin.isBlank()) {
+            arguments.put("origin", requirement.origin);
+        }
         if (containerUuid != null && !containerUuid.isBlank()) {
             arguments.put("container_uuid", containerUuid);
         }
         ObjectNode analystProperties = arguments.putObject("analyst_properties");
         analystProperties.put("categorie", requirement.category);
         analystProperties.put("priorité", requirement.priority);
+        if (requirement.origin != null && !requirement.origin.isBlank()) {
+            analystProperties.put("origine", requirement.origin);
+            analystProperties.put("origin", requirement.origin);
+        }
 
         return executeAnalystTool("REQ " + requirement.id, "create-requirement-" + requirement.id, "analyst_createElement",
                 arguments, mapper, executionTrace);
@@ -934,9 +952,13 @@ public class LangchainService {
                   "filtered_requirements": [
                     {
                       "id": "EXG-001",
+                      "original_ref": "EX-015",
                       "description": "Le système doit permettre l'authentification des utilisateurs via SSO",
                       "category": "Sécurité",
-                      "priority": "Haute"
+                      "priority": "Haute",
+                      "context": "Section Sécurité des accès",
+                      "source_location": "Chapitre 4.2, page 12",
+                      "source_quote": "Le soumissionnaire doit garantir une authentification SSO..."
                     }
                   ],
                   "rejected_items": ["Objectif du document", "Fonctionnalités principales"],
@@ -980,9 +1002,10 @@ public class LangchainService {
                             String description = reqNode.get("description").asText("");
                             String category = reqNode.get("category").asText("Fonctionnel");
                             String priority = reqNode.get("priority").asText("Moyenne");
+                            String origin = buildRequirementOrigin(reqNode, "Documents d'analyse", description);
                             
                             if (!description.trim().isEmpty()) {
-                                requirements.add(new Requirement(id, id, description, category, priority));
+                                requirements.add(new Requirement(id, id, description, category, priority, origin));
                             }
                         }
                     }
@@ -1092,7 +1115,7 @@ public class LangchainService {
                 String category = detectRequirementCategory(cleanDesc);
                 String priority = detectRequirementPriority(cleanDesc);
                 
-                requirements.set(i, new Requirement(req.id, req.title, cleanDesc, category, priority));
+                requirements.set(i, new Requirement(req.id, req.title, cleanDesc, category, priority, req.origin));
             }
             
             debug("Extraction terminée: " + requirements.size() + " exigences trouvées");
@@ -1180,6 +1203,53 @@ public class LangchainService {
             .replaceAll("(?i)(priorité|priority)\\s*[:=]\\s*\\w+", "")  // Supprimer info priorité
             .replaceAll("(?i)(catégorie|category)\\s*[:=]\\s*\\w+", "")  // Supprimer info catégorie
             .trim();
+    }
+
+    private static String buildRequirementOrigin(JsonNode reqNode, String sourceDocumentName, String fallbackDescription) {
+        List<String> originParts = new ArrayList<>();
+        if (sourceDocumentName != null && !sourceDocumentName.isBlank()) {
+            originParts.add("document=" + sourceDocumentName.trim());
+        }
+
+        String originalRef = reqNode.path("original_ref").asText("").trim();
+        if (!originalRef.isEmpty()) {
+            originParts.add("ref=" + originalRef);
+        }
+
+        String sourceLocation = reqNode.path("source_location").asText("").trim();
+        if (sourceLocation.isEmpty()) {
+            sourceLocation = reqNode.path("location").asText("").trim();
+        }
+        if (sourceLocation.isEmpty()) {
+            sourceLocation = reqNode.path("page").asText("").trim();
+        }
+        if (!sourceLocation.isEmpty()) {
+            originParts.add("location=" + sourceLocation);
+        }
+
+        String context = reqNode.path("context").asText("").trim();
+        if (!context.isEmpty()) {
+            originParts.add("context=" + context);
+        }
+
+        String sourceQuote = reqNode.path("source_quote").asText("").trim();
+        if (sourceQuote.isEmpty()) {
+            sourceQuote = reqNode.path("excerpt").asText("").trim();
+        }
+        if (sourceQuote.isEmpty()) {
+            sourceQuote = reqNode.path("origin_excerpt").asText("").trim();
+        }
+        if (!sourceQuote.isEmpty()) {
+            originParts.add("quote=" + truncate(sourceQuote.replaceAll("\\s+", " "), 240));
+        }
+
+        if (originParts.isEmpty()) {
+            String fallback = fallbackDescription == null ? "" : fallbackDescription.replaceAll("\\s+", " ").trim();
+            if (!fallback.isEmpty()) {
+                originParts.add("description=" + truncate(fallback, 120));
+            }
+        }
+        return String.join(" | ", originParts);
     }
 
     private static String normalizeRequirementId(String rawId, int fallbackIndex) {
