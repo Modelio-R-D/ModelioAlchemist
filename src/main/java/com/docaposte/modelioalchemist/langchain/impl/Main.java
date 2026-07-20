@@ -1,9 +1,5 @@
 package com.docaposte.modelioalchemist.langchain.impl;
 
-import com.docaposte.modelioalchemist.langchain.impl.PolicyAwareAzureChatModel;
-import com.docaposte.modelioalchemist.langchain.impl.AzureEndpointResolver;
-import com.docaposte.modelioalchemist.langchain.impl.HttpPolicies;
-
 public class Main {
 
     public static void main(String[] args) throws Exception {
@@ -65,9 +61,9 @@ public class Main {
         // Configure via env or system properties
         // Now uses Azure OpenAI environment variables, same as ModelioBot
         String apiKey = System.getenv("AZURE_OPENAI_AD_TOKEN");
-        String baseUrl = System.getenv("AZURE_OPENAI_BASE_URL");
-        String deployment = System.getenv("AZURE_OPENAI_DEPLOYMENT");
-        String mcpUrl = System.getenv("MODELIO_MCP_URL"); // e.g. http://localhost:8083/mcp
+        String baseUrl = null;// = System.getenv("AZURE_OPENAI_BASE_URL");
+        String deployment = null;// = System.getenv("AZURE_OPENAI_DEPLOYMENT");
+        String mcpUrl = null;// = System.getenv("MODELIO_MCP_URL"); // e.g. http://localhost:8083/mcp
 
         if (apiKey == null) {
             throw new IllegalStateException(
@@ -118,19 +114,19 @@ public class Main {
      * Construit le client Azure OpenAI
      */
     private static com.azure.ai.openai.OpenAIAsyncClient buildClient(AzureEndpointResolver.AzureEndpointInfo info, String aadToken) {
+        // See matching note in LangchainService.buildClient(): we deliberately skip builder.credential(...)
+        // to avoid an extra Authorization header (built from a non-JWT APIM key) that some API
+        // Management operations reject with a 404. Auth is handled by HttpPolicies.auth() below.
         com.azure.ai.openai.OpenAIClientBuilder builder = new com.azure.ai.openai.OpenAIClientBuilder()
             .endpoint(info.endpoint)
             .httpLogOptions(HttpPolicies.httpLogOptions())
             .addPolicy(HttpPolicies.auth(aadToken))
             .addPolicy(HttpPolicies.capture());
-            
-        if (!aadToken.isEmpty()) {
-            builder.credential(HttpPolicies.staticTokenCredential(aadToken));
-            System.out.println("Using token credential");
-        } else {
+
+        if (aadToken.isEmpty()) {
             System.out.println("No AAD token provided; requests may fail due to missing auth");
         }
-        
+
         return builder.buildAsyncClient();
     }
 }

@@ -1936,19 +1936,23 @@ public class LangchainService {
      * Construit le client Azure OpenAI (méthode utilitaire)
      */
     private static com.azure.ai.openai.OpenAIAsyncClient buildClient(AzureEndpointResolver.AzureEndpointInfo info, String aadToken) {
+        // Note: we intentionally do NOT call builder.credential(...) here. Doing so makes the Azure
+        // SDK attach an additional "Authorization: Bearer <aadToken>" header via its
+        // BearerTokenAuthenticationPolicy, using our raw APIM subscription key as if it were a real
+        // AAD JWT. Some API Management operations (e.g. newer deployments behind stricter policies)
+        // reject that malformed Authorization header with a 404, even though the same
+        // Ocp-Apim-Subscription-Key-only request succeeds (this is exactly what ModelioAI does).
+        // Auth is handled entirely by HttpPolicies.auth() below, which sets Ocp-Apim-Subscription-Key.
         com.azure.ai.openai.OpenAIClientBuilder builder = new com.azure.ai.openai.OpenAIClientBuilder()
             .endpoint(info.endpoint)
             .httpLogOptions(HttpPolicies.httpLogOptions())
             .addPolicy(HttpPolicies.auth(aadToken))
             .addPolicy(HttpPolicies.capture());
-            
-        if (!aadToken.isEmpty()) {
-            builder.credential(HttpPolicies.staticTokenCredential(aadToken));
-            debug("Using token credential");
-        } else {
+
+        if (aadToken.isEmpty()) {
             debug("No AAD token provided; requests may fail due to missing auth");
         }
-        
+
         return builder.buildAsyncClient();
     }
 }
