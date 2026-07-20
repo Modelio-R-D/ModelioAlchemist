@@ -39,6 +39,7 @@ class HttpPolicies {
                 if (original.contains("/openai/deployments/")) adjusted = original.replace("/openai/deployments/", "/openai-api/deployments/");
                 adjusted = enforceApiVersion(adjusted, OpenAiDefaults.API_VERSION);
                 if (!adjusted.equals(original)) { try { context.getHttpRequest().setUrl(adjusted); } catch (Throwable ignore) {} }
+                System.out.println("[AzureChatModel] Requesting URL: " + context.getHttpRequest().getUrl());
             } catch (Throwable ignore) {}
             return next.process();
         };
