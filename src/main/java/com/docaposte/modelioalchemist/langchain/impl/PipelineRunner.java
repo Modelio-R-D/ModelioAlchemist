@@ -655,7 +655,7 @@ public class PipelineRunner {
                 
                 // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
                 System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
-                String classModelReport = mcp.createUmlClassModel(plantUMLContent, outDir.toString());
+                String classModelReport = mcp.createUmlClassModel(plantUMLContent, requirementsReport, outDir.toString());
                 Files.writeString(outDir.resolve("modelio_mcp_classmodel_report.txt"), classModelReport);
                 if (classModelReport == null || classModelReport.trim().isEmpty() ||
                     classModelReport.startsWith("❌") ||

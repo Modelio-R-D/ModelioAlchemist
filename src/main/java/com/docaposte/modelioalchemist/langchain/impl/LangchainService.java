@@ -724,6 +724,19 @@ public class LangchainService {
      * Utilise 3 prompts séparés pour plus de clarté et de contrôle
      */
     public static String createUmlClassModel(String analysisResults, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
+        return createUmlClassModel(analysisResults, null, outputDirectory, mcpSseUrl, chatModel);
+    }
+
+    /**
+     * Crée le modèle de classes UML dans Modelio à partir des résultats d'analyse
+     * Utilise 3 prompts séparés pour plus de clarté et de contrôle
+     *
+     * @param existingRequirementsReport rapport JSON des exigences déjà créées dans Modelio
+     *        (par exemple via {@link #createRequirementsInModelio}). Lorsqu'il est fourni,
+     *        la PHASE 1 ne recrée pas les exigences (évite les doublons "Exigences" dans
+     *        Modelio) et réutilise simplement ce rapport comme contexte pour les phases suivantes.
+     */
+    public static String createUmlClassModel(String analysisResults, String existingRequirementsReport, String outputDirectory, String mcpSseUrl, PolicyAwareAzureChatModel chatModel) {
         ensureInfrastructureInitialized(mcpSseUrl, chatModel);
         ensureMcpToolsAvailable();
         
@@ -748,25 +761,34 @@ public class LangchainService {
             }
             
             // PHASE 1 : Création des Requirements
-            debug("📋 PHASE 1: Creating Requirements...");
             String requirementsResult;
-            if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
-                requirementsResult = createRequirementsDirectlyViaMcp(parsedRequirements, outputDirectory);
+            if (existingRequirementsReport != null && !existingRequirementsReport.isBlank()) {
+                // Les exigences ont déjà été créées dans Modelio par une étape précédente
+                // (ex: PipelineRunner appelle createRequirementsInModelio avant createUmlClassModel).
+                // Ne PAS les recréer ici : cela provoquait des exigences dupliquées dans Modelio
+                // et pouvait déclencher un échec MCP_EXECUTION_FAILED sur des modèles volumineux.
+                debug("📋 PHASE 1: Reusing requirements already created in Modelio (skipping duplicate creation)...");
+                requirementsResult = existingRequirementsReport;
             } else {
-                String requirementsPrompt = createRequirementsPrompt(analysisResults, parsedRequirements, requirementsDocuments);
+                debug("📋 PHASE 1: Creating Requirements...");
+                if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
+                    requirementsResult = createRequirementsDirectlyViaMcp(parsedRequirements, outputDirectory);
+                } else {
+                    String requirementsPrompt = createRequirementsPrompt(analysisResults, parsedRequirements, requirementsDocuments);
 
-                PooledUmlAssistant pa1 = borrowAssistant();
-                if (pa1 == null) {
-                    return "❌ Could not borrow assistant for requirements creation";
-                }
+                    PooledUmlAssistant pa1 = borrowAssistant();
+                    if (pa1 == null) {
+                        return "❌ Could not borrow assistant for requirements creation";
+                    }
 
-                try {
-                    requirementsResult = executeAssistantWithMcpTrace(pa1, "requirements_phase", requirementsPrompt, outputDirectory);
-                } finally {
                     try {
-                        ASSISTANT_POOL.offer(pa1);
-                    } catch (Exception e) {
-                        debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                        requirementsResult = executeAssistantWithMcpTrace(pa1, "requirements_phase", requirementsPrompt, outputDirectory);
+                    } finally {
+                        try {
+                            ASSISTANT_POOL.offer(pa1);
+                        } catch (Exception e) {
+                            debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                        }
                     }
                 }
             }

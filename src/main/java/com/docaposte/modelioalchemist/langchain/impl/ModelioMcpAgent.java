@@ -80,8 +80,19 @@ public class ModelioMcpAgent {
      * Crée le modèle de classes UML dans Modelio à partir des exigences analysées
      */
     public String createUmlClassModel(String analysisResults, String outputDirectory) {
+        return createUmlClassModel(analysisResults, null, outputDirectory);
+    }
+
+    /**
+     * Crée le modèle de classes UML dans Modelio à partir des exigences analysées.
+     * Si des exigences ont déjà été créées dans Modelio (par exemple via
+     * {@link #createRequirementsInModelio(String, String, String)}), passez le rapport
+     * correspondant dans {@code existingRequirementsReport} pour éviter de les recréer en double.
+     */
+    public String createUmlClassModel(String analysisResults, String existingRequirementsReport, String outputDirectory) {
         return LangchainService.createUmlClassModel(
             analysisResults,
+            existingRequirementsReport,
             outputDirectory,
             mcpSseUrl,
             chatModel
