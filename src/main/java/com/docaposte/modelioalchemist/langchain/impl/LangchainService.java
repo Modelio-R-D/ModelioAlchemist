@@ -823,6 +823,7 @@ public class LangchainService {
             String classesResult;
             try {
                 classesResult = executeAssistantWithMcpTrace(pa2, "domain_model_phase", classesPrompt, outputDirectory);
+                classesResult = ensureStructuredDomainModelResult(classesResult);
                 validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
                 finalReport.append("PHASE 2 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
                  
@@ -1817,6 +1818,277 @@ public class LangchainService {
             debug("❌ Error extracting JSON structure: " + e.getMessage());
             return null;
         }
+    }
+
+    private static String ensureStructuredDomainModelResult(String result) {
+        if (extractJSONStructure(result, "domain_model_created", "modele_domaine_cree") != null) {
+            return result;
+        }
+        if (result == null || result.trim().isEmpty()) {
+            return result;
+        }
+        if (result.trim().startsWith("MCP_EXECUTION_FAILED:") || result.trim().startsWith("❌") || result.trim().startsWith("[error:")) {
+            return result;
+        }
+
+        String asBuiltPlantUml = extractPlantUMLDiagram(result, "MODELE_DOMAINE_AS_BUILT");
+        if (asBuiltPlantUml == null) {
+            asBuiltPlantUml = extractPlantUMLDiagram(result, "AS_BUILT_DOMAIN_MODEL");
+        }
+        if (asBuiltPlantUml == null || !PlantUMLAnalyzer.isValidPlantUML(asBuiltPlantUml)) {
+            return result;
+        }
+
+        List<String> realUuids = extractUUIDs(result);
+        if (realUuids.isEmpty()) {
+            return result;
+        }
+
+        String synthesizedJson = synthesizeDomainModelJson(asBuiltPlantUml, realUuids);
+        if (synthesizedJson == null) {
+            return result;
+        }
+
+        debug("⚠️ domain_model_phase returned no structured JSON; synthesized fallback domain_model_created payload from as-built PlantUML");
+        return result
+                + System.lineSeparator()
+                + System.lineSeparator()
+                + "```json"
+                + System.lineSeparator()
+                + synthesizedJson
+                + System.lineSeparator()
+                + "```";
+    }
+
+    private static String synthesizeDomainModelJson(String plantUml, List<String> realUuids) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            ObjectNode domainModel = root.putObject("domain_model_created");
+            domainModel.put("package_uuid", realUuids.get(0));
+            domainModel.put("synthesized_from_as_built_output", true);
+
+            ArrayNode classes = domainModel.putArray("classes");
+            appendClassesFromPlantUml(classes, plantUml);
+
+            ArrayNode associations = domainModel.putArray("associations");
+            appendAssociationsFromPlantUml(associations, plantUml);
+
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+        } catch (Exception e) {
+            debug("⚠️ Could not synthesize domain_model_created JSON: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static void appendClassesFromPlantUml(ArrayNode classes, String plantUml) {
+        java.util.Set<String> seenClassNames = new java.util.LinkedHashSet<>();
+        ObjectNode currentClass = null;
+
+        for (String rawLine : plantUml.split("\\R")) {
+            String line = rawLine == null ? "" : rawLine.trim();
+            if (line.isEmpty() || line.startsWith("'") || line.startsWith("//")) {
+                continue;
+            }
+            if (line.startsWith("@startuml") || line.startsWith("@enduml")) {
+                continue;
+            }
+            if (line.startsWith("}")) {
+                currentClass = null;
+                continue;
+            }
+
+            String className = extractPlantUmlClassifierName(line);
+            if (className != null) {
+                if (seenClassNames.add(className)) {
+                    currentClass = classes.addObject();
+                    currentClass.put("nom", className);
+                    currentClass.putNull("uuid");
+                    currentClass.putArray("attributs");
+                    currentClass.putArray("exigences_liees");
+                } else {
+                    currentClass = null;
+                }
+                if (!line.contains("{")) {
+                    currentClass = null;
+                }
+                continue;
+            }
+
+            if (currentClass != null && line.contains(":") && !line.contains("(")) {
+                String[] parts = line.split(":", 2);
+                if (parts.length == 2) {
+                    String attributeName = cleanupPlantUmlAttributeToken(parts[0]);
+                    String attributeType = cleanupPlantUmlAttributeToken(parts[1]);
+                    if (!attributeName.isEmpty() && !attributeType.isEmpty()) {
+                        ArrayNode attributes = (ArrayNode) currentClass.get("attributs");
+                        ObjectNode attribute = attributes.addObject();
+                        attribute.put("nom", attributeName);
+                        attribute.put("type", attributeType);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void appendAssociationsFromPlantUml(ArrayNode associations, String plantUml) {
+        for (String rawLine : plantUml.split("\\R")) {
+            String line = rawLine == null ? "" : rawLine.trim();
+            if (line.isEmpty() || line.startsWith("'") || line.startsWith("//")) {
+                continue;
+            }
+
+            String relationToken = detectPlantUmlRelationToken(line);
+            if (relationToken == null) {
+                continue;
+            }
+
+            String relationWithoutLabel = line;
+            String relationLabel = null;
+            int labelSeparator = line.indexOf(':');
+            if (labelSeparator >= 0) {
+                relationWithoutLabel = line.substring(0, labelSeparator).trim();
+                relationLabel = line.substring(labelSeparator + 1).trim();
+            }
+
+            String[] endpoints = relationWithoutLabel.split(Pattern.quote(relationToken), 2);
+            if (endpoints.length != 2) {
+                continue;
+            }
+
+            String from = cleanupPlantUmlRelationEndpoint(endpoints[0]);
+            String to = cleanupPlantUmlRelationEndpoint(endpoints[1]);
+            if (from.isEmpty() || to.isEmpty()) {
+                continue;
+            }
+
+            ObjectNode association = associations.addObject();
+            association.put("de", from);
+            association.put("vers", to);
+            association.put("type", mapPlantUmlRelationType(relationToken));
+            if (relationLabel != null && !relationLabel.isEmpty()) {
+                association.put("nom", relationLabel);
+            }
+
+            String cardinality = extractPlantUmlCardinality(relationWithoutLabel);
+            if (cardinality == null || cardinality.isBlank()) {
+                association.putNull("cardinalite");
+            } else {
+                association.put("cardinalite", cardinality);
+            }
+        }
+    }
+
+    private static String extractPlantUmlClassifierName(String line) {
+        String working = line;
+        if (working.startsWith("abstract ")) {
+            working = working.substring("abstract ".length()).trim();
+        }
+
+        String[] prefixes = {"class ", "interface ", "enum ", "entity "};
+        String matchedPrefix = null;
+        for (String prefix : prefixes) {
+            if (working.startsWith(prefix)) {
+                matchedPrefix = prefix;
+                break;
+            }
+        }
+        if (matchedPrefix == null) {
+            return null;
+        }
+
+        working = working.substring(matchedPrefix.length()).trim();
+        if (working.isEmpty()) {
+            return null;
+        }
+
+        if (working.startsWith("\"")) {
+            int endQuote = working.indexOf('"', 1);
+            if (endQuote > 1) {
+                return working.substring(1, endQuote).trim();
+            }
+        }
+
+        int cutIndex = working.length();
+        String[] delimiters = {" {", " as ", " <<", " extends ", " implements "};
+        for (String delimiter : delimiters) {
+            int index = working.indexOf(delimiter);
+            if (index >= 0 && index < cutIndex) {
+                cutIndex = index;
+            }
+        }
+        String name = working.substring(0, cutIndex).trim();
+        if (name.endsWith("{")) {
+            name = name.substring(0, name.length() - 1).trim();
+        }
+        return name;
+    }
+
+    private static String cleanupPlantUmlAttributeToken(String token) {
+        if (token == null) {
+            return "";
+        }
+        String cleaned = token.trim()
+                .replace("+", "")
+                .replace("-", "")
+                .replace("#", "")
+                .replace("~", "")
+                .trim();
+        int genericStart = cleaned.indexOf('{');
+        if (genericStart >= 0) {
+            cleaned = cleaned.substring(0, genericStart).trim();
+        }
+        return cleaned;
+    }
+
+    private static String detectPlantUmlRelationToken(String line) {
+        String[] relationTokens = {"<|--", "--|>", "*--", "--*", "o--", "--o", "<--", "-->", "..>", "<..", "..", "--"};
+        for (String token : relationTokens) {
+            if (line.contains(token)) {
+                return token;
+            }
+        }
+        return null;
+    }
+
+    private static String cleanupPlantUmlRelationEndpoint(String endpoint) {
+        if (endpoint == null) {
+            return "";
+        }
+        String cleaned = endpoint.replaceAll("\"[^\"]*\"", " ")
+                .replaceAll("\\b(left|right|up|down|hidden)\\b", " ")
+                .trim();
+        Matcher matcher = Pattern.compile("[\\p{L}_][\\p{L}\\p{N}_.-]*").matcher(cleaned);
+        String lastMatch = "";
+        while (matcher.find()) {
+            lastMatch = matcher.group();
+        }
+        return lastMatch;
+    }
+
+    private static String mapPlantUmlRelationType(String relationToken) {
+        return switch (relationToken) {
+            case "<|--", "--|>" -> "Generalization";
+            case "*--", "--*" -> "Composition";
+            case "o--", "--o" -> "Aggregation";
+            case "..>", "<..", ".." -> "Dependency";
+            default -> "Association";
+        };
+    }
+
+    private static String extractPlantUmlCardinality(String relationLine) {
+        if (relationLine == null || relationLine.isBlank()) {
+            return null;
+        }
+        Matcher matcher = Pattern.compile("\"([^\"]+)\"").matcher(relationLine);
+        List<String> values = new ArrayList<>();
+        while (matcher.find()) {
+            values.add(matcher.group(1).trim());
+        }
+        if (values.isEmpty()) {
+            return null;
+        }
+        return String.join(" / ", values);
     }
 
     private static void validateMcpExecutionResult(String phaseName, String result, String... expectedJsonKeys) {

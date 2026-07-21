@@ -437,13 +437,35 @@ public class PipelineRunner {
         AtomicInteger stepCounter = new AtomicInteger(step);
         ExecutorService domainAnalysisExecutor = Executors.newFixedThreadPool(domainKeys.length);
         try {
+            // First pass: identify which domains have content
+            List<String> domainsWithContent = new ArrayList<>();
+            for (String key : domainKeys) {
+                String ctx = domainContexts.get(key);
+                if (!ctx.trim().isEmpty()) {
+                    domainsWithContent.add(key);
+                }
+            }
+
+            // Report all domain analyses that will run in parallel
+            if (!domainsWithContent.isEmpty()) {
+                String[] parallelStageKeys = new String[domainsWithContent.size()];
+                for (int i = 0; i < domainsWithContent.size(); i++) {
+                    parallelStageKeys[i] = "progress.pipeline.analyze." + domainsWithContent.get(i);
+                }
+                int parallelStartStep = stepCounter.get() + 1;
+                progress.onParallelSteps(parallelStartStep, totalSteps, parallelStageKeys);
+                // Advance the counter by the number of parallel stages
+                for (int i = 0; i < domainsWithContent.size(); i++) {
+                    stepCounter.incrementAndGet();
+                }
+            }
+
             Map<String, Future<String>> futures = new LinkedHashMap<>();
             for (String key : domainKeys) {
                 String ctx = domainContexts.get(key);
                 if (ctx.trim().isEmpty()) {
                     System.out.println("Skipping " + key + " - no content available");
                     Files.writeString(outDir.resolve(key + "_report.txt"), "No content available for category: " + key);
-                    progress.onStep(stepCounter.incrementAndGet(), totalSteps, "progress.pipeline.analyze." + key);
                     continue;
                 }
 
@@ -509,7 +531,6 @@ public class PipelineRunner {
                 Files.writeString(outDir.resolve(key + "_report.txt"), report);
                 System.out.println("Saved report for " + key + " (" + domainContexts.get(key).split("\n").length + " requirements processed)");
                 domainReports.put(key, report);
-                progress.onStep(stepCounter.incrementAndGet(), totalSteps, "progress.pipeline.analyze." + key);
             }
         } catch (java.util.concurrent.ExecutionException e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;

@@ -47,4 +47,51 @@ public interface PipelineProgressListener {
         onStage(Messages.getString("progress.step",
             String.valueOf(step), String.valueOf(totalSteps), Messages.getString(stageKey)));
     }
+
+    /**
+     * Reports progress for multiple stages executing in parallel. This is used when the pipeline
+     * spawns multiple concurrent tasks (e.g. analyzing multiple requirement domains at once).
+     * Shows the user that multiple activities are happening simultaneously to make it clear why
+     * the overall progress jumps multiple steps at once.
+     *
+     * @param step             the 1-based index of the first step in this parallel batch
+     * @param totalSteps       the total number of steps in the pipeline
+     * @param parallelStages   array of resource bundle keys for the stages running in parallel
+     *                         (e.g. ["progress.pipeline.analyze.technique", "progress.pipeline.analyze.rssi", ...])
+     */
+    default void onParallelSteps(int step, int totalSteps, String... parallelStages) {
+        if (isCancelled()) {
+            throw new PipelineCancelledException();
+        }
+        if (parallelStages == null || parallelStages.length == 0) {
+            return;
+        }
+
+        // Format: "Steps 4-8 of 15 (5 in parallel): Analyzing technique, rssi, fonctionnel, rse, ecoconception..."
+        StringBuilder stageList = new StringBuilder();
+        for (int i = 0; i < parallelStages.length; i++) {
+            if (i > 0) {
+                stageList.append(", ");
+            }
+            String stageMessage = Messages.getString(parallelStages[i]);
+            // Extract just the key name from the full message (e.g. "technique" from "progress.pipeline.analyze.technique")
+            String key = parallelStages[i].substring(parallelStages[i].lastIndexOf('.') + 1);
+            stageList.append(key);
+        }
+
+        int endStep = step + parallelStages.length - 1;
+        String message;
+        if (step == endStep) {
+            // Only one stage
+            message = Messages.getString("progress.step",
+                String.valueOf(step), String.valueOf(totalSteps), stageList.toString());
+        } else {
+            // Multiple stages in parallel
+            message = Messages.getString("progress.parallelSteps",
+                String.valueOf(step), String.valueOf(endStep), String.valueOf(totalSteps),
+                String.valueOf(parallelStages.length), stageList.toString());
+        }
+
+        onStage(message);
+    }
 }
