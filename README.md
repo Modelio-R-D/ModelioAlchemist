@@ -65,8 +65,10 @@ These can be defined globally, via a startup script, or inside Modelio’s launc
 1. Choose a PDF when prompted.
 2. The pipeline creates `modelioalchemist-output` inside the Modelio project directory (falls back to `%USERPROFILE%/modelioalchemist-output`).
 3. Watch live status dialogs and check the output folder for:
-	- `extracted_text.txt`, `extracted_agent_text.txt` – raw vs. curated text.
-	- `filtered_requirements.json` – JSON that drives requirement creation, including precise origin metadata (`original_ref`, `source_location`, `source_quote`) used when creating Modelio requirements.
+	- `extracted_text.txt` – raw PDF text, annotated with `[PAGE n]` markers inserted by `PdfExtractor` so downstream agents can trace each requirement back to its page.
+	- `extracted_agent_text.txt` – curated text; the extractor agent is instructed to keep a `(page n, section ...)` annotation next to every requirement it extracts.
+	- `filtered_requirements.json` – JSON that drives requirement creation, including precise origin metadata (`original_ref`, `source_location`, `source_quote`) used when creating Modelio requirements. `source_location` is expected to combine the section/sub-section and the page number (e.g. `Section 3.2.1 - Authentification, page 14`); combined with the source document name this becomes the `origin` string set on each Modelio requirement via `analyst_createElement`'s `analyst_properties` map.
+	- **Important**: `analyst_properties` keys are stored verbatim by the MCP server (no case-insensitive matching), so the key must match exactly what the target Modelio Analyst project's `Requirement` stereotype defines. This project has been observed to define it as `Origin` (capital `O`); ModelioAlchemist sets `Origin`, `origin`, and `origine` simultaneously for compatibility, but if requirements still show an empty Origin field, verify the actual property name defined in your Analyst profile and adjust `LangchainService.createRequirementElement` accordingly. Verify persisted values with `analyst_queryItems` (it returns `analyst_properties`) rather than `analyst_getItemDetail`.
 	- `classified.json`, `*_report.txt` – category-specific analyses (technique, rssi, fonctionnel, rse, ecoconception).
 	- `requirements_validation.txt`, `context_validation.txt` – coverage diagnostics.
 	- `uml_model_3phase_report.txt`, PlantUML exports, and MCP execution logs.

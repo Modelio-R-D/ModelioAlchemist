@@ -2,9 +2,22 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -27,11 +40,25 @@ public class PipelineRunner {
     }
 
     public void run(String pdfPath, String outputDirPath) throws Exception {
+        run(pdfPath, outputDirPath, PipelineProgressListener.NONE);
+    }
+
+    public void run(String pdfPath, String outputDirPath, PipelineProgressListener progress) throws Exception {
+        if (progress == null) {
+            progress = PipelineProgressListener.NONE;
+        }
         System.out.println("Starting pipeline for: " + pdfPath);
         System.out.println("Output directory: " + outputDirPath);
         String sourceDocumentName = Path.of(pdfPath).getFileName().toString();
 
+        // Fixed number of high-level stages reported to the UI: extract, clean, filter, classify,
+        // 2 validations, 5 domain analyses, PlantUML (generated directly from the domain reports,
+        // skipping the intermediate prose "model description" relay), 2 MCP creations, finalize.
+        final int totalSteps = 15;
+        int step = 0;
+
         // 1) extract raw text
+        progress.onStep(++step, totalSteps, "progress.pipeline.extractText");
         String rawText = PdfExtractor.extractText(pdfPath);
         Path outDir = Path.of(outputDirPath);
         Files.createDirectories(outDir);
@@ -97,8 +124,14 @@ public class PipelineRunner {
             - Précisez le contexte pour chaque exigence
             - Identifiez les interdépendances entre exigences
             - Distinguez les exigences obligatoires des recommandations
+            - TRAÇABILITÉ OBLIGATOIRE : le texte source contient des marqueurs "[PAGE n]" indiquant
+              le numéro de page d'origine. Pour CHAQUE exigence ou information extraite, reportez
+              entre parenthèses le numéro de page et, si présent, le titre de section/sous-section
+              le plus proche (ex: "(page 14, section 3.2.1 - Authentification)"). Ne supprimez jamais
+              ces indications de page/section, elles sont indispensables à la traçabilité.
             
-            Texte à traiter :""";
+            Texte à traiter (contient des marqueurs [PAGE n] à préserver dans vos annotations) :""";
+        progress.onStep(++step, totalSteps, "progress.pipeline.extractorAgent");
         String extracted = llm.runPrompt(extractorPrompt, rawText);
         Files.writeString(outDir.resolve("extracted_agent_text.txt"), extracted);
         System.out.println("Extractor agent output saved.");
@@ -153,6 +186,16 @@ public class PipelineRunner {
             3. Objectif : taux de rétention 40-60% (pas 15%)
             4. Préférez l'inclusion à l'exclusion pour préserver l'information
             
+            TRAÇABILITÉ OBLIGATOIRE (champ "source_location") :
+            - Le texte à analyser contient des annotations de page/section héritées du document
+              source (ex: "(page 14, section 3.2.1 - Authentification)" ou des marqueurs "[PAGE n]").
+            - Pour CHAQUE exigence retenue, remplissez "source_location" avec le numéro de page et,
+              si disponible, la section/sous-section exacte (ex: "Section 3.2.1 - Authentification, page 14").
+            - Si seule la page est identifiable, indiquez au minimum "page 14".
+            - N'inventez jamais un numéro de page : si aucune indication n'est présente dans le texte
+              fourni, laissez le champ vide plutôt que d'inventer une valeur.
+            - Remplissez aussi "source_quote" avec la citation verbatim la plus proche du texte source.
+            
             FORMAT DE SORTIE - JSON structuré :
             {
               "filtered_requirements": [
@@ -186,6 +229,7 @@ public class PipelineRunner {
             Texte structuré à analyser :
             """;
         
+        progress.onStep(++step, totalSteps, "progress.pipeline.filterRequirements");
         String filteredRequirements = llm.runPrompt(requirementsFilterPrompt, extracted);
         
         // Extraire le JSON de la réponse
@@ -193,6 +237,13 @@ public class PipelineRunner {
         if (filteredJson == null) {
             filteredJson = filteredRequirements;
         }
+
+        // Filet de sécurité déterministe : le LLM ne renseigne pas toujours "source_location"
+        // (ex: ne recopie pas correctement les marqueurs [PAGE n]). On complète ici en recherchant
+        // directement la référence/citation de chaque exigence dans le texte brut du PDF (rawText),
+        // qui contient les marqueurs [PAGE n] insérés par PdfExtractor. Ceci garantit une traçabilité
+        // page-exacte même quand le LLM omet ou invente l'information.
+        filteredJson = enrichMissingSourceLocations(filteredJson, rawText);
         Files.writeString(outDir.resolve("filtered_requirements.json"), filteredJson);
         System.out.println("Requirements filter output saved.");
 
@@ -290,6 +341,7 @@ public class PipelineRunner {
             
             Exigences à classifier avec enrichissement contextuel :
             """;
+        progress.onStep(++step, totalSteps, "progress.pipeline.classifyRequirements");
         String classified = llm.runPrompt(classifierPrompt, filteredJson);
 
         // attempt to find JSON in the response
@@ -302,6 +354,7 @@ public class PipelineRunner {
         System.out.println("Classifier output saved.");
 
         // Validation de l'exhaustivité des exigences
+        progress.onStep(++step, totalSteps, "progress.pipeline.validateCompleteness");
         RequirementsValidator.ValidationResult validation = 
             RequirementsValidator.validateClassification(extracted, classifiedJson);
         
@@ -310,6 +363,7 @@ public class PipelineRunner {
         System.out.println("Requirements validation: " + (validation.isValid ? "✅ PASSED" : "❌ FAILED"));
         
         // NOUVEAU : Validation de la contextualisation enrichie
+        progress.onStep(++step, totalSteps, "progress.pipeline.validateContext");
         RequirementContextValidator.ContextValidationResult contextValidation = 
             RequirementContextValidator.validateContextualization(extracted, classifiedJson);
         
@@ -336,9 +390,15 @@ public class PipelineRunner {
         // Stocker tous les rapports d'agents pour les inclure dans les requirements
         StringBuilder allAgentReports = new StringBuilder();
         String plantUMLContent = "";
-        String modelDescription = "";
 
-        for (String key : new String[]{"technique", "rssi", "fonctionnel", "rse", "ecoconception"}) {
+        String[] domainKeys = {"technique", "rssi", "fonctionnel", "rse", "ecoconception"};
+
+        // Construire le contexte de chaque domaine d'abord (opération locale, rapide) afin de
+        // pouvoir lancer les appels LLM indépendants en parallèle juste après. Ces 5 analyses ne
+        // dépendent pas les unes des autres : les exécuter séquentiellement ne faisait qu'ajouter
+        // 4 allers-retours réseau inutiles au temps total du pipeline.
+        Map<String, String> domainContexts = new LinkedHashMap<>();
+        for (String key : domainKeys) {
             StringBuilder ctx = new StringBuilder();
             if (root.has(key) && root.get(key) != null) {
                 JsonNode categoryNode = root.get(key);
@@ -370,243 +430,221 @@ public class PipelineRunner {
                     }
                 }
             }
-            
-            // Skip if no content available for this category
-            if (ctx.length() == 0 || ctx.toString().trim().isEmpty()) {
-                System.out.println("Skipping " + key + " - no content available");
-                Files.writeString(outDir.resolve(key + "_report.txt"), "No content available for category: " + key);
+            domainContexts.put(key, ctx.toString());
+        }
+
+        Map<String, String> domainReports = new LinkedHashMap<>();
+        AtomicInteger stepCounter = new AtomicInteger(step);
+        ExecutorService domainAnalysisExecutor = Executors.newFixedThreadPool(domainKeys.length);
+        try {
+            Map<String, Future<String>> futures = new LinkedHashMap<>();
+            for (String key : domainKeys) {
+                String ctx = domainContexts.get(key);
+                if (ctx.trim().isEmpty()) {
+                    System.out.println("Skipping " + key + " - no content available");
+                    Files.writeString(outDir.resolve(key + "_report.txt"), "No content available for category: " + key);
+                    progress.onStep(stepCounter.incrementAndGet(), totalSteps, "progress.pipeline.analyze." + key);
+                    continue;
+                }
+
+                // Prompt amélioré pour l'analyse par catégorie avec contextualisation métier
+                String agentPrompt = """
+                    Vous êtes un expert en %s pour projets d'appels d'offres publics et privés.
+                    
+                    MISSION : Analysez exhaustivement les exigences de votre domaine en préservant le contexte métier.
+                    
+                    STRUCTURE D'ANALYSE ATTENDUE :
+                    
+                    === INVENTAIRE CONTEXTUALISÉ ===
+                    Pour chaque exigence :
+                    - Référence et ID (REQ-XXX, EX-XXX)
+                    - Contexte métier spécifique
+                    - Impact sur l'architecture globale
+                    - Niveau de criticité business
+                    - Interdépendances identifiées
+                    
+                    === REGROUPEMENT THÉMATIQUE ===
+                    Organisez les exigences par sous-domaines cohérents :
+                    %s
+                    
+                    === ANALYSE D'IMPACT SYSTÈME ===
+                    - Impact sur les autres domaines (transversalité)
+                    - Contraintes techniques induites
+                    - Risques de non-conformité
+                    - Complexité de mise en œuvre
+                    
+                    === RECOMMANDATIONS OPÉRATIONNELLES ===
+                    - Solutions techniques concrètes
+                    - Bonnes pratiques du domaine
+                    - Standards et normes applicables
+                    - Méthodes de validation et test
+                    
+                    === POINTS DE VIGILANCE PROJET ===
+                    - Risques d'oubli ou de perte d'exigences
+                    - Éléments nécessitant éclaircissement
+                    - Contraintes d'intégration avec l'existant
+                    - Planning et ressources nécessaires
+                    
+                    CRITÈRES DE QUALITÉ :
+                    - ❌ Aucune exigence ne doit être omise
+                    - ✅ Préservez la traçabilité (références originales)
+                    - ✅ Contextualisez chaque exigence dans son domaine métier
+                    - ✅ Identifiez les liens avec les autres domaines
+                    - ✅ Proposez des solutions concrètes et éprouvées
+                    
+                    Exigences à analyser pour le domaine %s :
+                    """.formatted(
+                        getDomainExpertise(key), 
+                        getDomainSubCategories(key),
+                        key.toUpperCase()
+                    );
+
+                Callable<String> task = () -> llm.runPrompt(agentPrompt, ctx);
+                futures.put(key, domainAnalysisExecutor.submit(task));
+            }
+
+            for (Map.Entry<String, Future<String>> entry : futures.entrySet()) {
+                String key = entry.getKey();
+                String report = entry.getValue().get();
+                Files.writeString(outDir.resolve(key + "_report.txt"), report);
+                System.out.println("Saved report for " + key + " (" + domainContexts.get(key).split("\n").length + " requirements processed)");
+                domainReports.put(key, report);
+                progress.onStep(stepCounter.incrementAndGet(), totalSteps, "progress.pipeline.analyze." + key);
+            }
+        } catch (java.util.concurrent.ExecutionException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            if (cause instanceof Exception) {
+                throw (Exception) cause;
+            }
+            throw new RuntimeException(cause);
+        } finally {
+            domainAnalysisExecutor.shutdown();
+        }
+        step = stepCounter.get();
+
+        // Collecter tous les rapports pour les requirements, dans l'ordre stable des domaines.
+        for (String key : domainKeys) {
+            String report = domainReports.get(key);
+            if (report == null) {
                 continue;
             }
-            
-            // Prompt amélioré pour l'analyse par catégorie avec contextualisation métier
-            String agentPrompt = """
-                Vous êtes un expert en %s pour projets d'appels d'offres publics et privés.
-                
-                MISSION : Analysez exhaustivement les exigences de votre domaine en préservant le contexte métier.
-                
-                STRUCTURE D'ANALYSE ATTENDUE :
-                
-                === INVENTAIRE CONTEXTUALISÉ ===
-                Pour chaque exigence :
-                - Référence et ID (REQ-XXX, EX-XXX)
-                - Contexte métier spécifique
-                - Impact sur l'architecture globale
-                - Niveau de criticité business
-                - Interdépendances identifiées
-                
-                === REGROUPEMENT THÉMATIQUE ===
-                Organisez les exigences par sous-domaines cohérents :
-                %s
-                
-                === ANALYSE D'IMPACT SYSTÈME ===
-                - Impact sur les autres domaines (transversalité)
-                - Contraintes techniques induites
-                - Risques de non-conformité
-                - Complexité de mise en œuvre
-                
-                === RECOMMANDATIONS OPÉRATIONNELLES ===
-                - Solutions techniques concrètes
-                - Bonnes pratiques du domaine
-                - Standards et normes applicables
-                - Méthodes de validation et test
-                
-                === POINTS DE VIGILANCE PROJET ===
-                - Risques d'oubli ou de perte d'exigences
-                - Éléments nécessitant éclaircissement
-                - Contraintes d'intégration avec l'existant
-                - Planning et ressources nécessaires
-                
-                CRITÈRES DE QUALITÉ :
-                - ❌ Aucune exigence ne doit être omise
-                - ✅ Préservez la traçabilité (références originales)
-                - ✅ Contextualisez chaque exigence dans son domaine métier
-                - ✅ Identifiez les liens avec les autres domaines
-                - ✅ Proposez des solutions concrètes et éprouvées
-                
-                Exigences à analyser pour le domaine %s :
-                """.formatted(
-                    getDomainExpertise(key), 
-                    getDomainSubCategories(key),
-                    key.toUpperCase()
-                );
-            
-            String report = llm.runPrompt(agentPrompt, ctx.toString());
-            Files.writeString(outDir.resolve(key + "_report.txt"), report);
-            System.out.println("Saved report for " + key + " (" + ctx.toString().split("\n").length + " requirements processed)");
-
-            // Collecter tous les rapports pour les requirements
             allAgentReports.append("=== ").append(key.toUpperCase()).append(" ANALYSIS ===").append("\n");
             allAgentReports.append(report).append("\n\n");
         }
         
-        // Après avoir collecté TOUS les rapports, générer la description du modèle unifiée
+        // Générer le PlantUML directement à partir de TOUS les rapports d'agents.
+        // NOTE : on ne passe plus par une étape intermédiaire de "description du modèle en prose"
+        // (l'ancienne PHASE modelDescription). Cette description n'était qu'un relais de paraphrase
+        // entre les rapports structurés et le PlantUML : elle coûtait un aller-retour LLM complet sans
+        // ajouter de décision indépendante, et chaque paraphrase est une occasion de perdre ou déformer
+        // de l'information. Générer le PlantUML directement depuis les rapports réduit à la fois la
+        // latence et le risque de dérive/perte d'information.
         if (allAgentReports.length() > 0) {
-            System.out.println("Generating unified model description from ALL agent reports...");
-            
-            // Prompt amélioré pour la description du modèle unifié
-            String modelPrompt = """
-                Vous êtes un architecte système expert en modélisation UML complète. 
+            System.out.println("Generating PlantUML directly from all agent reports...");
+            progress.onStep(++step, totalSteps, "progress.pipeline.plantuml");
+
+            // Prompt amélioré pour PlantUML unifié avec use cases et types corrects
+            String pumlPrompt = """
+                Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
+                Générez PLUSIEURS diagrammes UML COMPLETS : classes, use cases et séquences.
                 
-                À partir de TOUS les rapports d'analyse (fonctionnel, technique, sécurité, RSE, éco-conception), 
-                identifiez TOUS les éléments du modèle système complet :
+                STRUCTURE OBLIGATOIRE - Générez EXACTEMENT ce format :
                 
-                1. CLASSES MÉTIER (fonctionnel) :
-                   - Entités du domaine métier
-                   - Objets de gestion et de traitement
-                   - Services métier principaux
+                1. DIAGRAMME DE CLASSES (obligatoire) :
+                @startuml Classes
+                !theme plain
                 
-                2. CLASSES TECHNIQUES (infrastructure) :
-                   - Couches de persistance et accès aux données
-                   - Services d'intégration et APIs
-                   - Composants d'architecture technique
+                package "Business" {
+                  class NomExact {
+                    +id: int
+                    +nom: String  
+                    +date: String
+                    +status: String
+                    +methode()
+                  }
+                }
                 
-                3. CLASSES SÉCURITÉ (RSSI) :
-                   - Gestion de l'authentification et autorisation
-                   - Chiffrement et protection des données
-                   - Audit et traçabilité sécuritaire
+                package "Technical" {
+                  class ServiceClass {
+                    +processData()
+                    +validateInput()
+                  }
+                }
                 
-                4. CLASSES TRANSVERSES (RSE, éco-conception) :
-                   - Monitoring et métriques de performance
-                   - Optimisation des ressources
-                   - Gestion des logs et audit environnemental
+                package "Securite" {
+                  class AuthService {
+                    +authenticate(): boolean
+                    +authorize(): boolean
+                  }
+                }
                 
-                5. RELATIONS COMPLÈTES :
-                   - Associations entre couches métier et technique
-                   - Dépendances sécuritaires
-                   - Interfaces entre tous les composants
-                   - Cardinalités précises (1..1, 1..*, etc.)
+                ' RELATIONS OBLIGATOIRES avec cardinalités
+                Business.ClasseA "1" --> "0..*" Business.ClasseB : "gère"
+                Business.ClasseC *-- Business.ClasseD : "contient"
+                Technical.ServiceClass --> Business.ClasseA : "utilise"
+                @enduml
                 
-                6. ARCHITECTURE ORGANISÉE :
-                   - Packages par domaine (métier, technique, sécurité)
-                   - Séparation claire des responsabilités
-                   - Interfaces bien définies
+                2. DIAGRAMME DE USE CASES (obligatoire) :
+                @startuml UseCases
+                !theme plain
                 
-                OBJECTIF : Créer un modèle système COMPLET qui reflète TOUS les aspects identifiés.
+                actor "Utilisateur" as User
+                actor "Administrateur" as Admin
+                actor "Système Externe" as ExtSys
                 
-                IMPORTANT : 
-                - Intégrez TOUTES les analyses (ne perdez aucune information)
-                - Conservez la traçabilité avec les références EX-XXX
-                - Organisez en couches cohérentes (métier, technique, sécurité, transverse)
+                rectangle "Système de Gestion" {
+                  usecase "Gérer candidatures" as UC1
+                  usecase "Suivre projets" as UC2
+                  usecase "Générer rapports" as UC3
+                  usecase "Administrer système" as UC4
+                  usecase "Authentifier utilisateur" as UC5
+                }
+                
+                User --> UC1 : "soumet"
+                User --> UC2 : "consulte"
+                Admin --> UC3 : "génère"
+                Admin --> UC4 : "configure"
+                UC1 --> UC5 : "<<include>>"
+                UC2 --> UC5 : "<<include>>"
+                @enduml
+                
+                RÈGLES STRICTES TYPES MODELIO :
+                - Utilisez UNIQUEMENT : String, int, boolean, float
+                - JAMAIS : Date, Integer, Boolean, LocalDate (incompatibles Modelio)
+                - Pour dates : utilisez String
+                - Pour nombres : utilisez int ou float
+                - Pour identifiants : utilisez int
+                
+                RÈGLES RELATIONS OBLIGATOIRES :
+                - Créez TOUJOURS des associations entre classes liées
+                - Utilisez les cardinalités (1, 0..1, 0..*, 1..*)
+                - Nommez les relations ("gère", "contient", "utilise")
+                - Modélisez l'héritage avec <|--
+                - Modélisez la composition avec *--
+                - Modélisez l'agrégation avec o--
+                
+                OBLIGATIONS USE CASES :
+                - Identifiez TOUS les acteurs du système
+                - Créez des use cases pour chaque fonctionnalité
+                - Utilisez <<include>> pour les dépendances
+                - Utilisez <<extend>> pour les cas optionnels
+                
+                IMPORTANT - LES RAPPORTS SUIVANTS SONT VOTRE SEULE SOURCE :
+                - Ils couvrent les domaines fonctionnel, technique, sécurité (RSSI), RSE et éco-conception
+                - Intégrez TOUTES les analyses (ne perdez aucune information, aucune classe/acteur/cas d'usage identifié)
+                - Conservez la traçabilité avec les références EX-XXX / REQ-XXX
+                - Organisez les classes en packages cohérents (métier, technique, sécurité, transverse)
                 - Soyez précis sur les noms (ils deviendront les noms des classes UML)
                 
-                Tous les rapports d'analyse à modéliser :
+                Tous les rapports d'analyse à transformer directement en PlantUML :
                 """;
-            String modelDesc = llm.runPrompt(modelPrompt, allAgentReports.toString());
-            Files.writeString(outDir.resolve("model_description.txt"), modelDesc);
-            
-            // Stocker pour utilisation ultérieure
-            modelDescription = modelDesc;
-            
-            System.out.println("Unified model description generated from all agent reports.");
+            String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString());
+            Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
+            System.out.println("Complete PlantUML generated directly from agent reports.");
 
-            
-            // Générer le PlantUML à partir de la description unifiée
-            String puml = ""; // Déclarer puml en dehors du bloc if
-            if (modelDesc != null && !modelDesc.trim().isEmpty()) {
-                // Prompt amélioré pour PlantUML unifié avec use cases et types corrects
-                String pumlPrompt = """
-                    Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
-                    Générez PLUSIEURS diagrammes UML COMPLETS : classes, use cases et séquences.
-                    
-                    STRUCTURE OBLIGATOIRE - Générez EXACTEMENT ce format :
-                    
-                    1. DIAGRAMME DE CLASSES (obligatoire) :
-                    @startuml Classes
-                    !theme plain
-                    
-                    package "Business" {
-                      class NomExact {
-                        +id: int
-                        +nom: String  
-                        +date: String
-                        +status: String
-                        +methode()
-                      }
-                    }
-                    
-                    package "Technical" {
-                      class ServiceClass {
-                        +processData()
-                        +validateInput()
-                      }
-                    }
-                    
-                    package "Securite" {
-                      class AuthService {
-                        +authenticate(): boolean
-                        +authorize(): boolean
-                      }
-                    }
-                    
-                    ' RELATIONS OBLIGATOIRES avec cardinalités
-                    Business.ClasseA "1" --> "0..*" Business.ClasseB : "gère"
-                    Business.ClasseC *-- Business.ClasseD : "contient"
-                    Technical.ServiceClass --> Business.ClasseA : "utilise"
-                    @enduml
-                    
-                    2. DIAGRAMME DE USE CASES (obligatoire) :
-                    @startuml UseCases
-                    !theme plain
-                    
-                    actor "Utilisateur" as User
-                    actor "Administrateur" as Admin
-                    actor "Système Externe" as ExtSys
-                    
-                    rectangle "Système de Gestion" {
-                      usecase "Gérer candidatures" as UC1
-                      usecase "Suivre projets" as UC2
-                      usecase "Générer rapports" as UC3
-                      usecase "Administrer système" as UC4
-                      usecase "Authentifier utilisateur" as UC5
-                    }
-                    
-                    User --> UC1 : "soumet"
-                    User --> UC2 : "consulte"
-                    Admin --> UC3 : "génère"
-                    Admin --> UC4 : "configure"
-                    UC1 --> UC5 : "<<include>>"
-                    UC2 --> UC5 : "<<include>>"
-                    @enduml
-                    
-                    RÈGLES STRICTES TYPES MODELIO :
-                    - Utilisez UNIQUEMENT : String, int, boolean, float
-                    - JAMAIS : Date, Integer, Boolean, LocalDate (incompatibles Modelio)
-                    - Pour dates : utilisez String
-                    - Pour nombres : utilisez int ou float
-                    - Pour identifiants : utilisez int
-                    
-                    RÈGLES RELATIONS OBLIGATOIRES :
-                    - Créez TOUJOURS des associations entre classes liées
-                    - Utilisez les cardinalités (1, 0..1, 0..*, 1..*)
-                    - Nommez les relations ("gère", "contient", "utilise")
-                    - Modélisez l'héritage avec <|--
-                    - Modélisez la composition avec *--
-                    - Modélisez l'agrégation avec o--
-                    
-                    OBLIGATIONS USE CASES :
-                    - Identifiez TOUS les acteurs du système
-                    - Créez des use cases pour chaque fonctionnalité
-                    - Utilisez <<include>> pour les dépendances
-                    - Utilisez <<extend>> pour les cas optionnels
-                    
-                    Description complète du système à transformer en PlantUML :
-                    """;
-                puml = llm.runPrompt(pumlPrompt, modelDesc);
-                Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-                System.out.println("Complete PlantUML generated from unified model description.");
-                
-                // Stocker pour utilisation ultérieure
-                plantUMLContent = puml;
-            } else {
-                System.out.println("No unified model description available - skipping PlantUML generation");
-                puml = "@startuml\nnote \"No unified model description available\" as N1\n@enduml";
-                Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-                
-                // Stocker pour utilisation ultérieure
-                plantUMLContent = puml;
-            }
+            plantUMLContent = puml;
         } else {
-            System.out.println("No agent reports available - skipping model generation");
+            System.out.println("No agent reports available - skipping PlantUML generation");
         }
 
         // Génération du modèle UML dans Modelio via MCP avec TOUS les rapports d'agents
@@ -623,12 +661,6 @@ public class PipelineRunner {
                 // Inclure TOUS les rapports d'agents (technique, rssi, fonctionnel, rse, ecoconception)
                 requirementsDocuments.append(allAgentReports.toString());
                 
-                // Inclure la description du modèle pour le contexte
-                if (!modelDescription.isEmpty()) {
-                    requirementsDocuments.append("=== MODEL DESCRIPTION ===\n");
-                    requirementsDocuments.append(modelDescription).append("\n\n");
-                }
-                
                 System.out.println("📋 Requirements documents assembled from ALL agents:");
                 System.out.println("   - Original extracted text");
                 System.out.println("   - Technical analysis report");
@@ -636,13 +668,13 @@ public class PipelineRunner {
                 System.out.println("   - Functional analysis report");
                 System.out.println("   - RSE responsibility report");
                 System.out.println("   - Ecoconception sustainability report");
-                System.out.println("   - Model description");
                 System.out.println("   Total content length: " + requirementsDocuments.length() + " characters");
                 
                 // 🎆 NOUVELLE ARCHITECTURE : Création séparée des exigences et des classes UML
                 
                 // 1) Créer les exigences dans Modelio à partir des exigences filtrées
                 System.out.println("🗺️ Step 1: Creating requirements in Modelio...");
+                progress.onStep(++step, totalSteps, "progress.pipeline.createRequirements");
                 String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString(), sourceDocumentName);
                 Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
                 if (requirementsReport == null || requirementsReport.trim().isEmpty() ||
@@ -655,6 +687,7 @@ public class PipelineRunner {
                 
                 // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
                 System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
+                progress.onStep(++step, totalSteps, "progress.pipeline.createClassModel");
                 String classModelReport = mcp.createUmlClassModel(plantUMLContent, requirementsReport, outDir.toString());
                 Files.writeString(outDir.resolve("modelio_mcp_classmodel_report.txt"), classModelReport);
                 if (classModelReport == null || classModelReport.trim().isEmpty() ||
@@ -685,6 +718,7 @@ public class PipelineRunner {
             System.out.println("No PlantUML content available - skipping MCP generation");
         }
 
+        progress.onStep(++step, totalSteps, "progress.pipeline.finalizing");
         System.out.println("Pipeline finished successfully.");
     }
     
@@ -744,5 +778,143 @@ public class PipelineRunner {
                 """;
             default -> "- Analyse générale par sous-domaines";
         };
+    }
+
+    /**
+     * Filet de sécurité déterministe pour la traçabilité des exigences.
+     *
+     * Le LLM de filtrage est censé renseigner "source_location" (section + page) pour chaque
+     * exigence, mais ce n'est pas garanti (résumé, oubli, hallucination). Cette méthode complète
+     * les exigences dont "source_location" est absent ou vide en recherchant directement leur
+     * "original_ref" (ex: "EX-015") ou, à défaut, un extrait de leur "source_quote"/"description"
+     * dans le texte brut du PDF (rawText), qui contient les marqueurs "[PAGE n]" insérés par
+     * {@link PdfExtractor}. Cela garantit une page d'origine exacte indépendamment du comportement
+     * du LLM.
+     */
+    private static String enrichMissingSourceLocations(String filteredJson, String rawText) {
+        if (filteredJson == null || filteredJson.isBlank() || rawText == null || rawText.isEmpty()) {
+            return filteredJson;
+        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(filteredJson);
+            if (!(root instanceof ObjectNode) || !root.has("filtered_requirements")) {
+                return filteredJson;
+            }
+            JsonNode reqsNode = root.get("filtered_requirements");
+            if (!(reqsNode instanceof ArrayNode)) {
+                return filteredJson;
+            }
+
+            List<int[]> pageBoundaries = findPageBoundaries(rawText);
+
+            for (JsonNode node : reqsNode) {
+                if (!(node instanceof ObjectNode)) continue;
+                ObjectNode reqNode = (ObjectNode) node;
+
+                String existingLocation = reqNode.path("source_location").asText("").trim();
+                if (!existingLocation.isEmpty()) {
+                    continue; // Le LLM a déjà fourni une localisation, on ne l'écrase pas.
+                }
+
+                String originalRef = reqNode.path("original_ref").asText("").trim();
+                String sourceQuote = reqNode.path("source_quote").asText("").trim();
+                String description = reqNode.path("description").asText("").trim();
+
+                int matchIndex = -1;
+                if (!originalRef.isEmpty()) {
+                    matchIndex = indexOfFlexible(rawText, originalRef);
+                }
+                if (matchIndex < 0 && !sourceQuote.isEmpty()) {
+                    matchIndex = indexOfFlexible(rawText, firstWords(sourceQuote, 8));
+                }
+                if (matchIndex < 0 && !description.isEmpty()) {
+                    matchIndex = indexOfFlexible(rawText, firstWords(description, 8));
+                }
+
+                if (matchIndex >= 0) {
+                    int page = pageForIndex(pageBoundaries, matchIndex);
+                    if (page > 0) {
+                        String section = findNearestSectionHeading(rawText, matchIndex);
+                        String computedLocation = section != null
+                                ? section + ", page " + page
+                                : "page " + page;
+                        reqNode.put("source_location", computedLocation);
+                    }
+                }
+            }
+
+            return mapper.writeValueAsString(root);
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not enrich source_location fields: " + e.getMessage());
+            return filteredJson;
+        }
+    }
+
+    /** Retourne une liste de [offsetDansLeTexte, numeroDePage] triée par offset croissant. */
+    private static List<int[]> findPageBoundaries(String rawText) {
+        List<int[]> boundaries = new ArrayList<>();
+        Matcher m = Pattern.compile("\\[PAGE (\\d+)\\]").matcher(rawText);
+        while (m.find()) {
+            boundaries.add(new int[] { m.start(), Integer.parseInt(m.group(1)) });
+        }
+        return boundaries;
+    }
+
+    /** Trouve le numéro de page correspondant à un offset donné (dernière borne <= offset). */
+    private static int pageForIndex(List<int[]> pageBoundaries, int index) {
+        int page = -1;
+        for (int[] boundary : pageBoundaries) {
+            if (boundary[0] <= index) {
+                page = boundary[1];
+            } else {
+                break;
+            }
+        }
+        return page;
+    }
+
+    /**
+     * Recherche "needle" dans "haystack" en tolérant des espaces/retours à la ligne multiples
+     * (le texte extrait d'un PDF ne respecte pas toujours l'espacement d'origine).
+     * Retourne l'offset du premier match, ou -1.
+     */
+    private static int indexOfFlexible(String haystack, String needle) {
+        if (needle == null || needle.isBlank()) return -1;
+        String normalizedNeedle = needle.trim();
+        if (normalizedNeedle.length() < 4) return -1; // trop court pour être fiable
+        try {
+            StringBuilder regex = new StringBuilder();
+            for (String token : normalizedNeedle.split("\\s+")) {
+                if (regex.length() > 0) regex.append("\\s+");
+                regex.append(Pattern.quote(token));
+            }
+            Matcher m = Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE).matcher(haystack);
+            return m.find() ? m.start() : -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /** Retourne les N premiers mots d'un texte. */
+    private static String firstWords(String text, int wordCount) {
+        String[] words = text.trim().split("\\s+");
+        int limit = Math.min(wordCount, words.length);
+        return String.join(" ", java.util.Arrays.copyOfRange(words, 0, limit));
+    }
+
+    /**
+     * Cherche le titre de section/sous-section numéroté le plus proche avant "index"
+     * (ex: "1.2.3 Authentification"), dans une fenêtre raisonnable pour rester pertinent.
+     */
+    private static String findNearestSectionHeading(String rawText, int index) {
+        int windowStart = Math.max(0, index - 4000);
+        String window = rawText.substring(windowStart, index);
+        Matcher m = Pattern.compile("(?m)^\\s*(\\d+(?:\\.\\d+){0,3})\\s+([A-ZÀ-Ü][^\\n]{2,80})$").matcher(window);
+        String lastMatch = null;
+        while (m.find()) {
+            lastMatch = "Section " + m.group(1) + " - " + m.group(2).trim();
+        }
+        return lastMatch;
     }
 }

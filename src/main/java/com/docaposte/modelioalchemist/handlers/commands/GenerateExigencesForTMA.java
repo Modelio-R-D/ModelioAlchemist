@@ -1,11 +1,17 @@
 package com.docaposte.modelioalchemist.handlers.commands;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import com.docaposte.modelioalchemist.i18n.Messages;
 import com.docaposte.modelioalchemist.langchain.impl.Main;
+import com.docaposte.modelioalchemist.langchain.impl.PipelineCancelledException;
+import com.docaposte.modelioalchemist.langchain.impl.PipelineProgressListener;
 import com.modeliosoft.modelio.javadesigner.annotations.objid;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
@@ -33,13 +39,13 @@ public class GenerateExigencesForTMA extends DefaultModuleCommandHandler {
         } catch (Exception e) {
             System.err.println("[TMA] ❌ Error calculating output directory: " + e.getMessage());
             e.printStackTrace();
-            MessageDialog.openError(Display.getDefault().getActiveShell(), "TMA Configuration Error", 
-                "❌ Error calculating output directory: " + e.getMessage());
+            MessageDialog.openError(Display.getDefault().getActiveShell(), Messages.getString("dialog.tma.configError.title"),
+                Messages.getString("dialog.tma.configError.message", e.getMessage()));
             return;
         }
 
         FileDialog dialog = new FileDialog(Display.getDefault().getActiveShell(), SWT.OPEN);
-        dialog.setText("Select a TMA requirements document (PDF)");
+        dialog.setText(Messages.getString("filedialog.selectTmaPdf.text"));
         dialog.setFilterExtensions(new String[] { "*.pdf", "*.txt" });
         String selected = dialog.open();
 
@@ -47,24 +53,50 @@ public class GenerateExigencesForTMA extends DefaultModuleCommandHandler {
             System.out.println("[TMA] 📄 File selected: " + selected);
             final String selectedFile = selected;
             final String finalOutputDir = outputDir;
-            Thread worker = new Thread(() -> {
-                try {
-                    System.out.println("[TMA] 🔄 Starting TMA pipeline...");
-                    Main.tmaWithOutputDir(new String[]{selectedFile}, finalOutputDir);
-                    System.out.println("[TMA] ✅ TMA pipeline completed successfully");
-                    Display.getDefault().asyncExec(() -> MessageDialog.openInformation(
-                        Display.getDefault().getActiveShell(), "TMA Analysis Complete",
-                        "✅ TMA requirements analysis generated successfully in: " + finalOutputDir));
-                } catch (Exception e) {
-                    System.err.println("[TMA] ❌ Pipeline error: " + e.getMessage());
-                    e.printStackTrace();
-                    Display.getDefault().asyncExec(() -> MessageDialog.openError(
-                        Display.getDefault().getActiveShell(), "TMA Analysis Error",
-                        "❌ Error during TMA analysis: " + e.getMessage()));
-                }
-            }, "modelioalchemist-tma-pipeline");
-            worker.setDaemon(true);
-            worker.start();
+
+            ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(Display.getDefault().getActiveShell());
+            try {
+                progressDialog.run(true, true, monitor -> {
+                    monitor.beginTask(Messages.getString("task.tmaAnalysis"), IProgressMonitor.UNKNOWN);
+                    try {
+                        System.out.println("[TMA] 🔄 Starting TMA pipeline...");
+                        Main.tmaWithOutputDir(new String[] { selectedFile }, finalOutputDir,
+                            new PipelineProgressListener() {
+                                @Override
+                                public void onStage(String stage) {
+                                    monitor.subTask(stage);
+                                }
+
+                                @Override
+                                public boolean isCancelled() {
+                                    return monitor.isCanceled();
+                                }
+                            });
+                        System.out.println("[TMA] ✅ TMA pipeline completed successfully");
+                    } catch (PipelineCancelledException e) {
+                        System.out.println("[TMA] 🚫 Pipeline cancelled by user");
+                        throw new InterruptedException(e.getMessage());
+                    } catch (Exception e) {
+                        System.err.println("[TMA] ❌ Pipeline error: " + e.getMessage());
+                        throw new InvocationTargetException(e);
+                    } finally {
+                        monitor.done();
+                    }
+                });
+                MessageDialog.openInformation(
+                    Display.getDefault().getActiveShell(), Messages.getString("dialog.tma.complete.title"),
+                    Messages.getString("dialog.tma.complete.message", finalOutputDir));
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                cause.printStackTrace();
+                MessageDialog.openError(
+                    Display.getDefault().getActiveShell(), Messages.getString("dialog.tma.error.title"),
+                    Messages.getString("dialog.tma.error.message", cause.getMessage()));
+            } catch (InterruptedException e) {
+                MessageDialog.openInformation(
+                    Display.getDefault().getActiveShell(), Messages.getString("dialog.cancelled.title"),
+                    Messages.getString("dialog.cancelled.message"));
+            }
         } else {
             System.out.println("[TMA] ⏹️ No file selected, operation cancelled");
         }

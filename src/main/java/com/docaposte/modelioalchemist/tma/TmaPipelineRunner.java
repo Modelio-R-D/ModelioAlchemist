@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import com.docaposte.modelioalchemist.langchain.impl.LangchainService;
 import com.docaposte.modelioalchemist.langchain.impl.ModelioMcpAgent;
 import com.docaposte.modelioalchemist.langchain.impl.PdfExtractor;
+import com.docaposte.modelioalchemist.langchain.impl.PipelineProgressListener;
 
 /**
  * Pipeline spécialisé pour l'analyse des cahiers des charges TMA (Tierce Maintenance Applicative).
@@ -34,10 +35,17 @@ public class TmaPipelineRunner {
         }
     }
     
+    public void run(String pdfPath, String outputDirectory) throws Exception {
+        run(pdfPath, outputDirectory, PipelineProgressListener.NONE);
+    }
+
     /**
      * Exécute le pipeline d'analyse TMA complet - même pattern que Main.java
      */
-    public void run(String pdfPath, String outputDirectory) throws Exception {
+    public void run(String pdfPath, String outputDirectory, PipelineProgressListener progress) throws Exception {
+        if (progress == null) {
+            progress = PipelineProgressListener.NONE;
+        }
         debug("🚀 Starting TMA requirements analysis pipeline");
         debug("📄 PDF: " + pdfPath);
         debug("📁 Output: " + outputDirectory);
@@ -52,8 +60,14 @@ public class TmaPipelineRunner {
 
         Path outDir = Paths.get(outputDirectory);
         Files.createDirectories(outDir);
+
+        // Fixed number of stages reported to the UI: extract, clean, expert analysis,
+        // structure requirements, create in Modelio, finalize.
+        final int totalSteps = 6;
+        int step = 0;
         
         try {            // Étape 1: Extraction du texte du PDF - MÊME MÉTHODE que PipelineRunner
+            progress.onStep(++step, totalSteps, "progress.tma.extractText");
             debug("📖 Step 1: Extracting raw text from PDF (same as main pipeline)...");
             String rawText;
             try {
@@ -72,6 +86,7 @@ public class TmaPipelineRunner {
             
             // Étape 2: Agent extracteur pour nettoyer le texte (même pattern que main pipeline)
             debug("🧹 Step 2: Cleaning extracted text with extractor agent...");
+            progress.onStep(++step, totalSteps, "progress.tma.cleanText");
             String extractorPrompt = """
                 Vous êtes un expert en extraction de documents techniques TMA (Tierce Maintenance Applicative). 
                 Votre mission est d'extraire TOUTES les informations importantes du document, en particulier :
@@ -110,6 +125,7 @@ public class TmaPipelineRunner {
             
             // Étape 3: Analyse spécialisée TMA avec le prompt expert
             debug("🔍 Step 3: TMA expert analysis...");
+            progress.onStep(++step, totalSteps, "progress.tma.expertAnalysis");
             TmaRequirementsExtractor extractor = new TmaRequirementsExtractor();
             String tmaAnalysis;
             try {
@@ -128,6 +144,7 @@ public class TmaPipelineRunner {
             
             // Étape 4: Structuration des exigences
             debug("📋 Step 4: Structuring TMA requirements...");
+            progress.onStep(++step, totalSteps, "progress.tma.structureRequirements");
             String structuredRequirements;
             try {
                 structuredRequirements = extractor.structureRequirements(tmaAnalysis, llm);
@@ -145,6 +162,7 @@ public class TmaPipelineRunner {
             
             // Étape 5: Création des requirements dans Modelio via MCP
             debug("🏗️  Step 5: Creating requirements in Modelio...");
+            progress.onStep(++step, totalSteps, "progress.tma.createRequirements");
             try {
                 // Validation avant envoi à Modelio
                 if (structuredRequirements.trim().isEmpty()) {
@@ -183,6 +201,7 @@ public class TmaPipelineRunner {
             }
             
             debug("🎉 TMA pipeline completed successfully!");
+            progress.onStep(++step, totalSteps, "progress.tma.finalizing");
             
         } catch (Exception e) {
             debug("❌ TMA pipeline failed: " + e.getMessage());

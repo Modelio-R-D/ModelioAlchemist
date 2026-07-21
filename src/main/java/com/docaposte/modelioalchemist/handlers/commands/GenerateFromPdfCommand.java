@@ -1,11 +1,17 @@
 package com.docaposte.modelioalchemist.handlers.commands;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import com.docaposte.modelioalchemist.i18n.Messages;
 import com.docaposte.modelioalchemist.langchain.impl.Main;
+import com.docaposte.modelioalchemist.langchain.impl.PipelineCancelledException;
+import com.docaposte.modelioalchemist.langchain.impl.PipelineProgressListener;
 import com.modeliosoft.modelio.javadesigner.annotations.objid;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
@@ -25,29 +31,55 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
         String outputDir = calculateOutputDirectory(selectedElements, context);
 
         FileDialog dialog = new FileDialog(Display.getDefault().getActiveShell(), SWT.OPEN);
-        dialog.setText("Select a requirements document (PDF)");
+        dialog.setText(Messages.getString("filedialog.selectPdf.text"));
         dialog.setFilterExtensions(new String[] { "*.pdf" });
         String selected = dialog.open();
 
         if (selected != null) {
             final String selectedFile = selected;
             final String finalOutputDir = outputDir;
-            Thread worker = new Thread(() -> {
-                try {
-                    Main.mainWithOutputDir(new String[]{selectedFile}, finalOutputDir);
-                    Display.getDefault().asyncExec(() -> MessageDialog.openInformation(
-                        Display.getDefault().getActiveShell(), "Done",
-                        "✅ Model generated successfully in: " + finalOutputDir));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Display.getDefault().asyncExec(() -> MessageDialog.openError(
-                        Display.getDefault().getActiveShell(), "Error", e.getMessage()));
-                }
-            }, "modelioalchemist-pdf-pipeline");
-            worker.setDaemon(true);
-            worker.start();
+
+            ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(Display.getDefault().getActiveShell());
+            try {
+                progressDialog.run(true, true, monitor -> {
+                    monitor.beginTask(Messages.getString("task.generateFromPdf"), IProgressMonitor.UNKNOWN);
+                    try {
+                        Main.mainWithOutputDir(new String[] { selectedFile }, finalOutputDir,
+                            new PipelineProgressListener() {
+                                @Override
+                                public void onStage(String stage) {
+                                    monitor.subTask(stage);
+                                }
+
+                                @Override
+                                public boolean isCancelled() {
+                                    return monitor.isCanceled();
+                                }
+                            });
+                    } catch (PipelineCancelledException e) {
+                        throw new InterruptedException(e.getMessage());
+                    } catch (Exception e) {
+                        throw new InvocationTargetException(e);
+                    } finally {
+                        monitor.done();
+                    }
+                });
+                MessageDialog.openInformation(
+                    Display.getDefault().getActiveShell(), Messages.getString("dialog.done.title"),
+                    Messages.getString("dialog.done.message", finalOutputDir));
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                cause.printStackTrace();
+                MessageDialog.openError(
+                    Display.getDefault().getActiveShell(), Messages.getString("dialog.error.title"), cause.getMessage());
+            } catch (InterruptedException e) {
+                MessageDialog.openInformation(
+                    Display.getDefault().getActiveShell(), Messages.getString("dialog.cancelled.title"),
+                    Messages.getString("dialog.cancelled.message"));
+            }
         }
     }
+
 
     @objid ("083fb4d9-a211-47b9-8edf-f7569ae45814")
     @Override

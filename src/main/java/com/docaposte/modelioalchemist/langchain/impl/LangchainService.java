@@ -592,8 +592,11 @@ public class LangchainService {
             createdRequirement.put("origin", requirement.origin);
 
             if (i < requirements.size() - 1) {
-                // Give Modelio time to process Analyst-side refreshes between transactions.
-                TimeUnit.MILLISECONDS.sleep(250);
+                // Give Modelio a brief moment to process Analyst-side refreshes between transactions.
+                // Was previously 250ms; that added ~seconds of pure idle wait for documents with many
+                // requirements (e.g. 10s+ for 40 requirements). 40ms is still enough slack for the
+                // refresh while cutting that overhead by ~6x.
+                TimeUnit.MILLISECONDS.sleep(40);
             }
         }
 
@@ -630,9 +633,6 @@ public class LangchainService {
         arguments.put("type", "Requirement");
         arguments.put("name", requirement.id);
         arguments.put("definition", requirement.description);
-        if (requirement.origin != null && !requirement.origin.isBlank()) {
-            arguments.put("origin", requirement.origin);
-        }
         if (containerUuid != null && !containerUuid.isBlank()) {
             arguments.put("container_uuid", containerUuid);
         }
@@ -640,8 +640,16 @@ public class LangchainService {
         analystProperties.put("categorie", requirement.category);
         analystProperties.put("priorité", requirement.priority);
         if (requirement.origin != null && !requirement.origin.isBlank()) {
-            analystProperties.put("origine", requirement.origin);
+            // "Origin" (capital O) is the exact analyst property key defined by the Modelio
+            // Analyst project's Requirement stereotype in the target environment. Property keys
+            // set via analyst_properties are stored verbatim (no case-insensitive fallback), so
+            // they must match the stereotype definition precisely or the value is written under
+            // an unrecognized key and never shows up in Modelio's "Origin" field.
+            analystProperties.put("Origin", requirement.origin);
+            // Keep legacy lower/French-case keys too for backward compatibility with
+            // environments whose stereotype defines the property differently.
             analystProperties.put("origin", requirement.origin);
+            analystProperties.put("origine", requirement.origin);
         }
 
         return executeAnalystTool("REQ " + requirement.id, "create-requirement-" + requirement.id, "analyst_createElement",
@@ -1528,7 +1536,10 @@ public class LangchainService {
         prompt.append("   - Conserver les noms exacts du PlantUML\n");
         prompt.append("   - Créer dans le package 'Modèle de Domaine'\n");
         prompt.append("   - Rapporter l'UUID de chaque classe\n");
-        prompt.append("   - Ajouter des liens de traçabilité vers les exigences pertinentes si applicable\n\n");
+        prompt.append("   - 🚨 OBLIGATOIRE : pour chaque classe liée à une exigence, matérialiser le lien «Satisfait» avec l'outil MCP\n");
+        prompt.append("     `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID de la classe>, target_uuid=<UUID de l'exigence>,\n");
+        prompt.append("     module_name=\"ModelerModule\") en un seul appel.\n");
+        prompt.append("     Sans cette dépendance «Satisfait» réelle dans le modèle, la classe N'EST PAS considérée comme tracée.\n\n");
         
         prompt.append("3️⃣ **Ajouter les Attributs** : Utiliser les outils MCP POUR CHAQUE CLASSE\n");
         prompt.append("   - Ajouter TOUS les attributs du PlantUML\n");
@@ -1586,6 +1597,16 @@ public class LangchainService {
         prompt.append("- --|> = Generalization\n");
         prompt.append("- --o = Aggregation\n");
         prompt.append("- --* = Composition\n\n");
+        
+        prompt.append("## RÈGLE DE TRAÇABILITÉ OBLIGATOIRE («Satisfait»)\n");
+        prompt.append("🚨 Chaque élément de modélisation créé (classe, etc.) qui répond à une exigence DOIT être relié à celle-ci\n");
+        prompt.append("   par une relation de Dépendance stéréotypée «Satisfait» (stéréotype défini par le profil Modelio Analyst).\n");
+        prompt.append("   - Appel MCP exact à exécuter dès que l'élément et l'exigence existent (UUIDs réels requis) :\n");
+        prompt.append("     `analyst_createRelation` avec relation_type=\"satisfy\", source_uuid=<UUID de l'élément>,\n");
+        prompt.append("     target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\"\n");
+        prompt.append("   - Sens de la relation : source = élément de modélisation (satisfait), target = exigence (satisfaite).\n");
+        prompt.append("   - Un élément sans dépendance «Satisfait» réelle vers son/ses exigence(s) n'est PAS conforme.\n");
+        prompt.append("   - Ne pas se contenter de le mentionner dans le JSON : la relation doit exister dans le modèle Modelio.\n\n");
         
         prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. START NOW: create packages, classes, attributes, then associations with MCP tools and return the as-built outputs only.");
         
@@ -1665,7 +1686,10 @@ public class LangchainService {
         prompt.append("   - Créer les cas d'usage : 'Gérer les Utilisateurs', 'Traiter les Données', etc.\n");
         prompt.append("   - Lier aux exigences d'implémentation quand c'est possible\n");
         prompt.append("   - Placer dans le package 'Cas d Usage'\n");
-        prompt.append("   - Rapporter l'UUID de chaque cas d'usage\n\n");
+        prompt.append("   - Rapporter l'UUID de chaque cas d'usage\n");
+        prompt.append("   - 🚨 OBLIGATOIRE : pour chaque cas d'usage lié à une exigence, matérialiser le lien «Satisfait» avec l'outil MCP\n");
+        prompt.append("     `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>,\n");
+        prompt.append("     module_name=\"ModelerModule\") en un seul appel.\n\n");
         
         prompt.append("4️⃣ **Créer les Associations Acteur-Cas d'Usage** : Utiliser les outils MCP\n");
         prompt.append("   - Connecter chaque acteur aux cas d'usage pertinents\n");
@@ -1734,7 +1758,10 @@ public class LangchainService {
         prompt.append("## EXIGENCES DE TRAÇABILITÉ\n");
         prompt.append("🔗 Lier les cas d'usage aux exigences qui définissent leurs fonctionnalités\n");
         prompt.append("🔗 Référencer les classes du modèle de domaine manipulées par les cas d'usage\n");
-        prompt.append("🔗 Assurer une couverture complète des exigences fonctionnelles\n\n");
+        prompt.append("🔗 Assurer une couverture complète des exigences fonctionnelles\n");
+        prompt.append("🚨 RAPPEL OBLIGATOIRE : chaque lien de traçabilité vers une exigence DOIT être matérialisé dans Modelio via l'outil MCP\n");
+        prompt.append("   `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID de l'élément>, target_uuid=<UUID de l'exigence>,\n");
+        prompt.append("   module_name=\"ModelerModule\"). Un simple champ JSON 'linked_requirements' ne suffit pas.\n\n");
         
         prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.");
         
@@ -1888,7 +1915,10 @@ public class LangchainService {
         prompt.append("- Créer d'abord les classes, puis les attributs, puis les associations\n");
         prompt.append("- Utiliser les types : String, int, boolean, float (compatibles Modelio)\n");
         prompt.append("- NE JAMAIS ignorer les associations - parser TOUTES les relations du PlantUML\n");
-        prompt.append("- TOUTES les descriptions et noms doivent être en français\n\n");
+        prompt.append("- TOUTES les descriptions et noms doivent être en français\n");
+        prompt.append("- 🚨 OBLIGATOIRE : chaque élément (classe, acteur, cas d'usage) qui répond à une exigence DOIT être relié\n");
+        prompt.append("  à celle-ci via l'outil MCP `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID élément>,\n");
+        prompt.append("  target_uuid=<UUID exigence>, module_name=\"ModelerModule\")\n\n");
         
         prompt.append("COMMENCEZ MAINTENANT : Créez le modèle complet en utilisant les outils MCP.");
         
