@@ -662,6 +662,8 @@ public class LangchainService {
         arguments.put("type", "RequirementContainer");
         arguments.put("name", DEFAULT_REQUIREMENT_CONTAINER_NAME);
         arguments.put("definition", DEFAULT_REQUIREMENT_CONTAINER_DEFINITION);
+        // Explicitly set the container as modifiable to allow deletion and editing of contained elements
+        arguments.put("isModifiable", true);
 
         String response = executeAnalystTool("CONTAINER auto-create", "create-requirement-container-" + System.nanoTime(),
                 "analyst_createContainer", arguments, mapper, executionTrace);
@@ -813,7 +815,10 @@ public class LangchainService {
             
             // PHASE 2 : Création des Classes et Associations
             debug("🏛️ PHASE 2: Creating Classes and Associations...");
-            String classesPrompt = createClassesPrompt(analysisResults, requirementsResult, parsedRequirements);
+            // Extract requirements UUIDs from Phase 1 result to pass them to Phase 2
+            List<String> requirementUUIDs = extractUUIDs(requirementsResult);
+            debug("📋 Extracted " + requirementUUIDs.size() + " requirement UUIDs from Phase 1 for Phase 2 linking");
+            String classesPrompt = createClassesPrompt(analysisResults, requirementsResult, parsedRequirements, requirementUUIDs);
             
             PooledUmlAssistant pa2 = borrowAssistant();
             if (pa2 == null) {
@@ -850,7 +855,7 @@ public class LangchainService {
             
             // PHASE 3 : Création des Use Cases et Actors
             debug("👥 PHASE 3: Creating Use Cases and Actors...");
-            String useCasesPrompt = createUseCasesPrompt(analysisResults, requirementsResult, classesResult, parsedRequirements);
+            String useCasesPrompt = createUseCasesPrompt(analysisResults, requirementsResult, classesResult, parsedRequirements, requirementUUIDs);
             
             PooledUmlAssistant pa3 = borrowAssistant();
             if (pa3 == null) {
@@ -1480,7 +1485,7 @@ public class LangchainService {
     /**
      * Génère le prompt spécialisé pour la création des classes et associations (PHASE 2)
      */
-    private static String createClassesPrompt(String analysisResults, String requirementsResult, List<Requirement> parsedRequirements) {
+    private static String createClassesPrompt(String analysisResults, String requirementsResult, List<Requirement> parsedRequirements, List<String> requirementUUIDs) {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append("🇫🇷 Vous êtes un modélisateur de domaine Modelio. Votre mission : créer TOUTES les classes et associations en français.\n\n");
@@ -1499,6 +1504,18 @@ public class LangchainService {
             }
             
             prompt.append("🔗 MAINTENIR LA TRAÇABILITÉ : Lier les classes aux exigences pertinentes lors de leur création.\n\n");
+        }
+        
+        // ✨ NEW: Add requirement UUIDs for direct linking (avoid keyword search failures)
+        if (requirementUUIDs != null && !requirementUUIDs.isEmpty()) {
+            prompt.append("## UUIDS DES EXIGENCES POUR LIEN DIRECT (À UTILISER OBLIGATOIREMENT)\n");
+            prompt.append("🚨 NE PAS CHERCHER LES EXIGENCES PAR MOTS-CLÉS! Utiliser directement ces UUIDs pour créer les liens «Satisfait»:\n\n");
+            for (int i = 0; i < requirementUUIDs.size(); i++) {
+                prompt.append(String.format("- UUID exigence #%d: %s\n", (i + 1), requirementUUIDs.get(i)));
+            }
+            prompt.append("\n🚨 CRITIQUE : Lors de la création de chaque classe, appeler analyst_createRelation IMMÉDIATEMENT\n");
+            prompt.append("   avec relation_type=\"satisfy\", source_uuid=<UUID classe>, target_uuid=<l'un des UUIDs exigences ci-dessus>\n");
+            prompt.append("   NE PAS attendre la fin. Lier chaque classe AU FUR ET À MESURE.\n\n");
         }
         
         // Contexte des requirements parsés pour traçabilité
@@ -1617,7 +1634,7 @@ public class LangchainService {
     /**
      * Génère le prompt spécialisé pour la création des use cases et actors (PHASE 3)
      */
-    private static String createUseCasesPrompt(String analysisResults, String requirementsResult, String classesResult, List<Requirement> parsedRequirements) {
+    private static String createUseCasesPrompt(String analysisResults, String requirementsResult, String classesResult, List<Requirement> parsedRequirements, List<String> requirementUUIDs) {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append("🇫🇷 Vous êtes un analyste de cas d'usage Modelio. Votre mission : créer TOUS les cas d'usage et acteurs en français.\n\n");
@@ -1648,6 +1665,18 @@ public class LangchainService {
             prompt.append(requirementsResult.substring(0, 2000)).append("\n... (contexte exigences tronqué)\n\n");
         } else {
             prompt.append(requirementsResult).append("\n\n");
+        }
+        
+        // ✨ NEW: Add requirement UUIDs for direct linking (avoid keyword search failures)
+        if (requirementUUIDs != null && !requirementUUIDs.isEmpty()) {
+            prompt.append("## UUIDS DES EXIGENCES POUR LIEN DIRECT (À UTILISER OBLIGATOIREMENT)\n");
+            prompt.append("🚨 NE PAS CHERCHER LES EXIGENCES PAR MOTS-CLÉS! Utiliser directement ces UUIDs pour créer les liens «Satisfait»:\n\n");
+            for (int i = 0; i < requirementUUIDs.size(); i++) {
+                prompt.append(String.format("- UUID exigence #%d: %s\n", (i + 1), requirementUUIDs.get(i)));
+            }
+            prompt.append("\n🚨 CRITIQUE : Lors de la création de chaque cas d'usage, appeler analyst_createRelation IMMÉDIATEMENT\n");
+            prompt.append("   avec relation_type=\"satisfy\", source_uuid=<UUID cas d'usage>, target_uuid=<l'un des UUIDs exigences ci-dessus>\n");
+            prompt.append("   NE PAS attendre la fin. Lier chaque cas d'usage AU FUR ET À MESURE.\n\n");
         }
         
         prompt.append("🔍 **EXTRAIRE LE JSON DES EXIGENCES** : Rechercher la structure JSON dans les résultats ci-dessus\n\n");
