@@ -2,7 +2,7 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 final class OpenAiDefaults {
 
-    static final String DEPLOYMENT = "gpt-5.4-mini";
+    static final String DEPLOYMENT = "gpt-5.2";
     static final double TEMPERATURE = 1.0;
     // "2026-03-17" is not a recognized Azure OpenAI API version and caused every request to be
     // rejected with a 404 "Resource not found" by the backend (HttpPolicies.capture() forces this

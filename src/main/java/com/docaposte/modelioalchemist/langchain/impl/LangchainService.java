@@ -2267,8 +2267,16 @@ public class LangchainService {
         // reject that malformed Authorization header with a 404, even though the same
         // Ocp-Apim-Subscription-Key-only request succeeds (this is exactly what ModelioAI does).
         // Auth is handled entirely by HttpPolicies.auth() below, which sets Ocp-Apim-Subscription-Key.
+        // The Azure SDK's default Netty HttpClient has a 60s response timeout, which is too
+        // short for large prompts (140K+ chars) against slower deployments/proxies. Raise it
+        // to match the request-level timeouts used in PolicyAwareAzureChatModel.
+        com.azure.core.http.HttpClient httpClient = new com.azure.core.http.netty.NettyAsyncHttpClientBuilder()
+                .responseTimeout(Duration.ofMinutes(5))
+                .build();
+
         com.azure.ai.openai.OpenAIClientBuilder builder = new com.azure.ai.openai.OpenAIClientBuilder()
             .endpoint(info.endpoint)
+            .httpClient(httpClient)
             .httpLogOptions(HttpPolicies.httpLogOptions())
             .addPolicy(HttpPolicies.auth(aadToken))
             .addPolicy(HttpPolicies.capture());

@@ -62,6 +62,9 @@
         <PathEntry path="lib/jackson-datatype-jsr310-2.17.2.jar"/>
         <PathEntry path="lib/reactor-core-3.4.41.jar"/>
         <PathEntry path="lib/reactive-streams-1.0.4.jar"/>
+        <PathEntry path="lib/org.eclipse.core.jobs-3.15.800.jar"/>
+        <PathEntry path="lib/org.eclipse.equinox.common-3.20.400.jar"/>
+        <PathEntry path="lib/org.eclipse.osgi-3.24.200.jar"/>
     </ClassPath>
     <Gui>
         <Commands>

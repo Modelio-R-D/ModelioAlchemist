@@ -15,6 +15,8 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
+import java.time.Duration;
+
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsFunctionToolCall;
 import com.azure.ai.openai.models.ChatCompletionsFunctionToolDefinition;
@@ -106,8 +108,9 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                 if (!toolDefs.isEmpty()) opts.setTools(toolDefs);
             }
             RequestOptions reqOpts = new RequestOptions();
+            reqOpts.setHeader("timeout", "300000");
             System.out.println("[AzureChatModel] Calling Azure OpenAI endpoint=" + info.endpoint + " deployment=" + info.deployment);
-            com.azure.ai.openai.models.ChatCompletions completions = client.getChatCompletionsWithResponse(info.deployment, opts, reqOpts).block().getValue();
+            com.azure.ai.openai.models.ChatCompletions completions = client.getChatCompletionsWithResponse(info.deployment, opts, reqOpts).block(Duration.ofSeconds(300)).getValue();
             final String[] assistantTextHolder = new String[]{""}; List<ToolExecutionRequest> toolCalls = new ArrayList<>();
             if (completions != null && completions.getChoices() != null && !completions.getChoices().isEmpty()) {
                 try {
