@@ -54,6 +54,7 @@ public class LangchainService {
             Pattern.compile("(?i)no\\s+requirementcontainer\\s+found");
     private static final Pattern MANUAL_INSTRUCTIONS_PATTERN = Pattern.compile(
             "(?i)(^|\\b)(?:étape\\s*1|step\\s*1|ouvrez?\\s+modelio|ouvrir\\s+modelio|suivez\\s+les\\s+étapes|vous\\s+pouvez\\s+trouver\\s+l['’]uuid|trouver\\s+l['’]uuid|assurez-vous\\s+d['’]avoir\\s+modelio|créez\\s+un\\s+nouveau\\s+projet)");
+    private static final String MCP_NO_TOOL_CALL_SUFFIX = "completed without MCP tool calls.";
 
     // -------------------------------------------------- Logging --------------------------------------------------
     private static final boolean DEBUG = true;
@@ -231,6 +232,36 @@ public class LangchainService {
             }
         }
         return result;
+    }
+
+    private static String executeAssistantWithMcpTraceWithRetry(
+            PooledUmlAssistant pa, String phaseName, String prompt, String outputDirectory, int maxAttempts) throws IOException {
+        if (maxAttempts <= 1) {
+            return executeAssistantWithMcpTrace(pa, phaseName, prompt, outputDirectory);
+        }
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            String attemptPrompt = prompt;
+            if (attempt > 1) {
+                attemptPrompt = prompt + System.lineSeparator() + System.lineSeparator()
+                        + "RETRY #" + attempt + ": la tentative précédente n'a exécuté aucun outil MCP."
+                        + " Exécutez maintenant les appels MCP requis et retournez uniquement la sortie as-built.";
+                debug("♻️ Retrying phase '" + phaseName + "' after zero MCP tool call response (attempt " + attempt + "/" + maxAttempts + ")");
+            }
+            try {
+                return executeAssistantWithMcpTrace(pa, phaseName, attemptPrompt, outputDirectory);
+            } catch (IllegalStateException e) {
+                if (!isNoToolCallFailure(e) || attempt == maxAttempts) {
+                    throw e;
+                }
+            }
+        }
+
+        throw new IllegalStateException("MCP_EXECUTION_FAILED: phase '" + phaseName + "' exceeded retry limit.");
+    }
+
+    private static boolean isNoToolCallFailure(IllegalStateException e) {
+        return e != null && e.getMessage() != null && e.getMessage().contains(MCP_NO_TOOL_CALL_SUFFIX);
     }
 
     private static String formatToolExecutionTrace(PolicyAwareAzureChatModel.ToolExecutionTrace trace) {
@@ -805,7 +836,7 @@ public class LangchainService {
             validateMcpExecutionResult("requirements_phase", requirementsResult, "requirements_created", "exigences_creees");
             finalReport.append("PHASE 1 - REQUIREMENTS:\n").append(requirementsResult).append("\n\n");
              
-            List<String> requirementsUUIDs = extractUUIDs(requirementsResult);
+            List<String> requirementsUUIDs = extractRequirementUUIDs(requirementsResult);
             String requirementsJSON = extractJSONStructure(requirementsResult, "requirements_created", "exigences_creees");
             
             debug("✅ Requirements creation completed - UUIDs extracted: " + requirementsUUIDs.size());
@@ -815,8 +846,8 @@ public class LangchainService {
             
             // PHASE 2 : Création des Classes et Associations
             debug("🏛️ PHASE 2: Creating Classes and Associations...");
-            // Extract requirements UUIDs from Phase 1 result to pass them to Phase 2
-            List<String> requirementUUIDs = extractUUIDs(requirementsResult);
+            // Extract only requirement element UUIDs (exclude package/container UUIDs)
+            List<String> requirementUUIDs = extractRequirementUUIDs(requirementsResult);
             debug("📋 Extracted " + requirementUUIDs.size() + " requirement UUIDs from Phase 1 for Phase 2 linking");
             String classesPrompt = createClassesPrompt(analysisResults, requirementsResult, parsedRequirements, requirementUUIDs);
             
@@ -827,7 +858,7 @@ public class LangchainService {
             
             String classesResult;
             try {
-                classesResult = executeAssistantWithMcpTrace(pa2, "domain_model_phase", classesPrompt, outputDirectory);
+                classesResult = executeAssistantWithMcpTraceWithRetry(pa2, "domain_model_phase", classesPrompt, outputDirectory, 2);
                 classesResult = ensureStructuredDomainModelResult(classesResult);
                 validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
                 finalReport.append("PHASE 2 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
@@ -1819,6 +1850,50 @@ public class LangchainService {
     }
 
     /**
+     * Extrait les UUIDs des exigences uniquement depuis la structure JSON dédiée.
+     * Évite de fournir des UUIDs de package/conteneur qui cassent analyst_createRelation(satisfy).
+     */
+    private static List<String> extractRequirementUUIDs(String requirementsOutput) {
+        if (requirementsOutput == null || requirementsOutput.isBlank()) {
+            return List.of();
+        }
+
+        String requirementsJson = extractJSONStructure(requirementsOutput, "requirements_created", "exigences_creees");
+        if (requirementsJson == null || requirementsJson.isBlank()) {
+            return extractUUIDs(requirementsOutput);
+        }
+
+        try {
+            JsonNode root = new ObjectMapper().readTree(requirementsJson);
+            JsonNode created = root.path("requirements_created");
+            if (!created.isArray()) {
+                created = root.path("exigences_creees");
+            }
+
+            if (!created.isArray()) {
+                return extractUUIDs(requirementsOutput);
+            }
+
+            List<String> requirementUuids = new ArrayList<>();
+            for (JsonNode requirementNode : created) {
+                String uuid = requirementNode.path("uuid").asText(null);
+                if (uuid != null && REAL_UUID_PATTERN.matcher(uuid).matches()) {
+                    requirementUuids.add(uuid);
+                }
+            }
+
+            if (!requirementUuids.isEmpty()) {
+                debug("📋 Extracted " + requirementUuids.size() + " requirement-only UUIDs from requirements JSON");
+                return requirementUuids;
+            }
+        } catch (Exception e) {
+            debug("⚠️ Could not parse requirement-only UUIDs from JSON: " + e.getMessage());
+        }
+
+        return extractUUIDs(requirementsOutput);
+    }
+
+    /**
      * Extrait la structure JSON depuis un output d'agent
      */
     private static String extractJSONStructure(String agentOutput, String... jsonKeys) {
@@ -1860,33 +1935,79 @@ public class LangchainService {
             return result;
         }
 
+        List<String> realUuids = extractUUIDs(result);
+
+        // Fallback 1: PlantUML + UUIDs → synthesize full JSON from PlantUML
         String asBuiltPlantUml = extractPlantUMLDiagram(result, "MODELE_DOMAINE_AS_BUILT");
         if (asBuiltPlantUml == null) {
             asBuiltPlantUml = extractPlantUMLDiagram(result, "AS_BUILT_DOMAIN_MODEL");
         }
-        if (asBuiltPlantUml == null || !PlantUMLAnalyzer.isValidPlantUML(asBuiltPlantUml)) {
-            return result;
+        if (asBuiltPlantUml != null && PlantUMLAnalyzer.isValidPlantUML(asBuiltPlantUml) && !realUuids.isEmpty()) {
+            String synthesizedJson = synthesizeDomainModelJson(asBuiltPlantUml, realUuids);
+            if (synthesizedJson != null) {
+                debug("⚠️ domain_model_phase returned no structured JSON; synthesized fallback domain_model_created payload from as-built PlantUML");
+                return result
+                        + System.lineSeparator()
+                        + System.lineSeparator()
+                        + "```json"
+                        + System.lineSeparator()
+                        + synthesizedJson
+                        + System.lineSeparator()
+                        + "```";
+            }
         }
 
-        List<String> realUuids = extractUUIDs(result);
-        if (realUuids.isEmpty()) {
-            return result;
+        // Fallback 2: UUIDs present but no PlantUML → synthesize minimal JSON from UUIDs
+        // This covers the case where MCP tools executed (UUIDs prove it) but the LLM
+        // didn't produce a PlantUML diagram or structured JSON in its final output.
+        if (!realUuids.isEmpty()) {
+            String synthesizedJson = synthesizeMinimalDomainModelJson(realUuids);
+            if (synthesizedJson != null) {
+                debug("⚠️ domain_model_phase returned no structured JSON or PlantUML; synthesized minimal domain_model_created payload from " + realUuids.size() + " UUIDs");
+                return result
+                        + System.lineSeparator()
+                        + System.lineSeparator()
+                        + "```json"
+                        + System.lineSeparator()
+                        + synthesizedJson
+                        + System.lineSeparator()
+                        + "```";
+            }
         }
 
-        String synthesizedJson = synthesizeDomainModelJson(asBuiltPlantUml, realUuids);
-        if (synthesizedJson == null) {
-            return result;
-        }
+        return result;
+    }
 
-        debug("⚠️ domain_model_phase returned no structured JSON; synthesized fallback domain_model_created payload from as-built PlantUML");
-        return result
-                + System.lineSeparator()
-                + System.lineSeparator()
-                + "```json"
-                + System.lineSeparator()
-                + synthesizedJson
-                + System.lineSeparator()
-                + "```";
+    private static String synthesizeMinimalDomainModelJson(List<String> realUuids) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            ObjectNode domainModel = root.putObject("domain_model_created");
+            domainModel.put("synthesized_from_uuids_only", true);
+            domainModel.put("uuid_count", realUuids.size());
+
+            // Heuristic: the first UUID is likely the package, the rest are classes/elements
+            if (!realUuids.isEmpty()) {
+                domainModel.put("package_uuid", realUuids.get(0));
+            }
+
+            ArrayNode classes = domainModel.putArray("classes");
+            // Treat UUIDs after the first as class UUIDs
+            for (int i = 1; i < realUuids.size(); i++) {
+                ObjectNode cls = classes.addObject();
+                cls.put("uuid", realUuids.get(i));
+                cls.put("synthesized", true);
+                cls.putArray("attributs");
+                cls.putArray("exigences_liees");
+            }
+
+            domainModel.putArray("associations");
+
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+        } catch (Exception e) {
+            debug("⚠️ Could not synthesize minimal domain_model_created JSON: " + e.getMessage());
+            return null;
+        }
     }
 
     private static String synthesizeDomainModelJson(String plantUml, List<String> realUuids) {

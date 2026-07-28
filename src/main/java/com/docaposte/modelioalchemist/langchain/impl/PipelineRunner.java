@@ -47,8 +47,8 @@ public class PipelineRunner {
         if (progress == null) {
             progress = PipelineProgressListener.NONE;
         }
-        System.out.println("Starting pipeline for: " + pdfPath);
-        System.out.println("Output directory: " + outputDirPath);
+        System.out.println("🚀 [Pipeline] Starting pipeline for: " + pdfPath);
+        System.out.println("📁 [Pipeline] Output directory: " + outputDirPath);
         String sourceDocumentName = Path.of(pdfPath).getFileName().toString();
 
         // Fixed number of high-level stages reported to the UI: extract, clean, filter, classify,
@@ -63,7 +63,7 @@ public class PipelineRunner {
         Path outDir = Path.of(outputDirPath);
         Files.createDirectories(outDir);
         Files.writeString(outDir.resolve("extracted_text.txt"), rawText);
-        System.out.println("Extracted text saved.");
+        System.out.println("✅ [Stage 1/15] PDF text extracted and saved.");
 
         // 2) extractor agent - prompt amélioré pour conserver toutes les exigences avec regroupement thématique
         String extractorPrompt = """
@@ -134,7 +134,7 @@ public class PipelineRunner {
         progress.onStep(++step, totalSteps, "progress.pipeline.extractorAgent");
         String extracted = llm.runPrompt(extractorPrompt, rawText);
         Files.writeString(outDir.resolve("extracted_agent_text.txt"), extracted);
-        System.out.println("Extractor agent output saved.");
+        System.out.println("✅ [Stage 2/15] Extractor agent output saved.");
 
         // 2.5) NOUVEAU : Requirements Filter Agent - Étape de pré-traitement intelligent
         String requirementsFilterPrompt = """
@@ -245,7 +245,7 @@ public class PipelineRunner {
         // page-exacte même quand le LLM omet ou invente l'information.
         filteredJson = enrichMissingSourceLocations(filteredJson, rawText);
         Files.writeString(outDir.resolve("filtered_requirements.json"), filteredJson);
-        System.out.println("Requirements filter output saved.");
+        System.out.println("✅ [Stage 3/15] Requirements filter output saved.");
 
         // Valider et rapporter les statistiques de filtrage
         try {
@@ -351,7 +351,7 @@ public class PipelineRunner {
             classifiedJson = classified;
         }
         Files.writeString(outDir.resolve("classified.json"), classifiedJson);
-        System.out.println("Classifier output saved.");
+        System.out.println("✅ [Stage 4/15] Classifier output saved.");
 
         // Validation de l'exhaustivité des exigences
         progress.onStep(++step, totalSteps, "progress.pipeline.validateCompleteness");
@@ -360,7 +360,7 @@ public class PipelineRunner {
         
         String validationReport = RequirementsValidator.generateValidationReport(validation);
         Files.writeString(outDir.resolve("requirements_validation.txt"), validationReport);
-        System.out.println("Requirements validation: " + (validation.isValid ? "✅ PASSED" : "❌ FAILED"));
+        System.out.println("🧪 [Stage 5/15] Requirements validation: " + (validation.isValid ? "✅ PASSED" : "❌ FAILED"));
         
         // NOUVEAU : Validation de la contextualisation enrichie
         progress.onStep(++step, totalSteps, "progress.pipeline.validateContext");
@@ -369,7 +369,7 @@ public class PipelineRunner {
         
         String contextValidationReport = RequirementContextValidator.generateContextValidationReport(contextValidation);
         Files.writeString(outDir.resolve("context_validation.txt"), contextValidationReport);
-        System.out.println("Context validation: " + (contextValidation.isValid ? "✅ PASSED" : "⚠️ NEEDS ATTENTION"));
+        System.out.println("🧪 [Stage 6/15] Context validation: " + (contextValidation.isValid ? "✅ PASSED" : "⚠️ NEEDS ATTENTION"));
         
         if (!validation.isValid) {
             System.err.println("⚠️  WARNING: Some requirements may have been lost during classification!");
@@ -464,7 +464,7 @@ public class PipelineRunner {
             for (String key : domainKeys) {
                 String ctx = domainContexts.get(key);
                 if (ctx.trim().isEmpty()) {
-                    System.out.println("Skipping " + key + " - no content available");
+                    System.out.println("⏭️ [Domain Analysis] Skipping " + key + " - no content available");
                     Files.writeString(outDir.resolve(key + "_report.txt"), "No content available for category: " + key);
                     continue;
                 }
@@ -529,7 +529,7 @@ public class PipelineRunner {
                 String key = entry.getKey();
                 String report = entry.getValue().get();
                 Files.writeString(outDir.resolve(key + "_report.txt"), report);
-                System.out.println("Saved report for " + key + " (" + domainContexts.get(key).split("\n").length + " requirements processed)");
+                System.out.println("✅ [Domain Analysis] Saved report for " + key + " (" + domainContexts.get(key).split("\n").length + " requirements processed)");
                 domainReports.put(key, report);
             }
         } catch (java.util.concurrent.ExecutionException e) {
@@ -561,7 +561,7 @@ public class PipelineRunner {
         // de l'information. Générer le PlantUML directement depuis les rapports réduit à la fois la
         // latence et le risque de dérive/perte d'information.
         if (allAgentReports.length() > 0) {
-            System.out.println("Generating PlantUML directly from all agent reports...");
+            System.out.println("🧩 [Stage 12/15] Generating PlantUML directly from all agent reports...");
             progress.onStep(++step, totalSteps, "progress.pipeline.plantuml");
 
             // Prompt amélioré pour PlantUML unifié avec use cases et types corrects
@@ -661,16 +661,16 @@ public class PipelineRunner {
                 """;
             String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString());
             Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-            System.out.println("Complete PlantUML generated directly from agent reports.");
+            System.out.println("✅ [Stage 12/15] PlantUML generated from all agent reports.");
 
             plantUMLContent = puml;
         } else {
-            System.out.println("No agent reports available - skipping PlantUML generation");
+            System.out.println("⏭️ [Stage 12/15] No agent reports available - skipping PlantUML generation.");
         }
 
         // Génération du modèle UML dans Modelio via MCP avec TOUS les rapports d'agents
         if (!plantUMLContent.isEmpty()) {
-            System.out.println("Generating UML model in Modelio via MCP with ALL agent reports...");
+            System.out.println("🏗️ [Stages 13-14/15] Generating UML model in Modelio via MCP with all agent reports...");
             try {
                 // Préparer les documents d'analyse pour le parsing des requirements
                 StringBuilder requirementsDocuments = new StringBuilder();
@@ -704,7 +704,7 @@ public class PipelineRunner {
                     requirementsReport.startsWith("[error:")) {
                     throw new IllegalStateException("Requirements creation did not execute successfully via MCP.\n" + requirementsReport);
                 }
-                System.out.println("✅ Requirements created in Modelio");
+                System.out.println("✅ [Stage 13/15] Requirements created in Modelio.");
                 
                 // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
                 System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
@@ -717,7 +717,7 @@ public class PipelineRunner {
                     classModelReport.startsWith("[error:")) {
                     throw new IllegalStateException("Class model creation did not execute successfully via MCP.\n" + classModelReport);
                 }
-                System.out.println("✅ UML class model created in Modelio from PlantUML");
+                System.out.println("✅ [Stage 14/15] UML class model created in Modelio from PlantUML.");
                 
                 // Résumé final
                 StringBuilder finalSummary = new StringBuilder();
@@ -736,11 +736,11 @@ public class PipelineRunner {
                 throw new IllegalStateException(errorMsg, e);
             }
         } else {
-            System.out.println("No PlantUML content available - skipping MCP generation");
+            System.out.println("⏭️ [Stages 13-14/15] No PlantUML content available - skipping MCP generation.");
         }
 
         progress.onStep(++step, totalSteps, "progress.pipeline.finalizing");
-        System.out.println("Pipeline finished successfully.");
+        System.out.println("🎉 [Stage 15/15] Pipeline finished successfully.");
     }
     
     /**
