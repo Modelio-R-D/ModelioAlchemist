@@ -132,7 +132,7 @@ public class PipelineRunner {
             
             Texte à traiter (contient des marqueurs [PAGE n] à préserver dans vos annotations) :""";
         progress.onStep(++step, totalSteps, "progress.pipeline.extractorAgent");
-        String extracted = llm.runPrompt(extractorPrompt, rawText);
+        String extracted = llm.runPrompt(extractorPrompt, rawText, StageModelConfig.STAGE_EXTRACT);
         Files.writeString(outDir.resolve("extracted_agent_text.txt"), extracted);
         System.out.println("✅ [Stage 2/15] Extractor agent output saved.");
 
@@ -230,7 +230,7 @@ public class PipelineRunner {
             """;
         
         progress.onStep(++step, totalSteps, "progress.pipeline.filterRequirements");
-        String filteredRequirements = llm.runPrompt(requirementsFilterPrompt, extracted);
+        String filteredRequirements = llm.runPrompt(requirementsFilterPrompt, extracted, StageModelConfig.STAGE_FILTER);
         
         // Extraire le JSON de la réponse
         String filteredJson = JsonUtils.extractFirstJson(filteredRequirements);
@@ -342,7 +342,7 @@ public class PipelineRunner {
             Exigences à classifier avec enrichissement contextuel :
             """;
         progress.onStep(++step, totalSteps, "progress.pipeline.classifyRequirements");
-        String classified = llm.runPrompt(classifierPrompt, filteredJson);
+        String classified = llm.runPrompt(classifierPrompt, filteredJson, StageModelConfig.STAGE_CLASSIFY);
 
         // attempt to find JSON in the response
         String classifiedJson = JsonUtils.extractFirstJson(classified);
@@ -521,7 +521,7 @@ public class PipelineRunner {
                         key.toUpperCase()
                     );
 
-                Callable<String> task = () -> llm.runPrompt(agentPrompt, ctx);
+                Callable<String> task = () -> llm.runPrompt(agentPrompt, ctx, StageModelConfig.STAGE_DOMAIN);
                 futures.put(key, domainAnalysisExecutor.submit(task));
             }
 
@@ -659,7 +659,7 @@ public class PipelineRunner {
                 
                 Tous les rapports d'analyse à transformer directement en PlantUML :
                 """;
-            String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString());
+            String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString(), StageModelConfig.STAGE_PLANTUML);
             Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
             System.out.println("✅ [Stage 12/15] PlantUML generated from all agent reports.");
 

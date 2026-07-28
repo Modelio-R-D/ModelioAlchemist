@@ -2347,60 +2347,116 @@ public class LangchainService {
         return prompt.toString();
     }
     
-    // -------------------------------------------------- Méthodes utilitaires désormais inutilisées --------------------------------------------------
-    
-    /**
-     * Instance du service pour compatibilité avec l'ancienne interface (non-statique)
-     */
+    // -------------------------------------------------- Instance state (compatibility layer) --------------------------------------------------
+
+    /** Default chat model built from the base URL / deployment passed to the constructor. */
     private final PolicyAwareAzureChatModel instanceChatModel;
-    
+
+    /** Base endpoint (without deployment suffix), reused when building models for other deployments. */
+    private final String instanceEndpoint;
+
+    /** API key / APIM subscription key, reused when building models for other deployments. */
+    private final String instanceApiKey;
+
+    /** Per-stage deployment overrides configured via the Modelio module parameter panel. */
+    private final StageModelConfig stageConfig;
+
+    /** Lazily populated cache: deployment name → chat model. Avoids rebuilding HTTP clients. */
+    private final java.util.concurrent.ConcurrentHashMap<String, PolicyAwareAzureChatModel> modelCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     /**
-     * Constructeur pour compatibilité avec l'ancienne interface PipelineRunner
+     * Primary constructor — accepts stage-level deployment overrides from the Modelio module
+     * parameter panel.
      */
-    public LangchainService(String apiKey, String baseUrl, String deployment, boolean debug) {
-        // Create PolicyAwareAzureChatModel for this instance
+    public LangchainService(String apiKey, String baseUrl, String deployment, StageModelConfig stageConfig, boolean debug) {
         AzureEndpointResolver.AzureEndpointInfo info = AzureEndpointResolver.resolve(
             baseUrl, deployment != null ? deployment : "", OpenAiDefaults.DEPLOYMENT);
-        
-        com.azure.ai.openai.OpenAIAsyncClient client = buildClient(info, apiKey);
+
+        this.instanceEndpoint = info.endpoint;
+        this.instanceApiKey   = apiKey != null ? apiKey : "";
+        this.stageConfig      = stageConfig != null ? stageConfig : StageModelConfig.defaults();
+
+        com.azure.ai.openai.OpenAIAsyncClient client = buildClient(info, this.instanceApiKey);
         this.instanceChatModel = new PolicyAwareAzureChatModel(client, info, OpenAiDefaults.TEMPERATURE);
-        
+        modelCache.put(info.deployment, this.instanceChatModel);
+
         if (debug) {
-            debug("LangchainService instance created for compatibility");
+            debug("LangchainService instance created — stage config: " + this.stageConfig.summary());
         }
     }
-    
+
+    /** Backward-compatible constructor — all stages use the default deployment. */
+    public LangchainService(String apiKey, String baseUrl, String deployment, boolean debug) {
+        this(apiKey, baseUrl, deployment, StageModelConfig.defaults(), debug);
+    }
+
     /**
-     * Méthode de compatibilité pour runPrompt (interface non-statique)
+     * Returns (or builds and caches) a chat model for the given {@code deployment}.
+     * Uses the same base endpoint and API key as the instance's default model.
+     * Returns {@link #instanceChatModel} when {@code deployment} matches the default or is null/blank.
+     */
+    public PolicyAwareAzureChatModel getChatModelForDeployment(String deployment) {
+        if (deployment == null || deployment.isBlank()) {
+            return instanceChatModel;
+        }
+        return modelCache.computeIfAbsent(deployment, dep -> {
+            AzureEndpointResolver.AzureEndpointInfo info =
+                    new AzureEndpointResolver.AzureEndpointInfo(instanceEndpoint, dep);
+            com.azure.ai.openai.OpenAIAsyncClient client = buildClient(info, instanceApiKey);
+            debug("Built chat model for deployment: " + dep);
+            return new PolicyAwareAzureChatModel(client, info, OpenAiDefaults.TEMPERATURE);
+        });
+    }
+
+    /**
+     * Runs a prompt using the deployment configured for {@code stageName} in this instance's
+     * {@link StageModelConfig}. Falls back to the default deployment when no override is set.
+     */
+    public String runPrompt(String systemPrompt, String userContext, String stageName) {
+        String deployment = stageConfig.deploymentFor(stageName);
+        PolicyAwareAzureChatModel model = getChatModelForDeployment(deployment);
+        debug("Stage '" + stageName + "' → deployment: " + deployment);
+        return runPromptWithModel(systemPrompt, userContext, model);
+    }
+
+    /**
+     * Runs a prompt using the instance's default chat model.
      */
     public String runPrompt(String systemPrompt, String userContext) {
+        return runPromptWithModel(systemPrompt, userContext, instanceChatModel);
+    }
+
+    private String runPromptWithModel(String systemPrompt, String userContext, PolicyAwareAzureChatModel model) {
         try {
-            debug("Running prompt with system prompt length: " + 
+            debug("Running prompt with system prompt length: " +
                   (systemPrompt != null ? systemPrompt.length() : 0));
-            debug("User context length: " + 
+            debug("User context length: " +
                   (userContext != null ? userContext.length() : 0));
-            
-            // Create messages
-            dev.langchain4j.data.message.SystemMessage systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt != null ? systemPrompt : "");
-            dev.langchain4j.data.message.UserMessage userMessage = dev.langchain4j.data.message.UserMessage.from(userContext != null ? userContext : "");
-            
-            // Execute chat
-            dev.langchain4j.model.chat.response.ChatResponse response = instanceChatModel.chat(java.util.Arrays.asList(systemMessage, userMessage));
-            
+
+            dev.langchain4j.data.message.SystemMessage systemMessage =
+                    dev.langchain4j.data.message.SystemMessage.from(systemPrompt != null ? systemPrompt : "");
+            dev.langchain4j.data.message.UserMessage userMessage =
+                    dev.langchain4j.data.message.UserMessage.from(userContext != null ? userContext : "");
+
+            dev.langchain4j.model.chat.response.ChatResponse response =
+                    model.chat(java.util.Arrays.asList(systemMessage, userMessage));
+
             String result = response.aiMessage().text();
             debug("Response received, length: " + (result != null ? result.length() : 0));
-            
+
             return result != null ? result : "";
-            
+
         } catch (Exception e) {
             String errorMsg = "Failed to process chat request: " + e.getMessage();
             debug(errorMsg);
             throw new RuntimeException(errorMsg, e);
         }
     }
-    
+
     /**
-     * Méthode de compatibilité pour getChatModel
+     * Returns the default chat model for this instance.
+     * Use {@link #getChatModelForDeployment(String)} when a specific deployment is required.
      */
     public PolicyAwareAzureChatModel getChatModel() {
         return instanceChatModel;
@@ -2421,7 +2477,7 @@ public class LangchainService {
         // short for large prompts (140K+ chars) against slower deployments/proxies. Raise it
         // to match the request-level timeouts used in PolicyAwareAzureChatModel.
         com.azure.core.http.HttpClient httpClient = new com.azure.core.http.netty.NettyAsyncHttpClientBuilder()
-                .responseTimeout(Duration.ofMinutes(5))
+                .responseTimeout(Duration.ofSeconds(OpenAiDefaults.REQUEST_TIMEOUT_SECONDS))
                 .build();
 
         com.azure.ai.openai.OpenAIClientBuilder builder = new com.azure.ai.openai.OpenAIClientBuilder()

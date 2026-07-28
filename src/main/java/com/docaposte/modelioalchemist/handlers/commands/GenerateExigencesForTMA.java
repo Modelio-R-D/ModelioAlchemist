@@ -8,6 +8,7 @@ import com.docaposte.modelioalchemist.i18n.Messages;
 import com.docaposte.modelioalchemist.langchain.impl.Main;
 import com.docaposte.modelioalchemist.langchain.impl.PipelineCancelledException;
 import com.docaposte.modelioalchemist.langchain.impl.PipelineProgressListener;
+import com.docaposte.modelioalchemist.langchain.impl.StageModelConfig;
 import com.modeliosoft.modelio.javadesigner.annotations.objid;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -53,6 +54,7 @@ public class GenerateExigencesForTMA extends DefaultModuleCommandHandler {
             System.out.println("[TMA] 📄 File selected: " + selected);
             final String selectedFile = selected;
             final String finalOutputDir = outputDir;
+            final StageModelConfig stageConfig = GenerateFromPdfCommand.buildStageConfig(context);
 
             ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(Display.getDefault().getActiveShell());
             try {
@@ -71,7 +73,7 @@ public class GenerateExigencesForTMA extends DefaultModuleCommandHandler {
                                 public boolean isCancelled() {
                                     return monitor.isCanceled();
                                 }
-                            });
+                            }, stageConfig);
                         System.out.println("[TMA] ✅ TMA pipeline completed successfully");
                     } catch (PipelineCancelledException e) {
                         System.out.println("[TMA] 🚫 Pipeline cancelled by user");

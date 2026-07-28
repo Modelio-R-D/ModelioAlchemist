@@ -107,10 +107,11 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                 }
                 if (!toolDefs.isEmpty()) opts.setTools(toolDefs);
             }
+            int timeoutSeconds = OpenAiDefaults.REQUEST_TIMEOUT_SECONDS;
             RequestOptions reqOpts = new RequestOptions();
-            reqOpts.setHeader("timeout", "300000");
+            reqOpts.setHeader("timeout", String.valueOf(timeoutSeconds * 1000L));
             System.out.println("[AzureChatModel] Calling Azure OpenAI endpoint=" + info.endpoint + " deployment=" + info.deployment);
-            com.azure.ai.openai.models.ChatCompletions completions = client.getChatCompletionsWithResponse(info.deployment, opts, reqOpts).block(Duration.ofSeconds(300)).getValue();
+            com.azure.ai.openai.models.ChatCompletions completions = client.getChatCompletionsWithResponse(info.deployment, opts, reqOpts).block(Duration.ofSeconds(timeoutSeconds)).getValue();
             final String[] assistantTextHolder = new String[]{""}; List<ToolExecutionRequest> toolCalls = new ArrayList<>();
             if (completions != null && completions.getChoices() != null && !completions.getChoices().isEmpty()) {
                 try {

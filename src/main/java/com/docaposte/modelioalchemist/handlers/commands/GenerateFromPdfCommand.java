@@ -6,6 +6,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import com.docaposte.modelioalchemist.i18n.Messages;
 import com.docaposte.modelioalchemist.langchain.impl.Main;
+import com.docaposte.modelioalchemist.langchain.impl.StageModelConfig;
+import org.modelio.api.module.context.configuration.IModuleUserConfiguration;
 import com.docaposte.modelioalchemist.langchain.impl.PipelineCancelledException;
 import com.docaposte.modelioalchemist.langchain.impl.PipelineProgressListener;
 import com.modeliosoft.modelio.javadesigner.annotations.objid;
@@ -38,6 +40,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
         if (selected != null) {
             final String selectedFile = selected;
             final String finalOutputDir = outputDir;
+            final StageModelConfig stageConfig = buildStageConfig(module.getModuleContext());
 
             ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(Display.getDefault().getActiveShell());
             try {
@@ -55,7 +58,7 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
                                 public boolean isCancelled() {
                                     return monitor.isCanceled();
                                 }
-                            });
+                            }, stageConfig);
                     } catch (PipelineCancelledException e) {
                         throw new InterruptedException(e.getMessage());
                     } catch (Exception e) {
@@ -189,6 +192,23 @@ public class GenerateFromPdfCommand extends DefaultModuleCommandHandler {
         }
 
         return null;
+    }
+
+    /**
+     * Builds a {@link StageModelConfig} by reading the deployment parameters from the
+     * Modelio module configuration panel (Configure module → "LLM Deployments per pipeline stage").
+     * Any field left blank in the UI falls back to the default deployment.
+     */
+    static StageModelConfig buildStageConfig(IModuleContext context) {
+        IModuleUserConfiguration cfg = context.getConfiguration();
+        return StageModelConfig.of(
+            cfg.getParameterValue(StageModelConfig.PARAM_EXTRACT),
+            cfg.getParameterValue(StageModelConfig.PARAM_FILTER),
+            cfg.getParameterValue(StageModelConfig.PARAM_CLASSIFY),
+            cfg.getParameterValue(StageModelConfig.PARAM_DOMAIN),
+            cfg.getParameterValue(StageModelConfig.PARAM_PLANTUML),
+            cfg.getParameterValue(StageModelConfig.PARAM_MCP)
+        );
     }
 
 }

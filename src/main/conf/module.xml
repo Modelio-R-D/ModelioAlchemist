@@ -66,6 +66,7 @@
         <PathEntry path="lib/org.eclipse.equinox.common-3.20.400.jar"/>
         <PathEntry path="lib/org.eclipse.osgi-3.24.200.jar"/>
     </ClassPath>
+    <Parameters/>
     <Gui>
         <Commands>
             <Command id="Générer_à_partir_d'un_cahier_de_charge" label="%command.Générer_à_partir_d'un_cahier_de_charge.label" tooltip="%command.Générer_à_partir_d'un_cahier_de_charge.tooltip" image="res/icon/gui/modelioAlchemist16_18_26.ICON.png" modify-model="true">
