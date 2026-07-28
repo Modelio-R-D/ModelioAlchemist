@@ -215,6 +215,9 @@ public class LangchainService {
 
     private static String executeAssistantWithMcpTrace(PooledUmlAssistant pa, String phaseName, String prompt, String outputDirectory) throws IOException {
         debug("MCP discovery snapshot for phase '" + phaseName + "': tools=" + cachedToolNames.size() + " " + cachedToolNames);
+        if (outputDirectory != null && !outputDirectory.trim().isEmpty()) {
+            saveDebugFile(prompt + System.lineSeparator(), phaseName + "_prompt.txt", outputDirectory);
+        }
         PolicyAwareAzureChatModel.startToolExecutionTrace(phaseName);
         String result;
         try {
@@ -1459,12 +1462,8 @@ public class LangchainService {
         }
         
         prompt.append("## Analyse PlantUML à traiter\n");
-        prompt.append("```\n");
-        if (analysisResults != null && analysisResults.length() > 6000) {
-            prompt.append(analysisResults.substring(0, 6000)).append("\n... (PlantUML tronqué)");
-        } else {
-            prompt.append(analysisResults);
-        }
+        prompt.append("```plantuml\n");
+        prompt.append(preparePlantUmlForPrompt(analysisResults));
         prompt.append("\n```\n\n");
         
         prompt.append("## INSTRUCTIONS D'EXÉCUTION\n");
@@ -1568,11 +1567,7 @@ public class LangchainService {
         
         prompt.append("## PlantUML à implémenter\n");
         prompt.append("```plantuml\n");
-        if (analysisResults != null && analysisResults.length() > 8000) {
-            prompt.append(analysisResults.substring(0, 8000)).append("\n... (PlantUML tronqué)");
-        } else {
-            prompt.append(analysisResults);
-        }
+        prompt.append(preparePlantUmlForPrompt(analysisResults));
         prompt.append("\n```\n\n");
         
         prompt.append("## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)\n");
@@ -1723,12 +1718,8 @@ public class LangchainService {
         prompt.append("🎯 **UTILISER LE MODÈLE AS-BUILT** : Baser les cas d'usage sur les classes réellement créées, pas le PlantUML original\n\n");
         
         prompt.append("## RÉFÉRENCE PLANTUML ORIGINAL\n");
-        prompt.append("```\n");
-        if (analysisResults != null && analysisResults.length() > 4000) {
-            prompt.append(analysisResults.substring(0, 4000)).append("\n... (PlantUML tronqué)");
-        } else {
-            prompt.append(analysisResults);
-        }
+        prompt.append("```plantuml\n");
+        prompt.append(preparePlantUmlForPrompt(analysisResults));
         prompt.append("\n```\n\n");
         
         prompt.append("## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)\n");
@@ -1827,6 +1818,24 @@ public class LangchainService {
         prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.");
         
         return prompt.toString();
+    }
+
+    private static String preparePlantUmlForPrompt(String analysisResults) {
+        if (analysisResults == null || analysisResults.isBlank()) {
+            return "";
+        }
+
+        String extractedDiagram = extractPlantUMLDiagram(analysisResults, "PROMPT_INPUT");
+        if (extractedDiagram != null && !extractedDiagram.isBlank()) {
+            return PlantUMLAnalyzer.cleanPlantUMLCode(extractedDiagram);
+        }
+
+        String cleaned = PlantUMLAnalyzer.cleanPlantUMLCode(analysisResults);
+        if (PlantUMLAnalyzer.isValidPlantUML(cleaned)) {
+            return cleaned;
+        }
+
+        return analysisResults.trim();
     }
 
     /**

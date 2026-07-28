@@ -24,6 +24,8 @@ import com.azure.ai.openai.models.ChatCompletionsFunctionToolDefinitionFunction;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatCompletionsToolCall;
 import com.azure.ai.openai.models.ChatCompletionsToolDefinition;
+import com.azure.ai.openai.models.ChatCompletionsToolSelection;
+import com.azure.ai.openai.models.ChatCompletionsToolSelectionPreset;
 import com.azure.ai.openai.models.ChatRequestAssistantMessage;
 import com.azure.ai.openai.models.ChatRequestMessage;
 import com.azure.ai.openai.models.ChatRequestSystemMessage;
@@ -105,7 +107,19 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                         toolDefs.add(new ChatCompletionsFunctionToolDefinition(fn));
                     } catch (Throwable te) { /* ignore */ }
                 }
-                if (!toolDefs.isEmpty()) opts.setTools(toolDefs);
+                if (!toolDefs.isEmpty()) {
+                    opts.setTools(toolDefs);
+                    // Force the model to call at least one tool on the first request of each
+                    // MCP phase. Without this, newer reasoning models (e.g. gpt-5.2) sometimes
+                    // return a text plan instead of immediately executing tool calls, causing
+                    // the zero-tool-call failure guard to trigger.
+                    if (trace != null && trace.chatRequests == 1) {
+                        try {
+                            opts.setToolChoice(new ChatCompletionsToolSelection(
+                                    ChatCompletionsToolSelectionPreset.REQUIRED));
+                        } catch (Throwable ignore) { /* API version may not support it */ }
+                    }
+                }
             }
             int timeoutSeconds = OpenAiDefaults.REQUEST_TIMEOUT_SECONDS;
             RequestOptions reqOpts = new RequestOptions();
@@ -124,6 +138,14 @@ final class PolicyAwareAzureChatModel implements ChatModel {
                 } catch (Throwable outer) { /* ignore */ }
             }
             final String assistantText = assistantTextHolder[0];
+            if (toolCalls.isEmpty() && assistantText != null && !assistantText.isBlank()) {
+                // Log the model's text response so it is visible in the console output when
+                // tool execution fails (helps diagnose why the model refused to call tools).
+                String snippet = assistantText.length() > 800 ? assistantText.substring(0, 800) + "…" : assistantText;
+                System.out.println("[AzureChatModel] No tool calls on request "
+                        + (trace != null ? trace.chatRequests : "?")
+                        + " — model text response: " + snippet);
+            }
             if (trace != null && !toolCalls.isEmpty()) {
                 trace.sawAnyToolCall = true;
                 trace.modelRequestedToolCalls += toolCalls.size();
