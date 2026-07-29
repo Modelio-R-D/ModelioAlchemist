@@ -98,6 +98,7 @@ public class RequirementsValidator {
     
     /**
      * Extrait les identifiants d'exigences d'un JSON classifié
+     * FIX: Handles both old format (text strings) and new format (objects with requirement_id field)
      */
     private static Set<String> extractRequirementIdsFromJson(String json) throws Exception {
         Set<String> requirements = new HashSet<>();
@@ -108,10 +109,29 @@ public class RequirementsValidator {
             JsonNode categoryNode = entry.getValue();
             if (categoryNode.isArray()) {
                 categoryNode.forEach(reqNode -> {
-                    String reqText = reqNode.asText();
-                    Matcher matcher = REQUIREMENT_PATTERN.matcher(reqText);
-                    while (matcher.find()) {
-                        requirements.add(matcher.group());
+                    // New format: objects with requirement_id or original_ref fields
+                    if (reqNode.isObject()) {
+                        if (reqNode.has("requirement_id")) {
+                            String reqId = reqNode.get("requirement_id").asText();
+                            Matcher matcher = REQUIREMENT_PATTERN.matcher(reqId);
+                            while (matcher.find()) {
+                                requirements.add(matcher.group());
+                            }
+                        }
+                        if (reqNode.has("original_ref")) {
+                            String origRef = reqNode.get("original_ref").asText();
+                            Matcher matcher = REQUIREMENT_PATTERN.matcher(origRef);
+                            while (matcher.find()) {
+                                requirements.add(matcher.group());
+                            }
+                        }
+                    } else {
+                        // Old format: plain text strings
+                        String reqText = reqNode.asText();
+                        Matcher matcher = REQUIREMENT_PATTERN.matcher(reqText);
+                        while (matcher.find()) {
+                            requirements.add(matcher.group());
+                        }
                     }
                 });
             }

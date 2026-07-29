@@ -29,6 +29,7 @@ public class PipelineRunner {
     private final LangchainService llm;
     private final ModelioMcpAgent mcp;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PipelineMetrics metrics;
 
     public PipelineRunner(LangchainService llm, ModelioMcpAgent mcp) {
         this.llm = llm;
@@ -47,9 +48,16 @@ public class PipelineRunner {
         if (progress == null) {
             progress = PipelineProgressListener.NONE;
         }
+        
+        // Initialize metrics
+        metrics = new PipelineMetrics();
+        long pipelineStartTime = System.currentTimeMillis();
+        metrics.setPipelineStartTime(pipelineStartTime);
+        
         System.out.println("🚀 [Pipeline] Starting pipeline for: " + pdfPath);
         System.out.println("📁 [Pipeline] Output directory: " + outputDirPath);
         String sourceDocumentName = Path.of(pdfPath).getFileName().toString();
+        metrics.setSourceDocument(sourceDocumentName);
 
         // Fixed number of high-level stages reported to the UI: extract, clean, filter, classify,
         // 2 validations, 5 domain analyses, PlantUML (generated directly from the domain reports,
@@ -59,7 +67,9 @@ public class PipelineRunner {
 
         // 1) extract raw text
         progress.onStep(++step, totalSteps, "progress.pipeline.extractText");
+        long extractStartTime = System.currentTimeMillis();
         String rawText = PdfExtractor.extractText(pdfPath);
+        metrics.recordStageTiming("extraction", extractStartTime);
         Path outDir = Path.of(outputDirPath);
         Files.createDirectories(outDir);
         Files.writeString(outDir.resolve("extracted_text.txt"), rawText);
@@ -230,6 +240,7 @@ public class PipelineRunner {
             """;
         
         progress.onStep(++step, totalSteps, "progress.pipeline.filterRequirements");
+        long filterStartTime = System.currentTimeMillis();
         String filteredRequirements = llm.runPrompt(requirementsFilterPrompt, extracted, StageModelConfig.STAGE_FILTER);
         
         // Extraire le JSON de la réponse
@@ -243,28 +254,38 @@ public class PipelineRunner {
         // directement la référence/citation de chaque exigence dans le texte brut du PDF (rawText),
         // qui contient les marqueurs [PAGE n] insérés par PdfExtractor. Ceci garantit une traçabilité
         // page-exacte même quand le LLM omet ou invente l'information.
-        filteredJson = enrichMissingSourceLocations(filteredJson, rawText);
+        SourceLocationEnrichmentResult enrichResult = enrichMissingSourceLocations(filteredJson, rawText);
+        filteredJson = enrichResult.enrichedJson;
+        metrics.recordStageTiming("filtering", filterStartTime);
+        
         Files.writeString(outDir.resolve("filtered_requirements.json"), filteredJson);
         System.out.println("✅ [Stage 3/15] Requirements filter output saved.");
 
         // Valider et rapporter les statistiques de filtrage
+        int filterTotal = 0, filterRetained = 0, filterRejected = 0;
         try {
             JsonNode filterResults = mapper.readTree(filteredJson);
             if (filterResults.has("statistics")) {
                 JsonNode stats = filterResults.get("statistics");
-                int total = stats.get("total_items_analyzed").asInt();
-                int retained = stats.get("requirements_retained").asInt();
-                int rejected = stats.get("items_rejected").asInt();
+                filterTotal = stats.get("total_items_analyzed").asInt();
+                filterRetained = stats.get("requirements_retained").asInt();
+                filterRejected = stats.get("items_rejected").asInt();
                 
                 System.out.println("📊 Requirements filtering statistics:");
-                System.out.println("   - Total items analyzed: " + total);
-                System.out.println("   - True requirements retained: " + retained);
-                System.out.println("   - False positives rejected: " + rejected);
-                System.out.println("   - Retention rate: " + (total > 0 ? (retained * 100 / total) : 0) + "%");
+                System.out.println("   - Total items analyzed: " + filterTotal);
+                System.out.println("   - True requirements retained: " + filterRetained);
+                System.out.println("   - False positives rejected: " + filterRejected);
+                System.out.println("   - Retention rate: " + (filterTotal > 0 ? (filterRetained * 100 / filterTotal) : 0) + "%");
+                
+                // Record filtering metrics
+                metrics.setFilteringMetrics(filterTotal, filterRetained, filterRejected);
             }
         } catch (Exception e) {
             System.err.println("⚠️ Could not parse filter statistics: " + e.getMessage());
         }
+        
+        // Record source location metrics
+        metrics.setSourceLocationMetrics(enrichResult.fromLlm, enrichResult.fromFallback, enrichResult.stillMissing);
 
         // 3) classifier agent - utilise maintenant les exigences FILTRÉES
         String classifierPrompt = """
@@ -342,7 +363,9 @@ public class PipelineRunner {
             Exigences à classifier avec enrichissement contextuel :
             """;
         progress.onStep(++step, totalSteps, "progress.pipeline.classifyRequirements");
+        long classifyStartTime = System.currentTimeMillis();
         String classified = llm.runPrompt(classifierPrompt, filteredJson, StageModelConfig.STAGE_CLASSIFY);
+        metrics.recordStageTiming("classification", classifyStartTime);
 
         // attempt to find JSON in the response
         String classifiedJson = JsonUtils.extractFirstJson(classified);
@@ -362,6 +385,15 @@ public class PipelineRunner {
         Files.writeString(outDir.resolve("requirements_validation.txt"), validationReport);
         System.out.println("🧪 [Stage 5/15] Requirements validation: " + (validation.isValid ? "✅ PASSED" : "❌ FAILED"));
         
+        // Record classification validation metrics
+        metrics.setClassificationValidationMetrics(
+            validation.extractedCount, 
+            validation.classifiedCount,
+            validation.missingRequirements.size(),
+            validation.extraRequirements.size(),
+            validation.isValid
+        );
+        
         // NOUVEAU : Validation de la contextualisation enrichie
         progress.onStep(++step, totalSteps, "progress.pipeline.validateContext");
         RequirementContextValidator.ContextValidationResult contextValidation = 
@@ -370,6 +402,14 @@ public class PipelineRunner {
         String contextValidationReport = RequirementContextValidator.generateContextValidationReport(contextValidation);
         Files.writeString(outDir.resolve("context_validation.txt"), contextValidationReport);
         System.out.println("🧪 [Stage 6/15] Context validation: " + (contextValidation.isValid ? "✅ PASSED" : "⚠️ NEEDS ATTENTION"));
+        
+        // Record context validation metrics
+        metrics.setContextValidationMetrics(
+            contextValidation.totalRequirements,
+            contextValidation.contextualizedRequirements,
+            contextValidation.categoryDistribution,
+            contextValidation.missingReferences.size()
+        );
         
         if (!validation.isValid) {
             System.err.println("⚠️  WARNING: Some requirements may have been lost during classification!");
@@ -435,6 +475,7 @@ public class PipelineRunner {
 
         Map<String, String> domainReports = new LinkedHashMap<>();
         AtomicInteger stepCounter = new AtomicInteger(step);
+        long domainAnalysisStartTime = System.currentTimeMillis();
         ExecutorService domainAnalysisExecutor = Executors.newFixedThreadPool(domainKeys.length);
         try {
             // First pass: identify which domains have content
@@ -541,6 +582,7 @@ public class PipelineRunner {
         } finally {
             domainAnalysisExecutor.shutdown();
         }
+        metrics.recordStageTiming("domain_analysis", domainAnalysisStartTime);
         step = stepCounter.get();
 
         // Collecter tous les rapports pour les requirements, dans l'ordre stable des domaines.
@@ -563,6 +605,7 @@ public class PipelineRunner {
         if (allAgentReports.length() > 0) {
             System.out.println("🧩 [Stage 12/15] Generating PlantUML directly from all agent reports...");
             progress.onStep(++step, totalSteps, "progress.pipeline.plantuml");
+            long umlSynthesisStartTime = System.currentTimeMillis();
 
             // Prompt amélioré pour PlantUML unifié avec use cases et types corrects
             String pumlPrompt = """
@@ -660,6 +703,7 @@ public class PipelineRunner {
                 Tous les rapports d'analyse à transformer directement en PlantUML :
                 """;
             String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString(), StageModelConfig.STAGE_PLANTUML);
+            metrics.recordStageTiming("uml_synthesis", umlSynthesisStartTime);
             Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
             System.out.println("✅ [Stage 12/15] PlantUML generated from all agent reports.");
 
@@ -671,6 +715,7 @@ public class PipelineRunner {
         // Génération du modèle UML dans Modelio via MCP avec TOUS les rapports d'agents
         if (!plantUMLContent.isEmpty()) {
             System.out.println("🏗️ [Stages 13-14/15] Generating UML model in Modelio via MCP with all agent reports...");
+            long mcpCreationStartTime = System.currentTimeMillis();
             try {
                 // Préparer les documents d'analyse pour le parsing des requirements
                 StringBuilder requirementsDocuments = new StringBuilder();
@@ -729,18 +774,32 @@ public class PipelineRunner {
                 Files.writeString(outDir.resolve("modelio_mcp_creation_summary.txt"), finalSummary.toString());
                 System.out.println("📋 Final MCP summary saved to modelio_mcp_creation_summary.txt");
                 
+                // Parse MCP reports to extract metrics
+                parseMcpMetrics(requirementsReport, classModelReport, outDir.toString());
+                
             } catch (Exception e) {
                 String errorMsg = "MCP failed: " + e.getMessage();
                 System.err.println(errorMsg);
                 Files.writeString(outDir.resolve("modelio_mcp_error.txt"), errorMsg);
                 throw new IllegalStateException(errorMsg, e);
             }
+            metrics.recordStageTiming("mcp_creation", mcpCreationStartTime);
         } else {
             System.out.println("⏭️ [Stages 13-14/15] No PlantUML content available - skipping MCP generation.");
         }
 
         progress.onStep(++step, totalSteps, "progress.pipeline.finalizing");
         System.out.println("🎉 [Stage 15/15] Pipeline finished successfully.");
+        
+        // Write pipeline metrics to JSON
+        try {
+            Path metricsPath = outDir.resolve("pipeline_metrics.json");
+            String metricsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(metrics.toJson());
+            Files.writeString(metricsPath, metricsJson);
+            System.out.println("📊 Pipeline metrics written to pipeline_metrics.json");
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not write pipeline metrics: " + e.getMessage());
+        }
     }
     
     /**
@@ -811,20 +870,27 @@ public class PipelineRunner {
      * dans le texte brut du PDF (rawText), qui contient les marqueurs "[PAGE n]" insérés par
      * {@link PdfExtractor}. Cela garantit une page d'origine exacte indépendamment du comportement
      * du LLM.
+     * 
+     * @return SourceLocationEnrichmentResult containing enriched JSON and metrics
      */
-    private static String enrichMissingSourceLocations(String filteredJson, String rawText) {
+    private static SourceLocationEnrichmentResult enrichMissingSourceLocations(String filteredJson, String rawText) {
         if (filteredJson == null || filteredJson.isBlank() || rawText == null || rawText.isEmpty()) {
-            return filteredJson;
+            return new SourceLocationEnrichmentResult(filteredJson, 0, 0, 0);
         }
+        
+        int fromLlm = 0;
+        int fromFallback = 0;
+        int stillMissing = 0;
+        
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(filteredJson);
             if (!(root instanceof ObjectNode) || !root.has("filtered_requirements")) {
-                return filteredJson;
+                return new SourceLocationEnrichmentResult(filteredJson, 0, 0, 0);
             }
             JsonNode reqsNode = root.get("filtered_requirements");
             if (!(reqsNode instanceof ArrayNode)) {
-                return filteredJson;
+                return new SourceLocationEnrichmentResult(filteredJson, 0, 0, 0);
             }
 
             List<int[]> pageBoundaries = findPageBoundaries(rawText);
@@ -835,7 +901,8 @@ public class PipelineRunner {
 
                 String existingLocation = reqNode.path("source_location").asText("").trim();
                 if (!existingLocation.isEmpty()) {
-                    continue; // Le LLM a déjà fourni une localisation, on ne l'écrase pas.
+                    fromLlm++; // LLM already filled it
+                    continue;
                 }
 
                 String originalRef = reqNode.path("original_ref").asText("").trim();
@@ -861,14 +928,20 @@ public class PipelineRunner {
                                 ? section + ", page " + page
                                 : "page " + page;
                         reqNode.put("source_location", computedLocation);
+                        fromFallback++;
+                    } else {
+                        stillMissing++;
                     }
+                } else {
+                    stillMissing++;
                 }
             }
 
-            return mapper.writeValueAsString(root);
+            String enrichedJson = mapper.writeValueAsString(root);
+            return new SourceLocationEnrichmentResult(enrichedJson, fromLlm, fromFallback, stillMissing);
         } catch (Exception e) {
             System.err.println("⚠️ Could not enrich source_location fields: " + e.getMessage());
-            return filteredJson;
+            return new SourceLocationEnrichmentResult(filteredJson, 0, 0, 0);
         }
     }
 
@@ -937,5 +1010,195 @@ public class PipelineRunner {
             lastMatch = "Section " + m.group(1) + " - " + m.group(2).trim();
         }
         return lastMatch;
+    }
+    
+    /**
+     * Parses MCP reports and trace files to extract creation and satisfy metrics
+     */
+    private void parseMcpMetrics(String requirementsReport, String classModelReport, String outputDir) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            
+            // Parse requirements metrics
+            int mcpAttempted = 0;
+            int mcpCreatedSuccessfully = 0;
+            int mcpFailed = 0;
+            
+            if (requirementsReport != null && !requirementsReport.isEmpty()) {
+                try {
+                    JsonNode reqReport = mapper.readTree(requirementsReport);
+                    if (reqReport.has("total_requirements")) {
+                        mcpAttempted = reqReport.get("total_requirements").asInt();
+                        mcpCreatedSuccessfully = mcpAttempted;
+                    }
+                    if (reqReport.has("failed_requirements")) {
+                        JsonNode failedNode = reqReport.get("failed_requirements");
+                        if (failedNode.isArray()) {
+                            mcpFailed = failedNode.size();
+                            mcpCreatedSuccessfully = mcpAttempted - mcpFailed;
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Could not parse requirements MCP report: " + e.getMessage());
+                }
+            }
+            
+            metrics.setMcpRequirementsMetrics(mcpAttempted, mcpCreatedSuccessfully, mcpFailed);
+            
+            // Parse UML and satisfy metrics from trace files
+            Path outputPath = Path.of(outputDir);
+            int umlElementsCreated = countUmlElementsCreated(outputPath);
+            int satisfyRelationsAttempted = countSatisfyRelations(outputPath, true);
+            int satisfyRelationsConfirmed = countSatisfyRelations(outputPath, false);
+            
+            metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error parsing MCP metrics: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Counts UML elements created by parsing trace files
+     */
+    private int countUmlElementsCreated(Path outputDir) {
+        try {
+            // Check for class model report which contains UML creation info
+            Path classModelReport = outputDir.resolve("modelio_mcp_classmodel_report.txt");
+            if (Files.exists(classModelReport)) {
+                String content = Files.readString(classModelReport);
+                // Count analyst_createElement calls for UML elements (class, usecase, actor, etc.)
+                int count = 0;
+                Pattern pattern = Pattern.compile("analyst_createElement.*?type[\"']\\s*[:=]\\s*[\"']([^\"']+)", 
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+                Matcher matcher = pattern.matcher(content);
+                while (matcher.find()) {
+                    count++;
+                }
+                if (count > 0) return count;
+            }
+            
+            // Parse from use_cases_phase_mcp_trace.txt if available
+            Path traceFile = outputDir.resolve("use_cases_phase_mcp_trace.txt");
+            if (Files.exists(traceFile)) {
+                String content = Files.readString(traceFile);
+                Pattern pattern = Pattern.compile("type[\"']\\s*[:=]\\s*[\"']([^\"']+)[\"']");
+                Matcher matcher = pattern.matcher(content);
+                int count = 0;
+                while (matcher.find()) {
+                    String type = matcher.group(1).toLowerCase();
+                    if (type.contains("class") || type.contains("usecase") || type.contains("actor") ||
+                        type.contains("component") || type.contains("package")) {
+                        count++;
+                    }
+                }
+                if (count > 0) return count;
+            }
+            
+            // Parse from domain_model_phase_mcp_trace.txt if available
+            Path domainTraceFile = outputDir.resolve("domain_model_phase_mcp_trace.txt");
+            if (Files.exists(domainTraceFile)) {
+                String content = Files.readString(domainTraceFile);
+                Pattern pattern = Pattern.compile("type[\"']\\s*[:=]\\s*[\"']([^\"']+)[\"']");
+                Matcher matcher = pattern.matcher(content);
+                int count = 0;
+                while (matcher.find()) {
+                    String type = matcher.group(1).toLowerCase();
+                    if (type.contains("class") || type.contains("usecase") || type.contains("actor") ||
+                        type.contains("component") || type.contains("package")) {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not count UML elements: " + e.getMessage());
+        }
+        return 0;
+    }
+    
+    /**
+     * Counts satisfy relations from trace files
+     * @param outputDir output directory
+     * @param countAttempts if true, count all attempted calls; if false, count confirmed successful relations
+     */
+    private int countSatisfyRelations(Path outputDir, boolean countAttempts) {
+        try {
+            int count = 0;
+            
+            // Check all MCP trace files for satisfy relations
+            Pattern satisfyPattern = Pattern.compile(
+                "analyst_createRelation.*?relation_type[\"']\\s*[:=]\\s*[\"']satisfy[\"']",
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+            Pattern errorPattern = Pattern.compile(
+                "(?i)(error|failed|exception|MCP_EXECUTION_FAILED)", Pattern.CASE_INSENSITIVE);
+            
+            // Check domain_model_phase_mcp_trace.txt
+            Path domainTraceFile = outputDir.resolve("domain_model_phase_mcp_trace.txt");
+            if (Files.exists(domainTraceFile)) {
+                String content = Files.readString(domainTraceFile);
+                if (countAttempts) {
+                    Matcher matcher = satisfyPattern.matcher(content);
+                    while (matcher.find()) {
+                        count++;
+                    }
+                } else {
+                    // For confirmed, check if response doesn't contain errors
+                    Matcher matcher = satisfyPattern.matcher(content);
+                    while (matcher.find()) {
+                        int matchStart = matcher.start();
+                        int nextEnd = Math.min(matchStart + 2000, content.length());
+                        String responseSection = content.substring(matchStart, nextEnd);
+                        if (!errorPattern.matcher(responseSection).find()) {
+                            count++;
+                        }
+                    }
+                }
+            }
+            
+            // Check use_cases_phase_mcp_trace.txt
+            Path useCasesTraceFile = outputDir.resolve("use_cases_phase_mcp_trace.txt");
+            if (Files.exists(useCasesTraceFile)) {
+                String content = Files.readString(useCasesTraceFile);
+                if (countAttempts) {
+                    Matcher matcher = satisfyPattern.matcher(content);
+                    while (matcher.find()) {
+                        count++;
+                    }
+                } else {
+                    Matcher matcher = satisfyPattern.matcher(content);
+                    while (matcher.find()) {
+                        int matchStart = matcher.start();
+                        int nextEnd = Math.min(matchStart + 2000, content.length());
+                        String responseSection = content.substring(matchStart, nextEnd);
+                        if (!errorPattern.matcher(responseSection).find()) {
+                            count++;
+                        }
+                    }
+                }
+            }
+            
+            return count;
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not count satisfy relations: " + e.getMessage());
+        }
+        return 0;
+    }
+    
+    /**
+     * Helper class to return both enriched JSON and source location metrics
+     */
+    static class SourceLocationEnrichmentResult {
+        String enrichedJson;
+        int fromLlm;
+        int fromFallback;
+        int stillMissing;
+        
+        SourceLocationEnrichmentResult(String enrichedJson, int fromLlm, int fromFallback, int stillMissing) {
+            this.enrichedJson = enrichedJson;
+            this.fromLlm = fromLlm;
+            this.fromFallback = fromFallback;
+            this.stillMissing = stillMissing;
+        }
     }
 }
