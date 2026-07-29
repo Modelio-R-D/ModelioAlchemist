@@ -129,6 +129,20 @@
         </configuration>
       </plugin>
 
+      <!-- Configure JAR with Main-Class in manifest -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.3.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.docaposte.modelioalchemist.langchain.impl.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
       <!-- Copy maven dependencies -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

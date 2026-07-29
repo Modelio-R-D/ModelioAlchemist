@@ -1,0 +1,707 @@
+🇫🇷 Vous êtes un analyste de cas d'usage Modelio. Votre mission : créer TOUS les cas d'usage et acteurs en français.
+
+## MISSION PHASE 3 : CAS D'USAGE & ACTEURS
+🎯 Créer un modèle de cas d'usage complet en français avec acteurs et scénarios.
+🚨 Utiliser les outils MCP pour créer acteurs, cas d'usage et leurs associations.
+
+## CONTEXTE DES PHASES PRÉCÉDENTES
+### Exigences Créées (Phase 1) :
+{
+  "requirements_created" : [ {
+    "id" : "EXG-001",
+    "uuid" : "da57eca3-3b00-4f41-805f-462ab76c41bf",
+    "description" : "Le projet doit mettre en place une plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco, couvrant deux lots distincts : un LOT 1 pour interagir, collaborer et faciliter les échanges liés à la procédure avec les tiers de justice, et un LOT 2 pour la gestion de l’inscription de privilège auprès des greffes.",
+    "category" : "Fonctionnel",
+    "priority" : "Haute",
+    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-001 | location=page 1, titre - Plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco ; page 8, article 4 - Objet de l’accord-cadre | context=Périmètre global du projet | quote=mise en place d’une « Plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco » couvrant 2 lots distincts : LOT 1 ... et LOT 2 ..."
+  }, {
+    "id" : "EXG-002",
+    "uuid" : "d69b4292-3bc4-4985-9d7d-9a11316f7be0",
+    "description" : "La solution doit s’inscrire dans le contexte de dématérialisation et d’accélération de la digitalisation des processus du régime Agirc-Arrco et des instances judiciaires, dans le cadre du nouveau SI-RC de la Fédération Agirc-Arrco.",
+    "category" : "Contexte / SI",
+    "priority" : "Moyenne",
+    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-002 | location=page 6, article 3 - Contexte du projet | context=Alignement avec le SI cible | quote=le projet s’inscrit dans un contexte de dématérialisation et d’accélération de la digitalisation des processus du régime Agirc-Arrco et des instances judiciaires"
+  }, {
+    "id" : "EXG-003",
+    "uuid" : "bbb29c31-d18c-4b74-9bf6-8f0dbb2c6d09",
+    "description" : "En février 2026, les briques locales GRECCO doivent être décommissionnées et remplacées par la brique centrale GCE, qui constituera le nouvel outil de gestion du compte, du recouvrement amiable et contentieux.",
+    "category" : "Contraintes projet",
+    "priorit
+... (contexte exigences tronqué)
+
+## UUIDS DES EXIGENCES POUR LIEN DIRECT (À UTILISER OBLIGATOIREMENT)
+🚨 NE PAS CHERCHER LES EXIGENCES PAR MOTS-CLÉS! Utiliser directement ces UUIDs pour créer les liens «Satisfait»:
+
+- UUID exigence #1: da57eca3-3b00-4f41-805f-462ab76c41bf
+- UUID exigence #2: d69b4292-3bc4-4985-9d7d-9a11316f7be0
+- UUID exigence #3: bbb29c31-d18c-4b74-9bf6-8f0dbb2c6d09
+- UUID exigence #4: c913c85f-c7e5-4a7a-a87c-7a0f77edefb5
+- UUID exigence #5: c8d5c3c4-f55b-4b56-8a95-b6132a178baf
+- UUID exigence #6: ecf371dd-4bf8-4234-9b50-ac0cfcd91275
+- UUID exigence #7: afbe4ac8-f5de-45b4-9fce-a8109a34615b
+- UUID exigence #8: dd5eefd8-e869-4ec5-9483-bc864742f5eb
+- UUID exigence #9: 04c114c0-373a-4b64-af48-59e5555d78a2
+- UUID exigence #10: 7d2bb1b0-dc9f-4f7f-a781-f1b6468ca3c0
+- UUID exigence #11: fc0683dd-a600-466f-a19e-27a1035e3d3a
+- UUID exigence #12: b3ba5a57-e5e3-4370-abce-bd70be9c7124
+- UUID exigence #13: 890dba67-7378-4478-bb8f-2e53eed3999f
+- UUID exigence #14: a5bbd09b-7832-4171-ac8d-5db602c7dd65
+- UUID exigence #15: 9efdc5ea-cf84-4b76-9f06-d8ba30510498
+- UUID exigence #16: bd5a0ee3-2899-4f7a-ab62-d60d4b019da1
+- UUID exigence #17: 481ec51e-80ae-415a-8ea0-c43fad198841
+- UUID exigence #18: 8837cd2c-877d-492a-9807-0d94056f3a99
+- UUID exigence #19: 8fbfd412-d158-42a2-a3ee-3af421272926
+- UUID exigence #20: 54b7d948-f9ed-47f0-a717-149946cacd8c
+- UUID exigence #21: 6470e554-a61e-4dfe-9f82-ee8a5da23977
+- UUID exigence #22: da87b17f-9139-4cbe-9da0-37ef1cb28292
+- UUID exigence #23: dbdaeae4-e589-4b6a-9b67-7a843fa734d0
+- UUID exigence #24: 482c123e-db9a-4565-8988-61d6acfea3d9
+- UUID exigence #25: 3d186d97-6b3e-4ac5-ac70-4f4e73fe250b
+- UUID exigence #26: b662eedc-8e9c-4f92-a01c-f4a1baa72dd6
+- UUID exigence #27: a1b73cfd-9383-4fe2-8aad-f8195d3de8c3
+- UUID exigence #28: ac296860-a718-4e9e-8bac-89d519cda476
+- UUID exigence #29: 8fbbe95b-74e2-4085-862a-779001f22faa
+- UUID exigence #30: 19be893f-5cc4-42ac-ac0d-72e999eec81e
+- UUID exigence #31: cdd45ff3-fba6-491a-a07d-19ccfd154926
+- UUID exigence #32: cf89437c-12ee-4e4e-8ad8-92f77d7e3e8f
+- UUID exigence #33: e9a031e7-e8d8-4d6c-a41c-e5d3a93fd38a
+- UUID exigence #34: f98da8c5-7e59-44b7-aa3e-148d8450eada
+- UUID exigence #35: e033eb5a-3ba3-4790-b8b7-6f54fb9cc071
+- UUID exigence #36: ef70e6e8-5a15-41fb-86a8-1925b603c124
+- UUID exigence #37: de715a89-39b9-420c-a89a-03624b45cf89
+- UUID exigence #38: e696d819-838f-4070-ab33-1133143a06fd
+- UUID exigence #39: 3fa94199-1498-4768-b337-181a3ae254f8
+- UUID exigence #40: 2485d47e-5542-42a6-9e6d-3f845128305d
+- UUID exigence #41: 87cd8c6c-093d-4003-9f89-993d36398db9
+- UUID exigence #42: 9dd8bd6a-da84-4ad8-9b5e-1c4320ae503c
+- UUID exigence #43: cf3f6f4e-717c-4347-9ab4-6bd7377acc10
+- UUID exigence #44: 5350d37b-a55f-4032-87c3-316c9bfaa15f
+- UUID exigence #45: e434e13b-9655-482c-81bf-8e52e60f3eab
+- UUID exigence #46: 8ed6ccc4-f673-4afe-801f-6342ec19034c
+- UUID exigence #47: f3d2697d-6059-4a22-8b80-f49938da0ded
+- UUID exigence #48: d87920c1-12cf-43f9-9115-437cd45638a7
+- UUID exigence #49: e46d41e6-26f7-403f-af0b-28729671942c
+- UUID exigence #50: 3d2ee0fb-38dd-477a-9c64-b45db08fb690
+- UUID exigence #51: 11b83c1a-faf6-4dde-a6bc-36d51a0ae270
+- UUID exigence #52: 65e2df9f-3904-41af-b0a7-43fa32f954cc
+- UUID exigence #53: 5e5284c7-e93c-492d-9a6b-5eeaf23bcc9d
+- UUID exigence #54: 23c782c6-ce59-486d-b57f-3ea9b40c25b7
+
+🚨 CRITIQUE : Lors de la création de chaque cas d'usage, appeler analyst_createRelation IMMÉDIATEMENT
+   avec relation_type="satisfy", source_uuid=<UUID cas d'usage>, target_uuid=<l'un des UUIDs exigences ci-dessus>
+   NE PAS attendre la fin. Lier chaque cas d'usage AU FUR ET À MESURE.
+
+🔍 **EXTRAIRE LE JSON DES EXIGENCES** : Rechercher la structure JSON dans les résultats ci-dessus
+
+### Modèle de Domaine Créé (Phase 2) :
+- Opération ajoutée sur la classe **Application** (UUID `a91f712e-10fe-44f0-97f8-92e8b92bb568`) :
+  - `configurerSeuils()` (UUID `c05fee96-f1b9-4aff-a538-cb14ad473347`)
+
+- Classe créée : **Utilisateur** (UUID `b90385d4-47f3-47b8-96c4-f7b1dac5c2d2`)
+  - Attributs :
+    - `id:int` (UUID `a44d8fbe-3206-493e-a982-4bccc28da71a`)
+    - `nom:String` (UUID `183c5906-c015-4129-a3d1-7a99feac8cb1`)
+    - `date:String` (UUID `753d5bbf-3c16-4560-b915-c43f74b02ee5`)
+    - `status:String` (UUID `2c40adcc-7583-4097-ba74-9b432b9683dd`)
+  - Opération :
+    - `consulterDossier()` (UUID `6de7aab0-0257-400e-8405-f6d0b3e4d2ba`)
+  - Relation «Satisfait» créée :
+    - `Utilisateur` → exigence **EXG-002** (UUID exigence `d69b4292-3bc4-4985-9d7d-9a11316f7be0`) via dépendance UUID `12d23efe-2070-4738-bca1-ed8ad4467557`
+
+- Classe créée : **Profil** (UUID `83789831-e4cd-4804-b9a7-defdeb3507aa`)
+  - Attributs :
+    - `id:int` (UUID `6679ba96-921d-47fc-b71a-8b9745241589`)
+    - `nom:String` (UUID `445ab120-72ee-427f-a31d-41d8f1ac4e9d`)
+    - `date:String` (UUID `c961efcb-eecf-416c-9e2b-12d0712e6ef8`)
+    - `status:String` (UUID `cfec67be-d45f-4555-ad30-6bb41d2bb43e`)
+  - Opération :
+    - `definirPermissions()` (UUID `bcd53bbd-837c-4394-9b8d-a1d137f037d0`)
+  - Relation «Satisfait» créée :
+    - `Profil` → exigence **EXG-007** (UUID exigence `afbe4ac8-f5de-45b4-9fce-a8109a34615b`) via dépendance UUID `5609102d-5236-4a3e-aab8-efce738034bf`
+
+- Classe créée : **Habilitation** (UUID `731f5409-31bf-4b27-86b1-71297d3a68bc`)
+  - Attributs :
+    - `id:int` (UUID `9d40e4c8-58df-4a0f-a586-83a26c693909`)
+    - `nom:String` (UUID `9f1642ed-d26c-4462-892f-b1958d00e8f2`)
+    - `date:String` (UUID `60e9f80c-dedd-40dd-812c-525691094e39`)
+    - `status:String` (UUID `1f171182-5d46-47f5-bd2f-48c09ebc4447`)
+  - Opération :
+    - `verifierAcces()` (UUID `32fecc1a-f153-43fa-b548-389a79a28217`)
+  - Relation «Satisfait» créée :
+    - `Habilitation` → exigence **EXG-007** (UUID exigence `afbe4ac8-f5de-45b4-9fce-a8109a346
+... (contexte classes tronqué)
+
+🔍 **EXTRAIRE LE MODÈLE DE DOMAINE** : Rechercher le PlantUML MODELE_DOMAINE_AS_BUILT et JSON ci-dessus
+🎯 **UTILISER LE MODÈLE AS-BUILT** : Baser les cas d'usage sur les classes réellement créées, pas le PlantUML original
+
+## RÉFÉRENCE PLANTUML ORIGINAL
+```plantuml
+@startuml Classes
+!theme plain
+
+package "Business" {
+
+  class IRC {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +configurerSeuils()
+  }
+
+  class Utilisateur {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +consulterDossier()
+  }
+
+  class Profil {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +definirPermissions()
+  }
+
+  class Habilitation {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +verifierAcces()
+  }
+
+  class Dossier {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +changerStatut()
+  }
+
+  class Procedure {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +cloturer()
+  }
+
+  class Attribution {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +attribuerTiers()
+  }
+
+  class TiersDeJustice {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +mettreAJourCoordonnees()
+  }
+
+  class CommissaireDeJustice {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +executerActe()
+  }
+
+  class Avocat {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +deposerConclusion()
+  }
+
+  class Tribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +indiquerModeTransmission()
+  }
+
+  class RegleAttribution {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +evaluer()
+  }
+
+  class RegleSelectionTribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +determinerTribunal()
+  }
+
+  class Tache {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +planifier()
+  }
+
+  class Delai {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +calculerEcheance()
+  }
+
+  class Notification {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +notifier()
+  }
+
+  class Message {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +envoyer()
+  }
+
+  class AccuseReceptionSimple {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +horodater()
+  }
+
+  class Document {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +archiver()
+  }
+
+  class TransfertDocumentaire {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +transfererVersSIRC()
+  }
+
+  class Facture {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +categoriser()
+  }
+
+  class LigneFacture {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +calculerMontant()
+  }
+
+  class FraisTribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +consolider()
+  }
+
+  class KPI {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +calculer()
+  }
+
+  class HistoriqueAction {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +journaliser()
+  }
+
+  class InjonctionDePayer {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +genererFlux()
+  }
+
+  class Radiation {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +genererFlux()
+  }
+
+  class RetourTribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +rapprocher()
+  }
+
+  class Rejet {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +qualifierResponsabilite()
+  }
+
+  class Correction {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +appliquer()
+  }
+
+  class RegenerationFlux {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +regenerer()
+  }
+
+  class LotContractuel {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +isolerPerimetre()
+  }
+
+}
+
+package "Technical" {
+
+  class WorkflowService {
+    +processData()
+    +validateInput()
+  }
+
+  class OrchestrationService {
+    +processData()
+    +validateInput()
+  }
+
+  class ReglesEngineService {
+    +processData()
+    +validateInput()
+  }
+
+  class RechercheService {
+    +processData()
+    +validateInput()
+  }
+
+  class BatchSchedulerService {
+    +processData()
+    +validateInput()
+  }
+
+  class MessageService {
+    +processData()
+    +validateInput()
+  }
+
+  class NotificationService {
+    +processData()
+    +validateInput()
+  }
+
+  class IntegrationGCEAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class IntegrationSIRCAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class InfogreffeWebServiceAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class TribunalFluxAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class StockageDocumentaireService {
+    +processData()
+    +validateInput()
+  }
+
+  class TransformationControleFluxService {
+    +processData()
+    +validateInput()
+  }
+
+  class ReprocessingService {
+    +processData()
+    +validateInput()
+  }
+
+  class AuditService {
+    +processData()
+    +validateInput()
+  }
+
+  class CloisonnementTenantService {
+    +processData()
+    +validateInput()
+  }
+}
+
+package "Securite" {
+  class AuthService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class RBACService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class ABACService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class ChiffrementService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class JournalSecuriteService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+}
+
+package "Transverse" {
+  class ReferentielStatuts {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +normaliser()
+  }
+
+  class ReferentielMotifsRejet {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +fournirMotifs()
+  }
+
+  class ParametrageIRC {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +definirSeuils()
+  }
+}
+
+' --- HERITAGE ---
+Business.TiersDeJustice <|-- Business.CommissaireDeJustice
+Business.TiersDeJustice <|-- Business.Avocat
+
+' --- RELATIONS OBLIGATOIRES avec cardinalités + libellés ---
+Business.IRC "1" --> "0..*" Business.Utilisateur : "gère (REQ-018/EX-024)"
+Business.Utilisateur "1" --> "1" Business.Profil : "utilise"
+Business.Profil "1" --> "0..*" Business.Habilitation : "contient (REQ-053/EX-060)"
+Business.IRC "1" --> "0..*" Transverse.ParametrageIRC : "gère (REQ-028/EX-034)"
+Business.IRC "1" --> "0..*" Business.KPI : "gère (REQ-016/EX-022, REQ-018/EX-024)"
+Business.IRC "1" --> "0..*" Business.Dossier : "gère (REQ-008/EX-013)"
+
+Business.Dossier *-- Business.Procedure : "contient (REQ-030/EX-036)"
+Business.Dossier *-- Business.Document : "contient (REQ-013/EX-019)"
+Business.Dossier *-- Business.Message : "contient (REQ-020/EX-026)"
+Business.Dossier *-- Business.Facture : "contient (REQ-024/EX-030)"
+Business.Facture *-- Business.LigneFacture : "contient (REQ-017/EX-023, REQ-050/EX-057)"
+Business.Dossier *-- Business.HistoriqueAction : "contient (REQ-053/EX-060)"
+
+Business.Dossier "1" --> "0..*" Business.Attribution : "gère (REQ-009/EX-014, REQ-011/EX-017)"
+Business.Attribution "1" --> "1..*" Business.TiersDeJustice : "gère (REQ-011/EX-017)"
+
+Business.IRC "1" --> "0..*" Business.TiersDeJustice : "gère (REQ-006/EX-010)"
+Business.IRC "1" --> "0..*" Business.Tribunal : "gère (REQ-007/EX-011)"
+Business.RegleAttribution "1" --> "0..*" Business.Attribution : "utilise (REQ-010/EX-016)"
+Business.RegleSelectionTribunal "1" --> "0..*" Business.InjonctionDePayer : "utilise (REQ-040/EX-047)"
+Business.Tribunal "1" --> "0..*" Business.InjonctionDePayer : "gère (REQ-033/EX-039, REQ-041/EX-048)"
+Business.Tribunal "1" --> "0..*" Business.Radiation : "gère (REQ-046/EX-053)"
+Business.InjonctionDePayer "1" --> "0..*" Business.RetourTribunal : "gère (REQ-042/EX-049)"
+Business.Radiation "1" --> "0..*" Business.RetourTribunal : "gère (REQ-047/EX-054)"
+Business.RetourTribunal "0..*" --> "0..*" Business.Rejet : "gère (REQ-044/EX-051)"
+Business.Rejet "1" --> "0..*" Business.Correction : "contient (REQ-043/EX-050, REQ-048/EX-055)"
+Business.Rejet "0..*" --> "0..*" Business.RegenerationFlux : "gère (REQ-044/EX-051, REQ-049/EX-056)"
+
+Business.Dossier "1" --> "0..*" Business.Tache : "gère (REQ-019/EX-025)"
+Business.Tache *-- Business.Delai : "contient (REQ-019/EX-025)"
+Business.Notification "0..*" --> "0..*" Business.Tache : "gère"
+Business.Message "1" --> "0..*" Business.AccuseReceptionSimple : "gère (REQ-022/EX-028)"
+
+Business.FraisTribunal "0..*" --> "0..*" Business.Dossier : "gère (REQ-035/EX-041)"
+
+Business.LotContractuel "1" --> "0..*" Business.Dossier : "gère (REQ-001/EX-001, REQ-005/EX-009)"
+
+' --- TECHNICAL uses BUSINESS ---
+Technical.WorkflowService --> Business.Procedure : "utilise (REQ-027/EX-033)"
+Technical.OrchestrationService --> Business.Dossier : "utilise (REQ-013/EX-019)"
+Technical.ReglesEngineService --> Business.RegleAttribution : "utilise (REQ-010/EX-016)"
+Technical.ReglesEngineService --> Business.RegleSelectionTribunal : "utilise (REQ-040/EX-047)"
+Technical.RechercheService --> Business.Dossier : "utilise (REQ-014/EX-020)"
+Technical.MessageService --> Business.Message : "utilise (REQ-020/EX-026)"
+Technical.NotificationService --> Business.Notification : "utilise (REQ-019/EX-025, REQ-022/EX-028)"
+Technical.BatchSchedulerService --> Business.InjonctionDePayer : "utilise (REQ-039/EX-046)"
+Technical.BatchSchedulerService --> Business.Radiation : "utilise (REQ-045/EX-052)"
+Technical.IntegrationGCEAdapter --> Business.Dossier : "utilise (REQ-003/EX-004, REQ-029/EX-035)"
+Technical.IntegrationSIRCAdapter --> Business.TransfertDocumentaire : "utilise (REQ-002/EX-002, REQ-013/EX-019)"
+Technical.InfogreffeWebServiceAdapter --> Business.InjonctionDePayer : "utilise (REQ-033/EX-039)"
+Technical.TribunalFluxAdapter --> Business.RetourTribunal : "utilise (REQ-042/EX-049, REQ-047/EX-054)"
+Technical.StockageDocumentaireService --> Business.Document : "utilise (REQ-013/EX-019)"
+Technical.TransformationControleFluxService --> Business.Rejet : "utilise (REQ-044/EX-051)"
+Technical.ReprocessingService --> Business.RegenerationFlux : "utilise (REQ-044/EX-051, REQ-049/EX-056)"
+Technical.AuditService --> Business.HistoriqueAction : "utilise (REQ-053/EX-060)"
+Technical.CloisonnementTenantService --> Business.IRC : "utilise (REQ-018/EX-024, REQ-024/EX-030)"
+
+' --- SECURITY uses BUSINESS/TECH ---
+Securite.AuthService --> Business.Utilisateur : "utilise"
+Securite.RBACService --> Business.Profil : "utilise (REQ-053/EX-060)"
+Securite.ABACService --> Business.Habilitation : "utilise (REQ-018/EX-024, REQ-024/EX-030)"
+Securite.JournalSecuriteService --> Business.HistoriqueAction : "utilise (REQ-053/EX-060)"
+Securite.ChiffrementService --> Business.Document : "utilise"
+
+@enduml
+```
+
+## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)
+1️⃣ **Créer le Package Cas d'Usage** : Utiliser les outils MCP
+   - Créer le package 'Cas d Usage'
+   - Rapporter l'UUID du package
+
+2️⃣ **Créer les Acteurs** : Utiliser les outils MCP
+   - Identifier tous les types d'utilisateurs à partir des exigences et du modèle de domaine
+   - Créer les acteurs : Utilisateur, Administrateur, Système Externe, etc.
+   - Placer dans le package 'Cas d Usage'
+   - Rapporter l'UUID de chaque acteur
+
+3️⃣ **Créer les Cas d'Usage** : Utiliser les outils MCP
+   - Extraire les fonctionnalités principales des exigences et classes
+   - Créer les cas d'usage : 'Gérer les Utilisateurs', 'Traiter les Données', etc.
+   - Lier aux exigences d'implémentation quand c'est possible
+   - Placer dans le package 'Cas d Usage'
+   - Rapporter l'UUID de chaque cas d'usage
+   - 🚨 OBLIGATOIRE : pour chaque cas d'usage lié à une exigence, matérialiser le lien «Satisfait» avec l'outil MCP
+     `analyst_createRelation` (relation_type="satisfy", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>,
+     module_name="ModelerModule") en un seul appel.
+
+4️⃣ **Créer les Associations Acteur-Cas d'Usage** : Utiliser les outils MCP
+   - Connecter chaque acteur aux cas d'usage pertinents
+   - Utiliser les types d'association appropriés
+   - Ajouter les relations <<include>> et <<extend>> si nécessaire
+   - Maintenir la traçabilité vers les exigences
+
+📊 **CRITICAL: PRODUCE VALIDATION & OUTPUTS**
+After creating use cases, generate:
+
+### 1. REQUIREMENTS COVERAGE VALIDATION
+```
+REQUIREMENTS COVERAGE ANALYSIS:
+- REQ-001: Covered by [Login, User Management] use cases
+- REQ-002: Covered by [Data Processing] use case
+- REQ-XXX: NOT COVERED - Missing use case needed
+
+COVERAGE RATE: 85% (11/13 requirements covered)
+```
+
+### 2. USE CASE DIAGRAM PLANTUML
+```plantuml
+@startuml USE_CASES_DIAGRAM
+actor User
+actor Admin
+rectangle System {
+  usecase "Login" as UC1
+  usecase "Manage Data" as UC2
+}
+User --> UC1
+Admin --> UC2
+@enduml
+```
+
+### 3. USE CASES SUMMARY JSON
+```json
+{
+  "use_cases_created": {
+    "package_uuid": "00000000-0000-0000-0000-000000000000",
+    "actors": [{"name": "User", "uuid": "00000000-0000-0000-0000-000000000000"}],
+    "use_cases": [
+      {
+        "name": "Login",
+        "uuid": "00000000-0000-0000-0000-000000000000",
+        "actors": ["User"],
+        "linked_requirements": ["REQ-001"],
+        "domain_classes_used": ["User", "Authentication"]
+      }
+    ],
+    "coverage_rate": 0.85,
+    "uncovered_requirements": ["REQ-007"]
+  }
+}
+```
+
+## ACTEURS TYPIQUES À CONSIDÉRER
+- Utilisateurs principaux (qui vont utiliser le système)
+- Administrateurs (qui gèrent le système)
+- Systèmes externes (APIs, bases de données)
+- Parties prenantes (managers, auditeurs)
+
+## CAS D'USAGE TYPIQUES À CONSIDÉRER
+- Gestion des utilisateurs (inscription, connexion, profil)
+- Opérations sur les données (créer, lire, modifier, supprimer)
+- Reporting et analytiques
+- Administration système
+- Intégration avec systèmes externes
+
+## EXIGENCES DE TRAÇABILITÉ
+🔗 Lier les cas d'usage aux exigences qui définissent leurs fonctionnalités
+🔗 Référencer les classes du modèle de domaine manipulées par les cas d'usage
+🔗 Assurer une couverture complète des exigences fonctionnelles
+🚨 RAPPEL OBLIGATOIRE : chaque lien de traçabilité vers une exigence DOIT être matérialisé dans Modelio via l'outil MCP
+   `analyst_createRelation` (relation_type="satisfy", source_uuid=<UUID de l'élément>, target_uuid=<UUID de l'exigence>,
+   module_name="ModelerModule"). Un simple champ JSON 'linked_requirements' ne suffit pas.
+
+NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.

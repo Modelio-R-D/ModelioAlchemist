@@ -1,0 +1,744 @@
+1. DIAGRAMME DE CLASSES (obligatoire) :
+```plantuml
+@startuml Classes
+!theme plain
+
+package "Business" {
+
+  class IRC {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +configurerSeuils()
+  }
+
+  class Utilisateur {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +consulterDossier()
+  }
+
+  class Profil {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +definirPermissions()
+  }
+
+  class Habilitation {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +verifierAcces()
+  }
+
+  class Dossier {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +changerStatut()
+  }
+
+  class Procedure {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +cloturer()
+  }
+
+  class Attribution {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +attribuerTiers()
+  }
+
+  class TiersDeJustice {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +mettreAJourCoordonnees()
+  }
+
+  class CommissaireDeJustice {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +executerActe()
+  }
+
+  class Avocat {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +deposerConclusion()
+  }
+
+  class Tribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +indiquerModeTransmission()
+  }
+
+  class RegleAttribution {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +evaluer()
+  }
+
+  class RegleSelectionTribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +determinerTribunal()
+  }
+
+  class Tache {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +planifier()
+  }
+
+  class Delai {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +calculerEcheance()
+  }
+
+  class Notification {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +notifier()
+  }
+
+  class Message {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +envoyer()
+  }
+
+  class AccuseReceptionSimple {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +horodater()
+  }
+
+  class Document {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +archiver()
+  }
+
+  class TransfertDocumentaire {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +transfererVersSIRC()
+  }
+
+  class Facture {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +categoriser()
+  }
+
+  class LigneFacture {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +calculerMontant()
+  }
+
+  class FraisTribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +consolider()
+  }
+
+  class KPI {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +calculer()
+  }
+
+  class HistoriqueAction {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +journaliser()
+  }
+
+  class InjonctionDePayer {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +genererFlux()
+  }
+
+  class Radiation {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +genererFlux()
+  }
+
+  class RetourTribunal {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +rapprocher()
+  }
+
+  class Rejet {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +qualifierResponsabilite()
+  }
+
+  class Correction {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +appliquer()
+  }
+
+  class RegenerationFlux {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +regenerer()
+  }
+
+  class LotContractuel {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +isolerPerimetre()
+  }
+
+}
+
+package "Technical" {
+
+  class WorkflowService {
+    +processData()
+    +validateInput()
+  }
+
+  class OrchestrationService {
+    +processData()
+    +validateInput()
+  }
+
+  class ReglesEngineService {
+    +processData()
+    +validateInput()
+  }
+
+  class RechercheService {
+    +processData()
+    +validateInput()
+  }
+
+  class BatchSchedulerService {
+    +processData()
+    +validateInput()
+  }
+
+  class MessageService {
+    +processData()
+    +validateInput()
+  }
+
+  class NotificationService {
+    +processData()
+    +validateInput()
+  }
+
+  class IntegrationGCEAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class IntegrationSIRCAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class InfogreffeWebServiceAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class TribunalFluxAdapter {
+    +processData()
+    +validateInput()
+  }
+
+  class StockageDocumentaireService {
+    +processData()
+    +validateInput()
+  }
+
+  class TransformationControleFluxService {
+    +processData()
+    +validateInput()
+  }
+
+  class ReprocessingService {
+    +processData()
+    +validateInput()
+  }
+
+  class AuditService {
+    +processData()
+    +validateInput()
+  }
+
+  class CloisonnementTenantService {
+    +processData()
+    +validateInput()
+  }
+}
+
+package "Securite" {
+  class AuthService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class RBACService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class ABACService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class ChiffrementService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+
+  class JournalSecuriteService {
+    +authenticate(): boolean
+    +authorize(): boolean
+  }
+}
+
+package "Transverse" {
+  class ReferentielStatuts {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +normaliser()
+  }
+
+  class ReferentielMotifsRejet {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +fournirMotifs()
+  }
+
+  class ParametrageIRC {
+    +id: int
+    +nom: String
+    +date: String
+    +status: String
+    +definirSeuils()
+  }
+}
+
+' --- HERITAGE ---
+Business.TiersDeJustice <|-- Business.CommissaireDeJustice
+Business.TiersDeJustice <|-- Business.Avocat
+
+' --- RELATIONS OBLIGATOIRES avec cardinalités + libellés ---
+Business.IRC "1" --> "0..*" Business.Utilisateur : "gère (REQ-018/EX-024)"
+Business.Utilisateur "1" --> "1" Business.Profil : "utilise"
+Business.Profil "1" --> "0..*" Business.Habilitation : "contient (REQ-053/EX-060)"
+Business.IRC "1" --> "0..*" Transverse.ParametrageIRC : "gère (REQ-028/EX-034)"
+Business.IRC "1" --> "0..*" Business.KPI : "gère (REQ-016/EX-022, REQ-018/EX-024)"
+Business.IRC "1" --> "0..*" Business.Dossier : "gère (REQ-008/EX-013)"
+
+Business.Dossier *-- Business.Procedure : "contient (REQ-030/EX-036)"
+Business.Dossier *-- Business.Document : "contient (REQ-013/EX-019)"
+Business.Dossier *-- Business.Message : "contient (REQ-020/EX-026)"
+Business.Dossier *-- Business.Facture : "contient (REQ-024/EX-030)"
+Business.Facture *-- Business.LigneFacture : "contient (REQ-017/EX-023, REQ-050/EX-057)"
+Business.Dossier *-- Business.HistoriqueAction : "contient (REQ-053/EX-060)"
+
+Business.Dossier "1" --> "0..*" Business.Attribution : "gère (REQ-009/EX-014, REQ-011/EX-017)"
+Business.Attribution "1" --> "1..*" Business.TiersDeJustice : "gère (REQ-011/EX-017)"
+
+Business.IRC "1" --> "0..*" Business.TiersDeJustice : "gère (REQ-006/EX-010)"
+Business.IRC "1" --> "0..*" Business.Tribunal : "gère (REQ-007/EX-011)"
+Business.RegleAttribution "1" --> "0..*" Business.Attribution : "utilise (REQ-010/EX-016)"
+Business.RegleSelectionTribunal "1" --> "0..*" Business.InjonctionDePayer : "utilise (REQ-040/EX-047)"
+Business.Tribunal "1" --> "0..*" Business.InjonctionDePayer : "gère (REQ-033/EX-039, REQ-041/EX-048)"
+Business.Tribunal "1" --> "0..*" Business.Radiation : "gère (REQ-046/EX-053)"
+Business.InjonctionDePayer "1" --> "0..*" Business.RetourTribunal : "gère (REQ-042/EX-049)"
+Business.Radiation "1" --> "0..*" Business.RetourTribunal : "gère (REQ-047/EX-054)"
+Business.RetourTribunal "0..*" --> "0..*" Business.Rejet : "gère (REQ-044/EX-051)"
+Business.Rejet "1" --> "0..*" Business.Correction : "contient (REQ-043/EX-050, REQ-048/EX-055)"
+Business.Rejet "0..*" --> "0..*" Business.RegenerationFlux : "gère (REQ-044/EX-051, REQ-049/EX-056)"
+
+Business.Dossier "1" --> "0..*" Business.Tache : "gère (REQ-019/EX-025)"
+Business.Tache *-- Business.Delai : "contient (REQ-019/EX-025)"
+Business.Notification "0..*" --> "0..*" Business.Tache : "gère"
+Business.Message "1" --> "0..*" Business.AccuseReceptionSimple : "gère (REQ-022/EX-028)"
+
+Business.FraisTribunal "0..*" --> "0..*" Business.Dossier : "gère (REQ-035/EX-041)"
+
+Business.LotContractuel "1" --> "0..*" Business.Dossier : "gère (REQ-001/EX-001, REQ-005/EX-009)"
+
+' --- TECHNICAL uses BUSINESS ---
+Technical.WorkflowService --> Business.Procedure : "utilise (REQ-027/EX-033)"
+Technical.OrchestrationService --> Business.Dossier : "utilise (REQ-013/EX-019)"
+Technical.ReglesEngineService --> Business.RegleAttribution : "utilise (REQ-010/EX-016)"
+Technical.ReglesEngineService --> Business.RegleSelectionTribunal : "utilise (REQ-040/EX-047)"
+Technical.RechercheService --> Business.Dossier : "utilise (REQ-014/EX-020)"
+Technical.MessageService --> Business.Message : "utilise (REQ-020/EX-026)"
+Technical.NotificationService --> Business.Notification : "utilise (REQ-019/EX-025, REQ-022/EX-028)"
+Technical.BatchSchedulerService --> Business.InjonctionDePayer : "utilise (REQ-039/EX-046)"
+Technical.BatchSchedulerService --> Business.Radiation : "utilise (REQ-045/EX-052)"
+Technical.IntegrationGCEAdapter --> Business.Dossier : "utilise (REQ-003/EX-004, REQ-029/EX-035)"
+Technical.IntegrationSIRCAdapter --> Business.TransfertDocumentaire : "utilise (REQ-002/EX-002, REQ-013/EX-019)"
+Technical.InfogreffeWebServiceAdapter --> Business.InjonctionDePayer : "utilise (REQ-033/EX-039)"
+Technical.TribunalFluxAdapter --> Business.RetourTribunal : "utilise (REQ-042/EX-049, REQ-047/EX-054)"
+Technical.StockageDocumentaireService --> Business.Document : "utilise (REQ-013/EX-019)"
+Technical.TransformationControleFluxService --> Business.Rejet : "utilise (REQ-044/EX-051)"
+Technical.ReprocessingService --> Business.RegenerationFlux : "utilise (REQ-044/EX-051, REQ-049/EX-056)"
+Technical.AuditService --> Business.HistoriqueAction : "utilise (REQ-053/EX-060)"
+Technical.CloisonnementTenantService --> Business.IRC : "utilise (REQ-018/EX-024, REQ-024/EX-030)"
+
+' --- SECURITY uses BUSINESS/TECH ---
+Securite.AuthService --> Business.Utilisateur : "utilise"
+Securite.RBACService --> Business.Profil : "utilise (REQ-053/EX-060)"
+Securite.ABACService --> Business.Habilitation : "utilise (REQ-018/EX-024, REQ-024/EX-030)"
+Securite.JournalSecuriteService --> Business.HistoriqueAction : "utilise (REQ-053/EX-060)"
+Securite.ChiffrementService --> Business.Document : "utilise"
+
+@enduml
+```
+
+2. DIAGRAMME DE USE CASES (obligatoire) :
+```plantuml
+@startuml UseCases
+!theme plain
+
+actor "Gestionnaire IRC" as Gestionnaire
+actor "Administrateur IRC" as AdminIRC
+actor "Tiers de justice (Commissaire/Avocat)" as Tiers
+actor "Greffe / Tribunal" as Tribunal
+actor "GCE" as GCE
+actor "SI-RC" as SIRC
+actor "Service type Infogreffe" as Infogreffe
+actor "Administrateur Plateforme" as AdminPlat
+
+rectangle "Plateforme Tiers de Justice Agirc-Arrco (REQ-001/EX-001)" {
+
+  usecase "Authentifier utilisateur" as UC_AUTH
+  usecase "Autoriser accès multi-IRC (cloisonnement)" as UC_AUTHZ
+
+  usecase "Gérer dossiers (vue unifiée)\nREQ-008/EX-013, REQ-013/EX-019" as UC_DOSSIER
+  usecase "Rechercher dossiers (SIREN/SIRET)\nREQ-014/EX-020" as UC_SEARCH
+
+  usecase "Collaborer par messagerie\nREQ-020/EX-026" as UC_MSG
+  usecase "Accusé de réception simple + notification\nREQ-022/EX-028" as UC_AR
+
+  usecase "Gérer délais, tâches, alertes\nREQ-019/EX-025" as UC_DELAIS
+
+  usecase "Gérer annuaire tiers de justice\nREQ-006/EX-010" as UC_DIR_TIERS
+  usecase "Attribuer dossier à un tiers\nREQ-009/EX-014, REQ-010/EX-016, REQ-011/EX-017" as UC_ATTR
+  usecase "Transférer tiers / transfert massif de dossiers\nREQ-012/EX-018" as UC_TRANSFER
+
+  usecase "Gérer facturation par dossier\nREQ-023..REQ-026, REQ-050" as UC_FACT
+  usecase "Valider / contrôler factures (seuils)\nREQ-025/EX-031, REQ-028/EX-034" as UC_VALID_FACT
+  usecase "Suivre frais de tribunal (sans paiement)\nREQ-035/EX-041" as UC_FRAIS_TRIB
+
+  usecase "Tableau de bord KPI\nREQ-016/EX-022, REQ-017/EX-023" as UC_KPI
+  usecase "Restreindre KPI par IRC\nREQ-018/EX-024" as UC_KPI_SEC
+
+  usecase "Gérer annuaire tribunaux\nREQ-007/EX-011" as UC_DIR_TRIB
+  usecase "Sélection automatique du tribunal\nREQ-040/EX-047" as UC_SEL_TRIB
+
+  usecase "Envoyer injonction de payer au greffe\nREQ-032/EX-038, REQ-033/EX-039, REQ-041/EX-048" as UC_SEND_IP
+  usecase "Recevoir retours IP quotidiens\nREQ-042/EX-049" as UC_RET_IP
+  usecase "Traiter rejets et régénérer IP\nREQ-034/EX-040, REQ-043/EX-050, REQ-044/EX-051" as UC_REJET_IP
+
+  usecase "Envoyer radiation au tribunal\nREQ-046/EX-053" as UC_SEND_RAD
+  usecase "Recevoir retours radiation quotidiens\nREQ-047/EX-054" as UC_RET_RAD
+  usecase "Traiter rejets et régénérer radiation\nREQ-048/EX-055, REQ-049/EX-056" as UC_REJET_RAD
+
+  usecase "Synchroniser actions manuelles vers GCE\nREQ-029/EX-035" as UC_SYNC_GCE
+  usecase "Réception hebdo en masse depuis GCE\nREQ-039/EX-046, REQ-045/EX-052, REQ-053/EX-060" as UC_BATCH_GCE
+  usecase "Transférer documents vers SI-RC (quotidien)\nREQ-002/EX-002, REQ-013/EX-019" as UC_DOC_SIRC
+
+  usecase "Mode dégradé papier/email par tribunal\nREQ-041/EX-048, REQ-046/EX-053" as UC_DEGRADE
+
+  usecase "Administrer lots indépendants\nREQ-005/EX-009" as UC_LOTS
+}
+
+Gestionnaire --> UC_DOSSIER
+Gestionnaire --> UC_SEARCH
+Gestionnaire --> UC_MSG
+Gestionnaire --> UC_DELAIS
+Gestionnaire --> UC_ATTR
+Gestionnaire --> UC_FACT
+Gestionnaire --> UC_VALID_FACT
+Gestionnaire --> UC_SEND_IP
+Gestionnaire --> UC_REJET_IP
+Gestionnaire --> UC_SEND_RAD
+Gestionnaire --> UC_REJET_RAD
+Gestionnaire --> UC_SYNC_GCE
+
+AdminIRC --> UC_DIR_TIERS
+AdminIRC --> UC_DIR_TRIB
+AdminIRC --> UC_KPI
+AdminIRC --> UC_VALID_FACT
+AdminIRC --> UC_TRANSFER
+
+Tiers --> UC_MSG
+Tiers --> UC_FACT
+
+GCE --> UC_BATCH_GCE
+SIRC --> UC_DOC_SIRC
+Infogreffe --> UC_SEND_IP
+Tribunal --> UC_RET_IP
+Tribunal --> UC_RET_RAD
+
+AdminPlat --> UC_LOTS
+
+' includes / extends
+UC_DOSSIER --> UC_AUTH : <<include>>
+UC_DOSSIER --> UC_AUTHZ : <<include>>
+UC_SEARCH --> UC_AUTH : <<include>>
+UC_SEARCH --> UC_AUTHZ : <<include>>
+UC_MSG --> UC_AUTH : <<include>>
+UC_MSG --> UC_AR : <<include>>
+UC_AR --> UC_AUTH : <<include>>
+UC_DELAIS --> UC_AUTH : <<include>>
+UC_ATTR --> UC_AUTH : <<include>>
+UC_FACT --> UC_AUTH : <<include>>
+UC_VALID_FACT --> UC_FACT : <<include>>
+UC_KPI --> UC_AUTH : <<include>>
+UC_KPI --> UC_KPI_SEC : <<include>>
+UC_SEND_IP --> UC_SEL_TRIB : <<include>>
+UC_SEND_IP --> UC_DEGRADE : <<extend>>
+UC_SEND_RAD --> UC_DEGRADE : <<extend>>
+UC_REJET_IP --> UC_RET_IP : <<include>>
+UC_REJET_RAD --> UC_RET_RAD : <<include>>
+UC_SYNC_GCE --> UC_AUTH : <<include>>
+UC_BATCH_GCE --> UC_AUTHZ : <<include>>
+UC_DOC_SIRC --> UC_AUTHZ : <<include>>
+UC_LOTS --> UC_AUTH : <<include>>
+
+@enduml
+```
+
+3. DIAGRAMMES DE SÉQUENCE (plusieurs, complets) :
+
+```plantuml
+@startuml Sequence_IP_Demat
+!theme plain
+
+actor "Gestionnaire IRC" as Gestionnaire
+participant "AuthService\n(Securite)" as Auth
+participant "OrchestrationService\n(Technical)" as Orch
+participant "ReglesEngineService\n(Technical)" as Rules
+participant "IntegrationGCEAdapter\n(Technical)" as GCE
+participant "InfogreffeWebServiceAdapter\n(Technical)" as InfoG
+participant "TribunalFluxAdapter\n(Technical)" as Trib
+participant "StockageDocumentaireService\n(Technical)" as DocStore
+participant "IntegrationSIRCAdapter\n(Technical)" as SIRC
+participant "AuditService\n(Technical)" as Audit
+
+== Soumission IP dématérialisée (REQ-032/EX-038, REQ-033/EX-039, REQ-041/EX-048) ==
+Gestionnaire -> Auth : authenticate()
+Auth --> Gestionnaire : boolean
+
+Gestionnaire -> Orch : processData()\nCréer InjonctionDePayer
+Orch -> Rules : processData()\nSélection tribunal (REQ-040/EX-047)
+Rules --> Orch : Tribunal
+
+Orch -> DocStore : processData()\nAssembler pièces (REQ-033/EX-039)
+DocStore --> Orch : OK
+
+Orch -> GCE : processData()\nSynchroniser action manuelle (REQ-029/EX-035)
+GCE --> Orch : OK
+
+Orch -> InfoG : processData()\nEnvoyer IP + bordereau + pièces\n(REQ-033/EX-039)
+InfoG --> Orch : OK (accusé technique)
+
+Orch -> Audit : processData()\nJournaliser envoi + statut
+Audit --> Orch : OK
+
+== Retour quotidien tribunal (REQ-042/EX-049) ==
+Trib -> Trib : processData()\nGénérer retour quotidien
+Trib -> Trib : validateInput()
+Trib -> Orch : processData()\nRetourTribunal(date, reference, statut, motif)
+Orch -> Audit : processData()\nJournaliser retour
+Audit --> Orch : OK
+
+Orch -> GCE : processData()\nMise à jour état si action requise (REQ-039/EX-046)
+GCE --> Orch : OK
+
+Orch -> SIRC : processData()\nTransfert documentaire quotidien (REQ-002/EX-002, REQ-013/EX-019)
+SIRC --> Orch : OK
+
+@enduml
+```
+
+```plantuml
+@startuml Sequence_IP_Rejet_Regeneration
+!theme plain
+
+actor "Gestionnaire IRC" as Gestionnaire
+participant "AuthService\n(Securite)" as Auth
+participant "OrchestrationService\n(Technical)" as Orch
+participant "TransformationControleFluxService\n(Technical)" as Ctrl
+participant "ReprocessingService\n(Technical)" as Reproc
+participant "InfogreffeWebServiceAdapter\n(Technical)" as InfoG
+participant "AuditService\n(Technical)" as Audit
+participant "IntegrationGCEAdapter\n(Technical)" as GCE
+
+== Rejet + correction + régénération IP (REQ-034/EX-040, REQ-043/EX-050, REQ-044/EX-051) ==
+Gestionnaire -> Auth : authenticate()
+Auth --> Gestionnaire : boolean
+
+Gestionnaire -> Orch : processData()\nOuvrir Rejet (motif)
+Orch -> Ctrl : processData()\nQualifier rejet + responsabilité (REQ-044/EX-051)
+Ctrl --> Orch : OK
+
+alt Rejet imputable prestataire (REQ-044/EX-051)
+  Orch -> Reproc : processData()\nRégénération idempotente
+  Reproc --> Orch : Flux régénéré
+  Orch -> InfoG : processData()\nRéémettre IP corrigée
+  InfoG --> Orch : OK
+else Rejet imputable gestionnaire (REQ-043/EX-050)
+  Orch --> Gestionnaire : Demander Correction guidée
+  Gestionnaire -> Orch : processData()\nSoumettre Correction
+  Orch -> GCE : processData()\nSynchroniser action manuelle (REQ-029/EX-035)
+  GCE --> Orch : OK
+  Orch -> InfoG : processData()\nRéémettre IP corrigée
+  InfoG --> Orch : OK
+end
+
+Orch -> Audit : processData()\nJournaliser rejet/correction/réémission
+Audit --> Orch : OK
+
+@enduml
+```
+
+```plantuml
+@startuml Sequence_Batch_Hebdo_GCE
+!theme plain
+
+participant "BatchSchedulerService\n(Technical)" as Batch
+participant "IntegrationGCEAdapter\n(Technical)" as GCE
+participant "WorkflowService\n(Technical)" as WF
+participant "CloisonnementTenantService\n(Technical)" as Tenant
+participant "AuditService\n(Technical)" as Audit
+
+== Réception hebdomadaire en masse depuis GCE (REQ-039/EX-046, REQ-045/EX-052, REQ-053/EX-060) ==
+Batch -> Batch : validateInput()
+Batch -> GCE : processData()\nRécupérer demandes IP/Radiation en masse
+GCE --> Batch : Liste dossiers + demandes
+
+loop Pour chaque dossier
+  Batch -> Tenant : processData()\nAppliquer cloisonnement IRC (REQ-018/EX-024)
+  Tenant --> Batch : OK
+  Batch -> WF : processData()\nCréer/mettre à jour workflow\n(coexistence REQ-004/EX-005)
+  WF --> Batch : OK
+  Batch -> Audit : processData()\nTracer traitement + cas (REQ-053/EX-060)
+  Audit --> Batch : OK
+end
+
+@enduml
+```
+
+```plantuml
+@startuml Sequence_Radiation_Retour_Rejet
+!theme plain
+
+actor "Gestionnaire IRC" as Gestionnaire
+participant "AuthService\n(Securite)" as Auth
+participant "OrchestrationService\n(Technical)" as Orch
+participant "TribunalFluxAdapter\n(Technical)" as Trib
+participant "ReprocessingService\n(Technical)" as Reproc
+participant "AuditService\n(Technical)" as Audit
+participant "IntegrationSIRCAdapter\n(Technical)" as SIRC
+
+== Radiation : retour quotidien + rejet + régénération (REQ-045/EX-052, REQ-046/EX-053, REQ-047/EX-054, REQ-048/EX-055, REQ-049/EX-056) ==
+Gestionnaire -> Auth : authenticate()
+Auth --> Gestionnaire : boolean
+
+Trib -> Orch : processData()\nRetour radiation quotidien (REQ-047/EX-054)
+Orch -> Audit : processData()\nJournaliser retour
+Audit --> Orch : OK
+
+alt Statut = rejet
+  Orch --> Gestionnaire : Afficher motif + demander correction (REQ-048/EX-055)
+  Gestionnaire -> Orch : processData()\nSoumettre correction
+  Orch -> Reproc : processData()\nRégénérer flux radiation (REQ-049/EX-056)
+  Reproc --> Orch : OK
+  Orch -> Audit : processData()\nJournaliser régénération
+  Audit --> Orch : OK
+end
+
+Orch -> SIRC : processData()\nTransfert documentaire quotidien (REQ-013/EX-019)
+SIRC --> Orch : OK
+
+@enduml
+```

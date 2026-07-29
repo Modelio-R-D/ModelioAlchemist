@@ -1,0 +1,486 @@
+{
+  "technique": [
+    {
+      "requirement_id": "REQ-002",
+      "original_ref": "EX-002",
+      "description": "La solution doit s’inscrire dans le contexte de dématérialisation et d’accélération de la digitalisation des processus du régime Agirc-Arrco et des instances judiciaires, dans le cadre du nouveau SI-RC de la Fédération Agirc-Arrco.",
+      "technical_domain": "architecture",
+      "business_context": "Alignement avec la trajectoire SI-RC (cible fédérale) : la plateforme tiers de justice doit s’intégrer dans une transformation digitale des échanges IRC ↔ justice (dématérialisation, réduction des délais, automatisations)."
+    },
+    {
+      "requirement_id": "REQ-003",
+      "original_ref": "EX-004",
+      "description": "En février 2026, les briques locales GRECCO doivent être décommissionnées et remplacées par la brique centrale GCE, qui constituera le nouvel outil de gestion du compte, du recouvrement amiable et contentieux.",
+      "technical_domain": "architecture",
+      "business_context": "Cible SI-RC : bascule applicative majeure (GRECCO → GCE) impactant les interfaces amont/aval de la plateforme, la reprise de données et l’urbanisation du recouvrement."
+    },
+    {
+      "requirement_id": "REQ-004",
+      "original_ref": "EX-005",
+      "description": "La version de démarrage de GCE contiendra le socle Compte / Recouvrement amiable sans la brique Recouvrement Contentieux, avec une mise en production de la brique contentieux GCE au 30/06/2026.",
+      "technical_domain": "architecture",
+      "business_context": "Roadmap SI-RC : coexistence transitoire et découpage fonctionnel entre socle amiable et contentieux, à prendre en compte dans les interfaces, les dépendances et la planification des lots."
+    },
+    {
+      "requirement_id": "REQ-005",
+      "original_ref": "EX-009",
+      "description": "Les deux lots sont indépendants, chacun faisant l’objet d’un contrat différent avec possibilité de deux prestataires différents ; les plateformes n’ont pas à échanger entre elles, mais des interfaçages pourront être discutés en phase de négociation.",
+      "technical_domain": "architecture",
+      "business_context": "Structuration contractuelle LOT 1 (échanges contentieux avec tiers de justice) vs LOT 2 (inscription de privilège/radiations avec greffes) : éviter les dépendances techniques fortes, prévoir des interfaces optionnelles."
+    },
+    {
+      "requirement_id": "REQ-013",
+      "original_ref": "EX-019",
+      "description": "La solution doit proposer un outil souple et instinctif pour les gestionnaires IRC avec interfaçage SI-RC permettant l’affichage des montants à recouvrer, de l’état de la procédure, du montant transféré aux tiers de justice et de tous autres mouvements associés au dossier ; elle doit aussi permettre le transfert quotidien des documents du dossier de la plateforme vers le SI-RC lorsqu’ils sont nécessaires à la bonne exécution des procédures.",
+      "technical_domain": "integration",
+      "business_context": "Vue dossier unifiée pour le gestionnaire contentieux : la plateforme devient un poste de travail alimenté par SI-RC/GCE, avec synchronisation documentaire quotidienne vers le SI-RC (référentiel fédéral)."
+    },
+    {
+      "requirement_id": "REQ-029",
+      "original_ref": "EX-035",
+      "description": "Toute action manuelle réalisée dans la plateforme devant entraîner une mise à jour du compte dans GCE ou déclencher d’autres actions dans GCE doit faire l’objet d’un flux de la plateforme vers GCE.",
+      "technical_domain": "integration",
+      "business_context": "Cohérence opérationnelle recouvrement : éviter les divergences entre actions réalisées côté plateforme tiers de justice et l’état « vérité » du compte/dossier dans GCE."
+    },
+    {
+      "requirement_id": "REQ-033",
+      "original_ref": "EX-039",
+      "description": "Le système UO2 doit reposer sur un webservice de type Infogreffe ou équivalent pour envoyer directement les demandes d’injonction de payer aux greffes avec pièces justificatives, éléments de créances et commissaire de justice désigné pour le retour du tribunal, conformément à la procédure légale ; le titulaire doit concevoir et développer les écrans de saisie et de validation, et prendre en charge la souscription et la gestion de la relation avec le fournisseur du webservice.",
+      "technical_domain": "integration",
+      "business_context": "Automatisation UO2 (LOT 1) : intégration directe avec un fournisseur de service greffes (type Infogreffe) pour industrialiser l’envoi des IP et réduire les traitements manuels, tout en respectant le formalisme procédural."
+    },
+    {
+      "requirement_id": "REQ-039",
+      "original_ref": "EX-046",
+      "description": "La plateforme doit recevoir les informations de demande d’IP de GCE de manière récurrente au minimum hebdomadaire en masse selon des critères prédéfinis, et ponctuellement en petits volumes ; les modifications issues d’actions manuelles doivent repartir vers GCE ; les documents du dossier doivent être transférés quotidiennement vers le SI-RC.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 (inscription de privilège) : échanges batch/ponctuels GCE ↔ plateforme + synchronisation documentaire quotidienne vers SI-RC, pour gérer des volumes et un cycle de vie administratif avec greffes."
+    },
+    {
+      "requirement_id": "REQ-041",
+      "original_ref": "EX-048",
+      "description": "Les informations au tribunal doivent être envoyées via flux dématérialisé avec bordereaux ; si le tribunal ne permet pas la dématérialisation, l’envoi papier ou email doit être réalisé par le titulaire du LOT 2.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : gestion hybride multi-tribunaux (dématérialisé prioritaire, mode dégradé papier/email) pour garantir la continuité de service malgré l’hétérogénéité des capacités des greffes."
+    },
+    {
+      "requirement_id": "REQ-042",
+      "original_ref": "EX-049",
+      "description": "Le retour du tribunal doit être transmis par voie dématérialisée dès réception, sur une base quotidienne, avec date, référence de l’IP, statut, motif de rejet éventuel et tribunal adressé.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : boucle de retour greffe → SI-RC/plateforme (statuts/rejets) indispensable au pilotage des demandes d’IP et à la réduction des délais de reprise."
+    },
+    {
+      "requirement_id": "REQ-044",
+      "original_ref": "EX-051",
+      "description": "Les corrections face aux différents motifs de rejet doivent être prises en charge et le flux régénéré si l’anomalie relève du périmètre du prestataire, y compris les rejets techniques liés à des déphasages de flux ou à un mauvais calcul de compétence du tribunal si cette compétence est à sa charge.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : robustesse des échanges (anti-déphasage) et gestion des rejets techniques/métier pour éviter des ruptures dans la chaîne d’inscription de privilège."
+    },
+    {
+      "requirement_id": "REQ-045",
+      "original_ref": "EX-052",
+      "description": "Pour la radiation, le même principe que pour l’IP s’applique, avec réception hebdomadaire des demandes de radiation totale ou partielle selon des critères prédéfinis, déclenchement quotidien d’une mise à jour du SI-RC pour toute action manuelle, et transfert quotidien des documents du dossier vers le SI-RC.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : traitement des radiations aligné sur le modèle IP (batch hebdo + actions manuelles synchronisées + documents quotidiens) afin de maintenir SI-RC à jour."
+    },
+    {
+      "requirement_id": "REQ-046",
+      "original_ref": "EX-053",
+      "description": "Les informations au tribunal pour la radiation doivent être envoyées via flux dématérialisé avec bordereaux ; si la dématérialisation n’est pas possible, l’envoi papier ou email doit être réalisé par le titulaire du LOT 2.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : mêmes contraintes d’hétérogénéité des greffes pour la radiation que pour l’IP, avec obligation de continuité via mode dégradé."
+    },
+    {
+      "requirement_id": "REQ-047",
+      "original_ref": "EX-054",
+      "description": "Le retour du tribunal au SI-RC pour la radiation doit être dématérialisé, quotidien, et comporter la date, la référence de la radiation, le statut et le motif de rejet éventuel.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : mise à jour quotidienne des statuts de radiation pour sécuriser le suivi des privilèges et la conformité du dossier."
+    },
+    {
+      "requirement_id": "REQ-049",
+      "original_ref": "EX-056",
+      "description": "Les corrections face aux rejets de radiation doivent être prises en charge et le flux régénéré si l’anomalie relève du périmètre du prestataire.",
+      "technical_domain": "integration",
+      "business_context": "LOT 2 : obligation de capacité de régénération des flux en cas de rejet imputable au prestataire, afin de limiter les délais et la charge côté IRC."
+    },
+    {
+      "requirement_id": "REQ-053",
+      "original_ref": "EX-060",
+      "description": "La plateforme doit permettre une gestion en masse des IP avec suivi détaillé par cas et traçabilité, ainsi qu’un accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.",
+      "technical_domain": "performance",
+      "business_context": "LOT 2 : traitement en volume (massification) des demandes d’IP et besoin de traçabilité par cas ; la solution doit supporter l’industrialisation des flux et l’exploitation par gestionnaires."
+    }
+  ],
+  "rssi": [
+    {
+      "requirement_id": "REQ-018",
+      "original_ref": "EX-024",
+      "description": "Les KPI doivent être propres à chaque IRC et visibles uniquement par les membres des IRC ; les tiers de justice et autres IRC n’y ont pas accès.",
+      "technical_domain": "authorization",
+      "business_context": "Cloisonnement inter-IRC : confidentialité des indicateurs de performance et de facturation, évitant toute fuite d’informations sensibles entre institutions et vers les tiers de justice."
+    },
+    {
+      "requirement_id": "REQ-022",
+      "original_ref": "EX-028",
+      "description": "Le service doit fournir un accusé de réception simple et une notification de nouveau message reçu sans AR à valeur légale, prérequis pour l’UO1.",
+      "technical_domain": "audit",
+      "business_context": "Échanges IRC ↔ tiers : besoin de preuve de dépôt/réception opérationnelle (non probante juridiquement) pour sécuriser le suivi, les relances et la coordination de procédure dans UO1."
+    },
+    {
+      "requirement_id": "REQ-024",
+      "original_ref": "EX-030",
+      "description": "Les factures doivent être associées à chaque dossier ouvert et visibles uniquement par les IRC ayant droit ; elles doivent être accessibles, catégorisées, et la facturation peut être déclenchée au fil de l’eau ou en fin de dossier selon le type de procédure et le tiers intervenant.",
+      "technical_domain": "authorization",
+      "business_context": "Confidentialité financière par dossier : empêcher l’accès aux informations de frais/factures par des tiers non autorisés (autres IRC, tiers de justice non concernés)."
+    },
+    {
+      "requirement_id": "REQ-053",
+      "original_ref": "EX-060",
+      "description": "La plateforme doit permettre une gestion en masse des IP avec suivi détaillé par cas et traçabilité, ainsi qu’un accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.",
+      "technical_domain": "authorization",
+      "business_context": "LOT 2 : habilitations fines nécessaires car les demandes d’IP et leurs pièces (créances/entreprises) sont sensibles ; traçabilité requise pour audit et responsabilisation des actions."
+    }
+  ],
+  "fonctionnel": [
+    {
+      "requirement_id": "REQ-001",
+      "original_ref": "EX-001",
+      "description": "Le projet doit mettre en place une plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco, couvrant deux lots distincts : un LOT 1 pour interagir, collaborer et faciliter les échanges liés à la procédure avec les tiers de justice, et un LOT 2 pour la gestion de l’inscription de privilège auprès des greffes.",
+      "technical_domain": "workflow",
+      "business_context": "Périmètre global : LOT 1 (collaboration et échanges dossiers contentieux avec commissaires de justice/avocats) + LOT 2 (démarches greffes : inscription de privilège, radiations, retours)."
+    },
+    {
+      "requirement_id": "REQ-006",
+      "original_ref": "EX-010",
+      "description": "Le LOT 1 doit gérer un annuaire des tiers de justice utilisateurs de la plateforme, composé des commissaires de justice et avocats partenaires ; cet annuaire n’est pas mis à jour automatiquement et quotidiennement à partir des bases nationales des professions.",
+      "technical_domain": "data",
+      "business_context": "Référentiel partenaires IRC : gestion opérationnelle des réseaux choisis par chaque IRC (commissaires/avocats), avec maintenance maîtrisée (pas de synchro automatique aux bases nationales)."
+    },
+    {
+      "requirement_id": "REQ-007",
+      "original_ref": "EX-011",
+      "description": "Le LOT 2 doit gérer un annuaire des tribunaux, avec des modalités similaires au LOT 1, les données étant communiquées au SI-RC dans la mesure du possible.",
+      "technical_domain": "data",
+      "business_context": "Référentiel tribunaux : nécessaire au routage des IP/radiations/inscriptions de privilège et à la cohérence des informations entre plateforme et SI-RC."
+    },
+    {
+      "requirement_id": "REQ-008",
+      "original_ref": "EX-013",
+      "description": "Le LOT 1 doit couvrir tous les échanges impliquant un tiers de justice et offrir au gestionnaire contentieux des IRC un accès intelligent et approprié aux dossiers pour le suivi.",
+      "technical_domain": "workflow",
+      "business_context": "Gestion du contentieux : centraliser les échanges et donner une vue actionnable au gestionnaire IRC (suivi des étapes, documents, interactions)."
+    },
+    {
+      "requirement_id": "REQ-009",
+      "original_ref": "EX-014",
+      "description": "La solution doit permettre le traitement de bout en bout des échanges et du suivi des procédures impliquant commissaires de justice, avocats et autres tiers ; chaque IRC choisit librement son réseau de commissaires de justice et d’avocats, peut compléter ou modifier les informations concernant les tiers, et l’attribution du dossier au professionnel choisi se fait via la plateforme après ouverture du dossier par GCE.",
+      "technical_domain": "workflow",
+      "business_context": "Mode opératoire IRC : autonomie de sélection du réseau, gouvernance des données de tiers, et orchestration d’attribution après création du dossier dans GCE."
+    },
+    {
+      "requirement_id": "REQ-010",
+      "original_ref": "EX-016",
+      "description": "La plateforme doit favoriser la gestion des dossiers par les IRC et leur attribution aux professionnels adéquats selon des règles précises, avec automatisations pré-enregistrées possibles par IRC selon réseau partenaire, spécialités et localisations.",
+      "technical_domain": "workflow",
+      "business_context": "Affectation intelligente : industrialiser l’orientation des dossiers vers le bon tiers (réseau, spécialité, zone) avec paramétrage propre à chaque IRC."
+    },
+    {
+      "requirement_id": "REQ-011",
+      "original_ref": "EX-017",
+      "description": "La solution doit permettre l’attribution d’un dossier à plusieurs tiers successifs selon les procédures, par exemple assignation en paiement d’abord à un commissaire de justice puis à un avocat.",
+      "technical_domain": "workflow",
+      "business_context": "Workflow multi-intervenants : chaînage des acteurs selon la procédure (passage de relais, historique, responsabilités)."
+    },
+    {
+      "requirement_id": "REQ-012",
+      "original_ref": "EX-018",
+      "description": "La plateforme doit offrir une flexibilité sur l’ouverture ou non à des tiers supplémentaires et permettre un transfert de tiers à la demande de l’IRC, y compris le transfert de tous les dossiers associés à un commissaire vers un autre commissaire.",
+      "technical_domain": "workflow",
+      "business_context": "Gestion des changements de réseau : continuité de traitement quand un partenaire change (réaffectation, transfert en masse des dossiers)."
+    },
+    {
+      "requirement_id": "REQ-013",
+      "original_ref": "EX-019",
+      "description": "La solution doit proposer un outil souple et instinctif pour les gestionnaires IRC avec interfaçage SI-RC permettant l’affichage des montants à recouvrer, de l’état de la procédure, du montant transféré aux tiers de justice et de tous autres mouvements associés au dossier ; elle doit aussi permettre le transfert quotidien des documents du dossier de la plateforme vers le SI-RC lorsqu’ils sont nécessaires à la bonne exécution des procédures.",
+      "technical_domain": "ui",
+      "business_context": "Poste de travail gestionnaire : consultation des éléments clés du dossier (montants/statuts/mouvements) et gestion documentaire alignée SI-RC."
+    },
+    {
+      "requirement_id": "REQ-014",
+      "original_ref": "EX-020",
+      "description": "La solution doit fournir des fonctionnalités de recherche avancée, consultation des dossiers et dépôt de documents, avec une barre de recherche permettant la recherche par dossier, nom d’entreprise, SIRET ou SIREN.",
+      "technical_domain": "ui",
+      "business_context": "Efficacité opérationnelle : retrouver rapidement un dossier contentieux/greffe via identifiants entreprise (SIREN/SIRET) et gérer les pièces."
+    },
+    {
+      "requirement_id": "REQ-015",
+      "original_ref": "EX-021",
+      "description": "La plateforme doit gérer l’Euro avec deux décimales.",
+      "technical_domain": "data",
+      "business_context": "Règle financière : calculs/affichages de montants (créances, frais, facturation) conformes à la norme monétaire."
+    },
+    {
+      "requirement_id": "REQ-016",
+      "original_ref": "EX-022",
+      "description": "La solution doit proposer un tableau de bord avec alimentation automatique des KPI clés, incluant le suivi du montant recouvré, du nombre de dossiers par état, du nombre de dossiers par avancement, par motif et par collaborateur, ainsi que le suivi de facturation des tiers.",
+      "technical_domain": "reporting",
+      "business_context": "Pilotage IRC et fédéral : suivi des performances de recouvrement/contentieux et de la facturation des tiers pour gestion et reporting."
+    },
+    {
+      "requirement_id": "REQ-017",
+      "original_ref": "EX-023",
+      "description": "Les KPI de facturation doivent comprendre l’état d’avancement non-facturé, facturé ou payé, une granularité par dossier ou par consolidation de factures d’un réseau sur une période, et une typologie distinguant frais d’actes et frais d’honoraires.",
+      "technical_domain": "reporting",
+      "business_context": "Suivi financier : vision opérationnelle de l’avancement de facturation (même si le paiement n’est pas géré par la plateforme) et analyse par type de frais."
+    },
+    {
+      "requirement_id": "REQ-019",
+      "original_ref": "EX-025",
+      "description": "La solution doit gérer les délais avec contrôles automatiques, notifications, alertes de tâches et alimentation intelligente d’un tableau de suivi par gestionnaire et par dossier, avec un paramétrage propre à chaque IRC.",
+      "technical_domain": "workflow",
+      "business_context": "Risque procédural : respect des échéances contentieuses/greffe (relances, actions attendues), avec paramétrage selon pratiques IRC."
+    },
+    {
+      "requirement_id": "REQ-020",
+      "original_ref": "EX-026",
+      "description": "La solution doit favoriser une collaboration active et directe avec commentaires archivables, messagerie dynamique, alertes de réception de nouveaux messages, recherche et filtrage des messages, et proposition dynamique de message pour validation ou interaction récurrente.",
+      "technical_domain": "workflow",
+      "business_context": "Collaboration IRC ↔ tiers : échanges structurés, historisés et retrouvables pour fluidifier le traitement des dossiers."
+    },
+    {
+      "requirement_id": "REQ-021",
+      "original_ref": "EX-027",
+      "description": "La solution doit permettre un paramétrage de règles pour envoyer des messages à des tiers, ces règles étant précisées en phase de cadrage.",
+      "technical_domain": "workflow",
+      "business_context": "Automatisation des communications : standardiser les notifications (relances, demandes de pièces, informations de statut) selon les règles définies au cadrage."
+    },
+    {
+      "requirement_id": "REQ-022",
+      "original_ref": "EX-028",
+      "description": "Le service doit fournir un accusé de réception simple et une notification de nouveau message reçu sans AR à valeur légale, prérequis pour l’UO1.",
+      "technical_domain": "workflow",
+      "business_context": "Sécurisation du cycle d’échange : permettre au gestionnaire de prouver le bon acheminement opérationnel des messages/documents (sans valeur légale)."
+    },
+    {
+      "requirement_id": "REQ-023",
+      "original_ref": "EX-029",
+      "description": "La solution doit assurer un suivi de facturation souple et intelligent, avec rappel aux tiers pour inscrire leurs frais rapidement après chaque acte ou à la clôture, écran de restitution des frais avec filtrage par IRC et export facilement transférable, et distinction entre factures d’actes et factures d’honoraires.",
+      "technical_domain": "workflow",
+      "business_context": "Sous-processus facturation LOT 1 : complétude et rapidité de saisie des frais par les tiers, et capacité de contrôle/export pour traitement interne IRC."
+    },
+    {
+      "requirement_id": "REQ-024",
+      "original_ref": "EX-030",
+      "description": "Les factures doivent être associées à chaque dossier ouvert et visibles uniquement par les IRC ayant droit ; elles doivent être accessibles, catégorisées, et la facturation peut être déclenchée au fil de l’eau ou en fin de dossier selon le type de procédure et le tiers intervenant.",
+      "technical_domain": "workflow",
+      "business_context": "Gestion des factures au niveau dossier : adaptation au type de procédure et au profil du tiers (avocat vs commissaire) et contrôle d’accès."
+    },
+    {
+      "requirement_id": "REQ-025",
+      "original_ref": "EX-031",
+      "description": "La plateforme doit intégrer des règles coconstruites en cadrage concernant le processus de validation, les règles de montant, les libellés des virements, les contrôles automatiques au-delà de certains seuils, le contrôle manuel avec possibilité de réfuter le montant et de renvoyer au tiers, ainsi que l’export simplifié des factures.",
+      "technical_domain": "workflow",
+      "business_context": "Contrôle interne IRC : validation des frais/factures, gestion des seuils et des rejets, préparation à l’intégration comptable (export)."
+    },
+    {
+      "requirement_id": "REQ-026",
+      "original_ref": "EX-032",
+      "description": "La plateforme ne suit pas les paiements ; elle suit la partie facturation, le contrôle, le pilotage et l’archivage des pièces justificatives des actes facturés, avec facturation finale pour les commissaires de justice et au fil de l’eau pour les avocats.",
+      "technical_domain": "workflow",
+      "business_context": "Délimitation fonctionnelle : la plateforme outille facturation/contrôle/archivage sans exécuter le paiement (qui reste dans les systèmes financiers), avec règles différentes selon la profession."
+    },
+    {
+      "requirement_id": "REQ-027",
+      "original_ref": "EX-033",
+      "description": "La plateforme doit offrir une flexibilité de workflow pour gérer des cas particuliers, par exemple la transmission de pièces justificatives à d’autres tiers ou la clôture d’une procédure tout au long du workflow.",
+      "technical_domain": "workflow",
+      "business_context": "Gestion des exceptions : capacité à traiter des cas non standards sans bloquer le dossier (transferts, clôtures anticipées, variantes de procédure)."
+    },
+    {
+      "requirement_id": "REQ-028",
+      "original_ref": "EX-034",
+      "description": "Les seuils propres à chaque IRC doivent être paramétrables et cadrés lors du déploiement.",
+      "technical_domain": "workflow",
+      "business_context": "Autonomie IRC : adaptation des contrôles/validations/facturation aux politiques internes (seuils de contrôle, alertes, validations)."
+    },
+    {
+      "requirement_id": "REQ-030",
+      "original_ref": "EX-036",
+      "description": "Pour les procédures individuelles, la plateforme doit recevoir les pièces justificatives à l’origine de l’ouverture du dossier, gérer la transmission de pièces à l’avocat et au commissaire de justice, enregistrer les mises à jour de procédure, relancer les intervenants, recevoir les informations de procédure, clôturer le dossier, suivre les encaissements et préparer la note rectificative pour les CCSF.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 1 : orchestration des procédures individuelles (pièces, mises à jour, relances, clôture) et production d’éléments nécessaires aux instances/acteurs (ex. CCSF)."
+    },
+    {
+      "requirement_id": "REQ-031",
+      "original_ref": "EX-037",
+      "description": "Pour l’injonction de payer, le gestionnaire IRC peut imprimer et envoyer la requête et ses pièces directement au tribunal par La Poste pour initier le dossier avant de passer la main au commissaire de justice ; la plateforme doit gérer les deux cas de figure, avec ou sans commissaire de justice.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 1 : prise en charge des variantes de processus IP (initiation manuelle courrier vs passage direct à un tiers), selon l’organisation de l’IRC."
+    },
+    {
+      "requirement_id": "REQ-032",
+      "original_ref": "EX-038",
+      "description": "Le LOT 1 UO2 doit pouvoir automatiser l’envoi des injonctions de payer directement aux greffes des tribunaux de commerce, couvrant 85% des cas, avec conservation des systèmes actuels pour les 15% restants non dématérialisables ou non automatisables.",
+      "technical_domain": "workflow",
+      "business_context": "UO2 : objectif de couverture majoritaire par dématérialisation (85%) tout en prévoyant un maintien en condition opérationnelle des circuits existants pour cas résiduels."
+    },
+    {
+      "requirement_id": "REQ-034",
+      "original_ref": "EX-040",
+      "description": "Le dossier UO2 doit être généré et visualisable via la plateforme, qui doit informer le gestionnaire en cas de rejet ou d’impossibilité d’utiliser la dématérialisation automatique pour le tribunal concerné.",
+      "technical_domain": "ui",
+      "business_context": "Continuité UO2 : visibilité de bout en bout et gestion des échecs (rejet greffe, indisponibilité dématérialisation) pour bascule en traitement alternatif."
+    },
+    {
+      "requirement_id": "REQ-035",
+      "original_ref": "EX-041",
+      "description": "Le suivi des frais de tribunaux doit être prévu pour consolider les frais et assurer une trace comptable ; aucun paiement n’est à prévoir via la plateforme directement.",
+      "technical_domain": "workflow",
+      "business_context": "UO2 : traçabilité comptable des frais de greffe (sans exécution de paiement), nécessaire à l’imputation et aux contrôles."
+    },
+    {
+      "requirement_id": "REQ-036",
+      "original_ref": "EX-042",
+      "description": "Le prestataire doit gérer toutes les articulations entre gestion IRC, commissaire de justice, avocats et SI-RC ; l’envoi à l’avocat doit être facultatif pour les IRC qui ne procèdent pas avec des avocats.",
+      "technical_domain": "workflow",
+      "business_context": "Assignation en paiement : adaptation aux pratiques IRC (avec/sans avocat) et coordination des échanges multi-acteurs."
+    },
+    {
+      "requirement_id": "REQ-037",
+      "original_ref": "EX-044",
+      "description": "La 3ième relance amiable ne fait pas partie du contentieux mais peut, selon les IRC, être transmise à des commissaires de justice ; chaque IRC décide dans GCE de son processus, soit gestion dans le SI-RC sans impact sur la plateforme, soit transmission via la plateforme à un réseau de commissaires de justice partenaires.",
+      "technical_domain": "workflow",
+      "business_context": "Cas optionnel : extension de la plateforme aux relances amiables selon décision IRC (pilotée dans GCE), avec ou sans externalisation à des commissaires."
+    },
+    {
+      "requirement_id": "REQ-038",
+      "original_ref": "EX-045",
+      "description": "Le processus de 3ème relance comprend le ciblage des comptes à relance 3, la transmission du périmètre à la plateforme, l’attribution de l’action à un tiers de justice selon des règles de gestion, le suivi et la mise à jour du dossier avec gestion des délais de paiement, renégociation, dénonciation, échanges entre tiers et entreprise, ainsi que le suivi des frais et de la facturation.",
+      "technical_domain": "workflow",
+      "business_context": "Relance amiable outillée : enchaînement complet du ciblage à la facturation, avec gestion d’événements (renégociation/dénonciation) et interactions tiers ↔ entreprise."
+    },
+    {
+      "requirement_id": "REQ-040",
+      "original_ref": "EX-047",
+      "description": "La sélection du tribunal adéquat doit être réalisée automatiquement selon des critères définis et les informations reçues du SI-RC, à partir d’un annuaire des tribunaux et de règles légales de sélection.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 2 : routage légal des demandes vers le tribunal compétent, en s’appuyant sur l’annuaire tribunaux et les données SI-RC (réduction des rejets pour incompétence)."
+    },
+    {
+      "requirement_id": "REQ-043",
+      "original_ref": "EX-050",
+      "description": "Le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet, prendre en compte la correction et renvoyer l’IP corrigée.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 2 : reprise après rejet greffe sur IP, capacité de correction guidée et réémission pour limiter les délais d’obtention."
+    },
+    {
+      "requirement_id": "REQ-048",
+      "original_ref": "EX-055",
+      "description": "Le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet, prendre en compte la correction et renvoyer la radiation corrigée.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 2 : reprise après rejet sur radiation, pour maintenir à jour les privilèges et statuts administratifs."
+    },
+    {
+      "requirement_id": "REQ-050",
+      "original_ref": "EX-057",
+      "description": "La plateforme doit transmettre une facturation précise distinguant les frais avancés aux tribunaux et les frais de service séparés, une partie des frais avancés aux tribunaux étant imputée aux entreprises.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 2 : séparation comptable entre débours (frais tribunaux) et prestation de service, avec règles d’imputation aux entreprises."
+    },
+    {
+      "requirement_id": "REQ-051",
+      "original_ref": "EX-058",
+      "description": "Le gestionnaire IRC doit disposer d’un suivi à chaque étape via une interface pour suivre les demandes réalisées et le statut associé.",
+      "technical_domain": "ui",
+      "business_context": "LOT 2 : visibilité opérationnelle sur le cycle de vie des demandes (IP/radiation/inscription), statuts et actions attendues."
+    },
+    {
+      "requirement_id": "REQ-052",
+      "original_ref": "EX-059",
+      "description": "La collaboration entre gestionnaire et prestataire doit permettre l’ajout et la transmission de pièces justificatives en cas de refus, ainsi que le commentaire et le suivi de toutes les procédures de l’IRC.",
+      "technical_domain": "workflow",
+      "business_context": "LOT 2 : collaboration IRC ↔ prestataire pour la reprise des refus (ajout de pièces, commentaires), afin de fluidifier la gestion des dossiers greffes."
+    }
+  ],
+  "rse": [],
+  "ecoconception": [],
+  "cross_category_links": [
+    {
+      "source": "REQ-001",
+      "target": "REQ-005",
+      "relationship": "structuring"
+    },
+    {
+      "source": "REQ-003",
+      "target": "REQ-004",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-006",
+      "target": "REQ-009",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-007",
+      "target": "REQ-040",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-016",
+      "target": "REQ-017",
+      "relationship": "refinement"
+    },
+    {
+      "source": "REQ-018",
+      "target": "REQ-016",
+      "relationship": "security_constraint"
+    },
+    {
+      "source": "REQ-023",
+      "target": "REQ-024",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-025",
+      "target": "REQ-028",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-029",
+      "target": "REQ-003",
+      "relationship": "integration_alignment"
+    },
+    {
+      "source": "REQ-032",
+      "target": "REQ-033",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-041",
+      "target": "REQ-042",
+      "relationship": "process_flow"
+    },
+    {
+      "source": "REQ-046",
+      "target": "REQ-047",
+      "relationship": "process_flow"
+    },
+    {
+      "source": "REQ-043",
+      "target": "REQ-044",
+      "relationship": "exception_handling"
+    },
+    {
+      "source": "REQ-048",
+      "target": "REQ-049",
+      "relationship": "exception_handling"
+    },
+    {
+      "source": "REQ-053",
+      "target": "REQ-039",
+      "relationship": "dependency"
+    }
+  ]
+}

@@ -1,0 +1,3418 @@
+
+[PAGE 1]
+c  
+ 
+ 
+ 
+ 
+Plateforme d’interactions avec les tiers de 
+justice pour l’Agirc-Arrco 
+ 
+LOT 1 : Mise en place d’une plateforme qui permet d’interagir, de collaborer et de faciliter les 
+échanges liés à la procédure avec les tiers de justice  
+LOT 2 : Gestion de l’inscription de privilège auprès des greffes 
+ 
+Version Finale 
+ 
+ 
+ 
+Cahier des Clauses 
+Techniques Particulières 
+ 
+ 
+
+[PAGE 2]
+  
+ 
+ 
+ 
+1 
+ 
+Sommaire 
+ARTICLE 1. PRESENTATION DU REGIME AGIRC-ARRCO .................................................................................................... 3 
+ARTICLE 2. GROUPEMENT DE COMMANDES .................................................................................................................. 4 
+ARTICLE 3. CONTEXTE DU PROJET ............................................................................................................................... 5 
+ARTICLE 4. OBJET DE L’ACCORD-CADRE ........................................................................................................................ 7 
+ARTICLE 5. PERIMETRE DE LA CONSULTATION ................................................................................................................ 7 
+ARTICLE 6. DUREE DE L’ACCORD CADRE ....................................................................................................................... 8 
+ARTICLE 7. VOLUMES DE L’ACCORD CADRE ................................................................................................................... 8 
+ARTICLE 8. DESCRIPTION DES BESOINS FONCTIONNELS .................................................................................................... 8 
+8.1 LOT 1 : Mise en place d’une plateforme qui permet d’interagir, de collaborer et de faciliter les échanges 
+liés à la procédure avec les tiers de justice .................................................................................................... 9 
+8.2 LOT 2 : Gestion de l’Inscription de Privilège (IP) auprès des greffes ...................................................... 21 
+ARTICLE 9. VOLUMETRIES ....................................................................................................................................... 27 
+9.1 Volumétries d’utilisateurs ...................................................................................................................... 27 
+9.2 Volumétrie des procédures annuelles / du périmètre concerné par lot ................................................. 28 
+9.3 Rôles, profils utilisateurs et droits d’accès ............................................................................................. 29 
+ARTICLE 10. EXIGENCES TECHNIQUES ........................................................................................................................ 32 
+10.1. Schéma d’échanges ............................................................................................................................ 32 
+10.2 Gestion des flux .................................................................................................................................... 32 
+10.3 Accès des postes de travail à la solution .............................................................................................. 34 
+10.4 Navigateur ........................................................................................................................................... 35 
+10.5 Identification, Authentification et Autorisation (IAA) .......................................................................... 36 
+10.6 Sauvegarde et continuité de service .................................................................................................... 37 
+10.7 TraCaBilité (TCB) .................................................................................................................................. 37 
+10.8 Modalités d’Hébergement (MOH) ....................................................................................................... 38 
+10.9 Environnements ................................................................................................................................... 38 
+10.10 Performances ..................................................................................................................................... 38 
+10.11 Plan de Reprise Informatique (PRI) des SI de la Fédération Agirc-Arrco et IRC .................................. 40 
+10.12 Plan de Reprise Informatique (PRI) de la solution.............................................................................. 40 
+10.13 Reprise de l’historique ....................................................................................................................... 40 
+ARTICLE 11. CONFORMITE A LA REGLEMENTATION NATIONALE ET EUROPEENNE RELATIVE A LA PROTECTION DES DONNEES ......... 41 
+11.1 Respect de la Loi Informatique et Liberté et du Règlement Général à la Protection des Données ...... 41 
+11.2 Respect du principe Privacy By Design et By Default ........................................................................... 41 
+11.3 Encadrement de la relation de sous-traitance (Respect des obligations visées à l’article 28 du RGPD)42 
+ARTICLE 12. BESOINS TECHNIQUES – SECURITE ........................................................................................................... 42 
+12.1 Gouvernance de la sécurité ................................................................................................................. 42 
+12.2 Mise en œuvre de la sécurité ............................................................................................................... 44 
+ARTICLE 13. GESTION ELECTRONIQUE DES DOCUMENTS (GED) ET ARCHIVAGE .................................................................. 46 
+13.1. Gestion électronique des documents .................................................................................................. 46 
+13.2 Archivage ............................................................................................................................................. 47 
+ARTICLE 14. PRISE EN COMPTE DES EVOLUTIONS TECHNIQUES, FONCTIONNELLES ET REGLEMENTAIRES ................................... 48 
+ARTICLE 15. ORGANISATION POUR LES 2 LOTS (PROJET & MAINTENANCE) ..................................................................... 48 
+ANNEXE I. ACRONYMES ET DEFINITIONS ..................................................................................................................... 49 
+ANNEXE II. EXIGENCES OPERATIONNELLES RELATIVES AUX PROCESSUS LIES AUX DOCUMENTS D’ACTIVITE, A LA MAITRISE ET AUX 
+SYSTEMES DOCUMENTAIRES ..................................................................................................................................... 54 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+[PAGE 3]
+  
+ 
+ 
+ 
+2 
+ 
+ADDENDUM 
+ 
+ 
+Organisation du déploiement des différents fonctionnalités de la solution du LOT 1 
+Pour tenir compte du calendrier d’avancement du programme GCE et des feuilles de route de 
+dématérialisation des Tiers de justice, le déploiement de la solution du LOT 1 fait l’objet d’un 
+déploiement en plusieurs étapes. Chacune de ces étapes, porte sur un thème fonctionnel regroupé 
+sous le terme d’« Unité d’Œuvre » (UO) : 
+- L’UO1 correspond à première version mise en production. L’ensemble des fonctionnalités 
+de cette version doit être disponible dès la mise en service.  
+- L’UO2 couvre des fonctionnalités « additionnelles » dont la mise en œuvre sera décidée 
+en fonction de l’évolution du programme GCE et des feuilles de routes de dématérialisation 
+des Tiers de justice selon un calendrier qui reste à définir. Le Titulaire est informé que 
+l’Agirc-Arrco peut décider de ne pas commander les fonctionnalités dites 
+« additionnelles ».  
+Le périmètre fonctionnel de chaque UO est le suivant : 
+ 
+UO1 - Les procédures individuelles et 2 processus autres (mise en production au 30/06/26) : 
+- Procédures liées au Compte / Recouvrement amiable (aussi appelé Recouvrement 
+Précontentieux) : 3ième relance 
+- Procédures liées au Recouvrement Contentieux (aussi appelé Recouvrement Forcé) :  
+o Procédures individuelles :  
+ L’injonction de payer 
+ L’assignation en paiement  
+o Autre : Opposition sur vente de fonds 
+UO2 - Le déploiement de l’envoi direct de l’injonction de payer auprès des greffes (décision 
+de mise en œuvre et calendrier associé définis ultérieurement) 
+- Les fonctionnalités de l’UO2 sont une prestation facultative qui pourra être commandée 
+au cours du marché. Elles ne doivent pas faire l’objet d’atelier de cadrage dans la mise en 
+production du LOT 1.  
+- L’UO2 doit faire l’objet d’un chiffrage distinct, permettant à l’Agirc-Arrco de la 
+sélectionner et commander individuellement selon ses besoins. 
+- Pour définir le cadre dans lequel elle pourrait être mise en œuvre, le candidat précise                               
+pour l’UO2 : 
+o Comment il envisage de procéder à l’intégration des fonctionnalités (impact sur 
+l’architecture et interactions avec les autres thèmes fonctionnels et interfaces) 
+o Les délais et le planning de mise en œuvre à partir de la commande de l’Agirc-
+Arrco 
+o Un chiffrage (built et run) 
+ 
+ 
+ 
+ 
+ 
+
+[PAGE 4]
+  
+ 
+ 
+ 
+3 
+ 
+Base contact des Tiers de justice partenaires des IRC  
+ LOT 1 : L’Agirc-Arrco souhaite que le Titulaire du LOT 1 intègre, au sein de sa solution, 
+une base annuaire. Elle constitue un annuaire des seuls Tiers de justice utilisateurs de la 
+plateforme. Cet annuaire ne doit pas être mis à jour de manière automatique et quotidienne 
+à partir des bases nationales de contacts des professionnels de justice. 
+ LOT 2 : Dans le LOT 2, il s’agit, des mêmes modalités que pour le LOT 1 mais concernant 
+la base tribunaux qui seront communiqués au SI-RC. 
+ 
+Les besoins de ces fonctionnalités sont décrits plus précisément dans la suite du cahier des charges. 
+Légende des exigences : 
+Dans l’ensemble de ce document, les exigences sont numérotées en fonction de leur catégorie et 
+du LOT auquel elles se réfèrent.  
+Ces mêmes numérotations font références au cadre de réponse proposé en format Excel et sont 
+numérotés selon la catégorisation suivante : 
+ TEC-xx : Références liées aux Exigences Techniques pour les LOTS 1 et 2 
+ EF1-xx : Références liées aux Exigences Fonctionnelles du LOT 1 
+ EF2-xx : Références liées aux Exigences Fonctionnelles du LOT 2 
+ EFT-xx : Références liées aux Exigences Fonctionnelles transverse des différents lots 
+ 
+ 
+Article 1. Présentation du régime Agirc-Arrco 
+ 
+La fédération et les Institutions de Retraite Complémentaire (IRC) Agirc-Arrco mettent en œuvre 
+les moyens de gestion nécessaires pour exercer les missions qui leur sont confiées par les 
+Partenaires sociaux, sous leur contrôle, pour gérer la retraite complémentaire des salariés en 
+France. 
+Les moyens, notamment humains, de la retraite complémentaire sont localisés partout sur le 
+territoire (en Métropole et en Outre-mer), au sein des centres de gestion et des institutions dédiés 
+à la retraite et l’action sociale Agirc-Arrco. 
+Les Institutions adhèrent à des Groupes de Protection Sociale (GPS) qui sont sous le contrôle de 
+la fédération Agirc-Arrco. 
+ 
+La fédération a pour mission de : 
+ Fédérer les caisses de retraite membres qui mettent en œuvre le régime de retraite 
+complémentaire Agirc-Arrco, 
+ Mettre en œuvre l’Accord national interprofessionnel du 17 novembre 2017 pour le régime 
+Agirc-Arrco ainsi que les décisions des partenaires sociaux, 
+ Contrôler les institutions de retraite et réaliser les compensations financières entre elles, 
+ Fixer des objectifs de gestion et de service aux institutions, 
+ Réaliser des études et projections pour les partenaires sociaux qui alimentent leurs 
+réflexions lors des différentes phases de négociations, 
+ Piloter et coordonner les grands chantiers et les actions visant à améliorer la gestion et le 
+service aux entreprises, aux salariés et retraités de la retraite complémentaire. 
+ 
+
+[PAGE 5]
+  
+ 
+ 
+ 
+4 
+ 
+Les IRC ont pour mission : 
+ D’assurer la gestion du régime auquel elles adhèrent, vis-à-vis des entreprises adhérentes 
+et des participants, 
+ De recevoir les adhésions des entreprises et les affiliations des salariés, 
+ D’encaisser les cotisations de retraite complémentaire, 
+ De suivre les comptes de points des salariés, 
+ De calculer et verser les retraites. 
+Elles conseillent, orientent et proposent des services en matière d’action sociale (aides 
+individuelles…). Les IRC sont gérées par les partenaires sociaux.  
+ 
+ 
+ 
+La plaquette de présentation de l’Agirc-Arrco est disponible sur le site internet de l’Agirc-Arrco :  
+https://www.agirc-arrco.fr/storage/2025/04/Fiches_VIP_AA_maj_avril2025-1.pdf 
+ 
+ 
+Article 2. Groupement de commandes 
+ 
+La Fédération Agirc-Arrco et les IRC ont décidé de constituer un groupement de commande 
+conformément aux articles L2113-6 et L2113-7 du code de la commande publique en vue de la 
+passation du présent accord cadre. 
+ 
+La Fédération Agirc-Arrco a été nommée mandataire de ce groupement de commandes. Elle a à 
+cet effet un rôle de coordonnateur de la procédure formalisée et de la maîtrise d’ouvrage. 
+
+[PAGE 6]
+  
+ 
+ 
+ 
+5 
+ 
+ 
+Article 3. Contexte du projet 
+ 
+Ce projet s’inscrit dans un contexte général de dématérialisation et de volonté d’accélérer la 
+digitalisation des processus du régime Agirc-Arrco et la digitalisation des instances judiciaires 
+(notamment des tribunaux). 
+Dans ce cadre-là, interviennent la construction et le déploiement d’un nouveau Système 
+d’Information de la Retraite Complémentaire (SI-RC) porté par la fédération de l’Agirc-Arrco.  
+ 
+Actuellement :  
+Le SI-RC de l’Agirc-Arrco est composé : 
+ De briques applicatives centrales communes à toutes les IRC (ex. Brique DSN : 
+Déclaration Sociale Nominative), 
+ D’Usines Retraites (UR) locales et spécifiques à chaque IRC (ex. Brique GRECCO : 
+Gestion du Recouvrement, du Compte et du Contentieux).   
+GRECCO est l’Outil de gestion de Compte, du Recouvrement Amiable et Contentieux actuel 
+de l’Agirc-Arrco pour les IRC. Cette brique communique avec l’actuelle Plateforme 
+d’interaction avec les huissiers, nommée MARS (Multichannel Advanced Recovery Services), 
+qui ne couvre à date que les échanges pour des Injonctions de Payer dans le cadre de Procédures 
+Individuelles.  
+ 
+ 
+ 
+ 
+
+[PAGE 7]
+  
+ 
+ 
+ 
+6 
+ 
+ 
+o Février 2026 :  Les briques applicatives locales de GRECCO ont vocation à être 
+décommissionnées et seront remplacées par une unique brique applicative centrale 
+nommée GCE (Gestion de Compte Employeurs). GCE sera le nouvel Outil de 
+Gestion du Compte, du Recouvrement Amiable et Contentieux. Cette version 
+de démarrage contiendra le socle Compte / Recouvrement amiable de GCE, sans la 
+brique Applicative du Recouvrement Contentieux de GCE. 
+o 30/06/2026 : Mise en production de la brique applicative du Recouvrement 
+Contentieux de GCE 
+Les SI qui font l’objet de cet Appel d’Offres seront connectés à GCE : 
+ LOT 1 : En vue d’atteindre ces objectifs, l’Agirc-Arrco souhaite utiliser une plateforme 
+collaborative d’échanges entre les gestionnaires précontentieux et contentieux des IRC et 
+les tiers de justice (ie. Avocats ou commissaires de justice) en répondant à : 
+o Un besoin de collaboration sécurisé et performant avec les différentes parties 
+prenantes impliquées dans le précontentieux (3ième relance) et le contentieux 
+(procédures individuelles ou oppositions sur vente de fond). 
+o Un besoin de digitaliser de bout en bout les procédures mises en place au sein du 
+régime Agirc-Arrco. 
+ 
+ LOT 2 : De même, en vue d’atteindre ces divers objectifs, la gestion commune de 
+l’Inscription de Privilège (IP) est étudiée. 
+Ces différents projets s’intègrent dans une réflexion plus large d’une digitalisation et d’une 
+automatisation des actes et processus métiers. L’objectif est de permettre de rationaliser la gestion 
+des dossiers précontentieux et contentieux et de suivre les conditions de prestations et de services 
+optimaux, c’est-à-dire : 
+ Des services et outils adaptés et de qualité, 
+ Des services et outils interfacés créant un ensemble logique, 
+ Des conditions tarifaires compétitives, 
+ Une sécurité renforcée, 
+ La couverture totale des procédures contentieuses avec des partenariats efficaces pour les 
+procédures identifiées, 
+ Le suivi de la facturation des différents actes et honoraires des professionnels,  
+ Le pilotage par l’Agirc-Arrco (au niveau IRC et au niveau fédéral) des différents 
+indicateurs clés de performance propres aux Recouvrement Amiable et Contentieux et à la 
+gestion des recouvrements.  
+
+[PAGE 8]
+  
+ 
+ 
+ 
+7 
+ 
+Article 4. Objet de l’accord-cadre 
+ 
+Le présent accord-cadre porte sur la sélection, la mise en œuvre et le maintien en condition 
+opérationnelle de solutions du marché pour faciliter la gestion du précontentieux et contentieux au 
+sein de l’Agirc-Arrco. Les prestations sont réparties en 2 lots : 
+ LOT 1 : Mise en place d’une plateforme qui permet d’interagir, de collaborer et de faciliter 
+les échanges liés à la procédure avec les tiers de justice (ie. Avocats ou commissaires de 
+justice pour l’UO1 et tribunaux pour l’UO2). 
+ LOT 2 : Gestion de l’Inscription de Privilège (IP) auprès des greffes. 
+Les lots sont décrits plus précisément dans les chapitres suivants. 
+ 
+Pour chacun des lots, l’outil ou les services fournis pourront consister en une solution déjà 
+opérationnelle auprès d’autres acteurs ou bien un paramétrage permettant des adaptations liées aux 
+demandes spécifiques du groupement.  
+ 
+La spécificité des besoins exprimés requiert potentiellement des paramétrages et sans doute des 
+développements supplémentaires par rapport à une solution existante « sur étagère ». Ces 
+développements supplémentaires devront être fournis avant la date cible de déploiement. (Cf. 
+article n°8 liés aux dates cibles de déploiement). 
+ 
+Un effort supplémentaire sera consenti concernant l’interfaçage. En effet, le déploiement, et donc 
+l’interfaçage, seront adossés au planning projet en cours de refonte du SI-RC (Planning 
+prévisionnel partagé dans l’Article 15).  
+ 
+ 
+Article 5. Périmètre de la consultation 
+ 
+Le périmètre couvre les besoins des entités ci-après : 
+ IRC Métropolitaines :  
+o APICIL Agirc-Arrco 
+o AG2R Agirc-Arrco 
+o Malakoff Humanis Agirc-Arrco 
+o Alliance Professionnelle Agirc-Arrco (hors Agrica géré par la MSA) 
+o KLESIA Agirc-Arrco 
+ IRC Outre-Mer :  
+o IRCOM Agirc-Arrco (Martinique) 
+o CGRR Agirc-Arrco (Guadeloupe) 
+o CRR Agirc-Arrco (Réunion) 
+o Humanis International Agirc-Arrco (DROM hors Franc-CFP, en recouvrement 
+standard) 
+o BTPR Agirc-Arrco (Antilles et Guyane) 
+Le périmètre actuel inclut les IRC mentionnées ci-dessus. Cependant, cette information est 
+fournie à titre indicatif et n'a pas de valeur contractuelle. 
+
+[PAGE 9]
+  
+ 
+ 
+ 
+8 
+ 
+Les 5 Sections Partenaires de l’Alliance Professionnelle Agirc-Arrco (Audiens, B2V, IRP Auto, 
+Lourmel, Pro-BTP) auront des particularités (ie. Organisation de la gestion, Facturation des 
+Tiers, Logo et entête de courrier spécifique, …). 
+ 
+ 
+ 
+Article 6. Durée de l’accord cadre 
+ 
+Les durées sont adaptées à la spécificité et aux enjeux de chaque LOT :  
+ LOT 1 : Mise en place d’une plateforme qui permet d’interagir, de collaborer et de faciliter 
+les échanges liés à la procédure avec les tiers de justice (avocats ou commissaires de justice 
+pour l’UO1 et tribunaux pour l’UO2). 
+ L’accord cadre du LOT 1 a une durée de 5 ans à compter de sa date de notification. A 
+l’issue de la période initiale, il pourra être reconduit tacitement pour une période de 12 
+mois, 5 fois sans que la durée totale de l’accord puisse excéder 10 ans. 
+ LOT 2 : Gestion de l’Inscription de Privilège (IP) auprès des greffes. 
+ L’accord cadre du LOT 2 a une durée de 2 ans à compter de sa date de notification. A 
+l’issue de la période initiale, il pourra être reconduit tacitement pour une période de 12 
+mois, 3 fois sans que la durée totale de l’accord puisse excéder 5 ans. 
+ 
+ 
+Article 7. Volumes de l’accord cadre 
+ 
+ LOT 1 : Mise en place d’une plateforme qui permet d’interagir, de collaborer et de faciliter 
+les échanges liés à la procédure avec les tiers de justice (avocats ou commissaires de justice 
+pour l’UO1 et tribunaux pour l’UO2). 
+ Le LOT n°1 est conclu sans volume minimum et avec un volume maximum de 650 
+utilisateurs annuels. 
+ 
+ LOT 2 : Gestion de l’Inscription de Privilège (IP) auprès des greffes. 
+ Le LOT n°2 est conclu sans volume minimum et avec un volume maximum annuel de 
+10 000 IP. 
+ 
+ 
+Article 8. Description des besoins fonctionnels 
+ 
+Les 2 lots sont indépendants : chaque LOT fera l’objet d’un contrat différent, avec possibilité de 2 
+prestataires différents. Cependant, des interfaçages pourront être discutés dans la phase de 
+négociations : 
+ Les LOTS 1 et 2 n’ont pas de lien entre eux : les plateformes mises à disposition n’auront 
+pas à échanger entres elles.  
+ 
+
+[PAGE 10]
+  
+ 
+ 
+ 
+9 
+ 
+ Le LOT 1 doit savoir gérer un annuaire des Tiers de justice utilisateurs de la plateforme 
+(les commissaires de justice et les avocats partenaires des IRC), dont les données seront, 
+dans la mesure du possible, communiquées au SI-RC (ex. Commissaire de justice choisi 
+par le Lot 1 pour l’IJP, information d’un changement de Commissaire de Justice en charge 
+du dossier si son adresse / compétence change en cours du cycle de vie du dossier, 
+impliquant une réattribution du dossier ouvert à un autre Tiers).  
+ 
+ Le LOT 2 doit savoir gérer un annuaire des tribunaux, dont certaines données seront, dans 
+la mesure du possible, communiquées au SI-RC (ex. Tribunal choisi par le LOT 2 pour 
+l’IP). 
+ 
+8.1 LOT 1 : Mise en place d’une plateforme qui permet d’interagir, de 
+collaborer et de faciliter les échanges liés à la procédure avec les tiers de 
+justice 
+I. Explications sur le périmètre et les procédures : 
+Les procédures liées au Compte / Recouvrement amiable interviennent en amont de la gestion 
+contentieuse et de l’ouverture de procédures individuelles et collectives. Les 3ième relance sont 
+parfois déléguées à des commissaires de justice, d’où un besoin de collaboration via la future 
+plateforme LOT 1. Dans le cadre du LOT 2, les Inscriptions de Privilèges et Radiations ne seraient 
+pas attribuées à un Tiers juridique intermédiaire, mais directement envoyées aux tribunaux. 
+ 
+Les procédures liées au Recouvrement Contentieux, telles que les procédures 
+individuelles, engendrent un ensemble d’échanges et d’actes légaux qui nécessitent de nombreux 
+allers-retours entre les tiers de justice, notamment les commissaires de justice. Les procédures 
+individuelles marquent l’entrée en contentieux pour une entreprise. 
+ 
+Toutes ces procédures et le suivi global des créances sont intégrés dans GCE (le futur outil 
+de recouvrement de l’Agirc-Arrco qui remplacera à terme GRECCO). Elles seront interfacées 
+de manière logique à la future plateforme afin qu’elle gère tous les échanges avec des tiers de 
+justice en dehors du SI-RC. Exemple dans le schéma macro ci-dessous des 2 principaux processus 
+liés au Recouvrement Contentieux : 
+ Des actions prises en charge sur GCE apparaissent en noir. 
+ Des actions prises en charge sur la nouvelle plateforme apparaissent en violet 
+ 
+ 
+ 
+Point d’attention sur ce schéma macro illustratif : La clôture de la procédure, tout comme son 
+ouverture, est à l’initiative de GCE. C’est le gestionnaire qui décide de fermer le dossier après 
+
+[PAGE 11]
+  
+ 
+ 
+ 
+10 
+ 
+analyse du compte et transmission de l’information vers la plateforme. GCE est maitre du cycle 
+de vie de bout-en-bout de la procédure et commande à la plateforme sa clôture le cas échéant, 
+soit parce que toutes les actions ont été menées, soit parce qu’un événement externe est survenu : 
+paiement spontané, événement BODACC, … 
+ 
+II. Prérequis liés à la gestion de la collaboration avec les tiers : 
+Une plateforme d’intermédiation entre les gestionnaires des IRC et divers tiers de justice qu’ils 
+mandatent, permettrait de faciliter les échanges et la collaboration entre un maximum de parties 
+prenantes impliquées dans une procédure précontentieuse et contentieuse. Les fonctionnalités 
+attendues sont décrites dans les paragraphes ci-après : 
+ 
+[EF1-01] Couvrir tous les échanges faisant intervenir un tiers de justice (commissaires de justice, 
+avocats, …) en assurant au gestionnaire contentieux des IRC un accès intelligent et approprié 
+aux différents dossiers. Cette attribution permettra aux tiers et aux IRC le suivi.  
+ 
+[EF1-02] Permettre le traitement de bout en bout des échanges et du suivi des procédures 
+impliquant des commissaires de justice, avocats, … Chaque IRC est libre de choisir son réseau de 
+commissaires de justice, d'avocats et de compléter ou modifier des informations concernant les 
+tiers. L’attribution du dossier à l’IRC ou à la Section Partenaire de Al-Pro (ie. Klésia, 
+AG2RLM, …) est réalisée par le SI-RC (GCE), qui transmet l’information à la plateforme à 
+l’ouverture du dossier. Cependant, l’attribution du dossier au professionnel choisi par l’IRC 
+est gérée via la plateforme et permettra l'envoi dématérialisé de documents justificatifs et courriers, 
+la facturation, les communications, … (décrits ci-dessous). Le titulaire devra pouvoir gérer 2 cas 
+de figure concernant l’attribution du dossier à un gestionnaire : 
+- Option 1 : Soit recevoir le nom du gestionnaire utilisateur concerné depuis le flux GCE 
+avec la capacité de le réattribuer à un autre gestionnaire si besoin (option privilégiée à 
+date) 
+- Option 2 : Soit déterminer les règles d’affectation dans la plateforme (alternative en 
+cours de discussion) 
+Cela sera défini lors de la phase de cadrage. Dans le cadre de l’Option 1, nous pourrons préciser 
+aussi la possibilité de réattribuer un dossier unitairement ou en masse d’un gestionnaire à l’autre. 
+ 
+ 
+[EF1-03] L’objectif est de favoriser la gestion des dossiers par les IRC (administrateurs et 
+gestionnaires), afin de les attribuer aux professionnels adéquats. Cette attribution sera 
+intelligente et régie par des règles précises. En voici quelques exemples : 
+ Exemple 1 : Dans le cadre des procédures individuelles, le dossier d’injonction de payer 
+est attribué via la plateforme par un gestionnaire d’une IRC à un commissaire de justice ou 
+un réseau de commissaires de justice selon des préférences (basées sur les réseaux 
+partenaires, la localisation …) Le choix des commissaires de justice peut être à la main des 
+gestionnaires IRC. Cependant, des automatisations pré-enregistrées par IRC pourront être 
+proposées (Réseau partenaire, spécialités et localisations) afin que les envois soient 
+simplifiés.  
+
+[PAGE 12]
+  
+ 
+ 
+ 
+11 
+ 
+ Exemple 2 : Dans le cadre des procédures individuelles, le dossier doit pouvoir être attribué 
+à plusieurs tiers comme le sera le dossier d’assignation en paiement d’abord transmis à un 
+commissaire de justice puis à un avocat. 
+ 
+[EF1-04] Offrir une flexibilité sur l’ouverture ou non à des tiers supplémentaires. En effet : 
+ Des tiers peuvent intervenir sur plusieurs procédures simultanément (tels que des 
+commissaires de justice qui gèrent et ont accès à plusieurs dossiers). 
+ Des commissaires de justice puis des avocats sont associés à une dite procédure et peuvent 
+du coup également accéder à une partie ou à l’ensemble du dossier. 
+ Un transfert de tiers peut être envisagé à la demande de l’IRC (par exemple, tous les 
+dossiers associés à un commissaire de justice peuvent être transférer à un autre commissaire 
+de justice). 
+ 
+[EF1-05] Proposer un outil souple et instinctif pour les gestionnaires des IRC avec un interfaçage 
+avec le SI-RC permettant :  
+ Le suivi actualisé (via échanges des flux entre le SI-RC et la plateforme) doit permettre 
+d’afficher les montants à recouvrer, l’état de la procédure, le montant transféré aux tiers de 
+justice et tous autres mouvements associés au dossier (courriers, jugements)  
+ Le transfert des documents du dossier quotidiennement de la plateforme vers le SI-RC, 
+s’ils sont nécessaires à la bonne exécution des procédures précontentieuses et 
+contentieuses. 
+ 
+[EF1-06] Offrir des fonctionnalités de recherches avancées, une consultation des dossiers et 
+le dépôt de documents sur la plateforme. Une barre de recherche sera proposée aux gestionnaires 
+ainsi qu’aux tiers de justice afin de rechercher par dossier, par nom d’entreprise ou par Système 
+d’Identification du Répertoire des Établissements (SIRET) / Système d’Identification du 
+Répertoire des Entreprises (SIREN).  
+ 
+[EF1-07] Savoir gérer l’Euro (EUR) avec 2 décimales.  
+ 
+[EF1-08] Assurer un suivi continu et permettre un contrôle efficace sur toutes les relations avec 
+les tiers de justice via un tableau de bord avec alimentation automatique des KPIs clés. Les 
+principaux KPIs à suivre sont pour les gestionnaires de chaque IRC : 
+ Le montant recouvré par le tiers de justice (la devise principale pour le pilotage est l’Euro) 
+ Le nombre de dossiers en fonction de leur état : ouvert, suspendu, fermé, … (par 
+collaborateur) 
+ Le nombre de dossiers en fonction de l'avancement des dossiers : ordonnance, saisie 
+attribution, opposition, … (par motif et par collaborateur) 
+ Le suivi de la facturation des tiers : 
+o Etat d’avancement : Non-facturé, facturé, payé 
+o Granularité :  
+ Par dossier 
+ Par consolidation des factures d’un réseau de commissaires de justices (ex. 
+Leximpact, Louvion, …) sur une période (ex. annuelle, mensuelle, 
+trimestrielle) 
+
+[PAGE 13]
+  
+ 
+ 
+ 
+12 
+ 
+o Typologie : Distinction des :  
+ Frais d’actes (ie. Refacturation des actes non réglés par le débiteur dans le 
+cadre du Contentieux)  
+ Frais d’honoraires (ie. Facturation des coûts des prestations des tiers) 
+Ces KPIs seront propres à chaque IRC et ne seront visibles que par les membres des IRC. Les tiers 
+de justice et les autres IRC n’auront pas accès à ces données confidentielles. 
+ 
+[EF1-09] Faciliter la gestion des délais appliqués aux dossiers en créant des contrôles 
+automatiques, des notifications, des alertes de tâches et une alimentation intelligente d’un tableau 
+de suivi par gestionnaire et par dossier. Ces notifications pourront faire l’objet de paramétrages 
+propres à chacune des IRC. 
+ 
+[EF1-10] Favoriser une collaboration active et directe entre tous les intervenants impliqués dans 
+les procédures : 
+1) Commentaires archivables 
+2) Messagerie dynamique  
+o Alertes à réception de nouveaux messages 
+o Recherche et filtrage (par messages lus / non lus, par date, par priorité, par 
+destinataires…) 
+o Proposition dynamique de message (pour validation ou interaction récurrente) 
+3) Toute autre facilitation d’échange entre les tiers de justice et les IRC sera appréciée 
+ 
+[EF1-11] Paramétrer des règles pour envoyer des messages à des tiers. Ces envois à des tiers 
+seront régis par des règles précises. Ces règles seront précisées dans la phase de cadrage du projet. 
+ 
+[EF1-12] Proposer un service d’Accusé de Réception (AR) : Notification simple d’un nouveau 
+message reçu sur la plateforme, sans obligation d’AR à valeur légale (prérequis pour l’UO1) 
+Il est essentiel de pouvoir notifier de la bonne réception afin d’assurer un suivi et une poursuite du 
+processus dans les règles. 
+ 
+[EF1-13] Proposer un outil de suivi de facturation souple et intelligent. En effet, les tiers de 
+justice type commissaires de justice, facturent leurs actes à la fermeture des procédures ou à la fin 
+de chaque acte. Il faut donc prévoir un système permettant de suivre l’information rapidement 
+auprès des tiers. En effet, lorsqu’une procédure est clôturée, les commissaires de justice doivent 
+mettre à jour leurs frais rapidement. De plus, un rappel doit être envoyé aux tiers de justice afin 
+qu’ils inscrivent leurs frais après chaque acte. La facturation doit pouvoir être suivie via un écran 
+de restitution des frais avec filtrage par IRC, avec un export facilement transférable, pour assurer 
+un suivi optimal de la double facturation enregistrée par les tiers : 
+ Les factures d’actes (Actes réalisés par des commissaires de justice et non réglés dans le 
+cadre du recouvrement forcé)  
+ La facture d’honoraires (Facturation des coûts des prestations des tiers).  
+Ce suivi de la facturation fait l’objet de plusieurs besoins : 
+ Les factures doivent être associées à chacun des dossiers ouverts et ne seront donc visibles 
+que par les IRC ayant droit sur ce dossier. 
+ Les factures doivent être accessibles facilement et catégorisées (frais d’acte détaillés par 
+type et montant VS frais d’honoraires). 
+
+[PAGE 14]
+  
+ 
+ 
+ 
+13 
+ 
+ La facturation peut être déclenchée au fil de l’eau ou en fin de dossier (en fonction du type 
+de procédure et du tiers intervenant) et la visualisation des frais engagés est possible au fil 
+de l’eau. 
+ Plusieurs règles seront détaillées et coconstruites dans le cadre du cadrage du déploiement 
+et devront être prises en compte telles que : 
+o Le processus de validation,  
+o Les règles liées au montant,  
+o Les règles propres à l’Agirc-Arrco des libellés des virements effectués par les tiers, 
+o Le contrôle automatique de factures sur certains seuils, 
+o Le contrôle manuel des factures avec la possibilité de réfuter le montant et le 
+renvoyer au tiers de justice associé 
+o La possibilité simplifiée d’exporter ces factures afin de les transmettre au service 
+adéquat.  
+ Les paiements ne sont pas suivis dans la plateforme. La plateforme a pour objectif de suivre 
+la partie facturation : contrôle, pilotage, archivage des pièces justificatives des différents 
+actes facturés et la facturation : 
+o Finale à la fin du dossier (actes + honoraires) pour les commissaires de justice 
+o Au fil de l’eau pour les avocats 
+ 
+[EF1-14] Pour faciliter la compréhension des interactions possibles, voici la légende des schémas 
+des processus décrits dans les paragraphes I. Procédure individuelles, II. Procédures Collectives, 
+III. Procédures autres  
+ 
+Légende : 
+Schématisation des besoins de centralisation des courriers/échanges avec les tiers :  
+Schématisation des besoins d’interfaçage avec le SI-RC :    
+Schématisation des actions réalisées hors plateforme / non automatisée à date :  
+Schématisation des échanges réalisés dans la plateforme : 
+Schématisation des échanges réalisés hors plateformes : 
+ 
+ 
+Ces schémas sont simplifiés et ne permettent pas de mettre en lumière tous les cas particuliers. 
+Afin de couvrir ces cas particuliers, il faudra prévoir une flexibilité de workflow (ex. pouvoir 
+transmettre des pièces justificatives à d’autres tiers, pouvoir clôturer une procédure tout au long 
+du workflow, ...) 
+ 
+[EF1-15] Chaque IRC a des seuils différents qu’il faudra paramétrer et cadrer dans le cadre du 
+déploiement de la plateforme. Les règles de seuils seront discutées dans la phase de cadrage du 
+projet et n’apparaissent pas dans les schémas.  
+ 
+[EF1-16] Pour toutes les procédures du LOT 1, toute action manuelle réalisée dans la 
+plateforme devant entrainer une mise à jour du compte dans GCE ou déclencher d’autres 
+actions dans GCE, doit faire l’objet d’un flux de la plateforme vers GCE. 
+ 
+Point d’attention : Conformément à l’addendum, nous souhaitons intégrer une base de contacts via 
+un annuaire de tiers de justice utilisateurs dans la plateforme du LOT 1. Cet annuaire ne doit pas 
+être mis à jour de manière automatique et quotidienne à partir des bases nationales de contacts des 
+
+[PAGE 15]
+  
+ 
+ 
+ 
+14 
+ 
+professions. Il s’agit d’intégrer les huissiers et les avocats partenaires des IRC dont les données 
+seront, dans la mesure du possible, communiquées au SI-RC. 
+ 
+III. UO1 - Les Procédures Individuelles : 
+ 
+Le périmètre fonctionnel de l’UO1 correspond à la première version mise en production de la 
+solution. L’ensemble de ces fonctionnalités doit être disponible dès la mise en service de la 
+solution. Ce périmètre ne couvre pas la fonctionnalité relative à l’envoi direct de l’Injonction de 
+payer auprès des greffes. Celle-ci sera mise en œuvre dans un second temps selon un calendrier 
+qui reste à définir. 
+Zoom sur les échanges en procédures individuelles : 
+ 
+Type de 
+procédure 
+Étape de la 
+procédure 
+Périmètre couvert  
+par GCE 
+Périmètre couvert  
+par la plateforme LOT 1 
+Procédures 
+individuelles 
+Analyse et 
+ouverture 
+ Echanger des informations avec les équipes du service 
+entreprise 
+ Analyser la situation de l’entreprise (éligibilité de la 
+créance, …) 
+ Échanger avec l’entreprise (comptable) sur sa situation 
+Réceptionner des pièces justificatives à l’origine  
+de l’ouverture du dossier : MED, document justificatif des écarts, 
+certificat d’adhésion, décompte actualisé, … 
+Assignation en 
+paiement 
+ Récupérer et vérifier le détail des créances réclamées dans la 
+MED  
+Capter les éléments justificatifs pour la procédure (document justificatif 
+des écarts, certificat d’adhésion, décompte actualisé) via la GED 
+ Renseigner la date d’audience 
+ Transmettre les pièces justificatives à l’avocat 
+ Envoyer l’assignation au commissaire de justice pour 
+signification 
+Injonction de payer  
+ Récupérer et vérifier le détail des créances réclamées dans la 
+MED  
+ Sélectionner le tribunal approprié 
+ Capter les éléments justificatifs pour la procédure (document justificatif 
+des écarts, certificat d’adhésion, décompte actualisé) 
+Transmettre les pièces justificatives et demande d’IJP (via le 
+commissaire de justice dans le cadre de l’UO1 et en direct au 
+tribunal dans le cadre de l’UO2) 
+Opposition à 
+l’injonction de 
+payer (étape 
+potentielle d’une 
+Injonction de payer) 
+ Enregistrer les informations du courrier du tribunal et les 
+dates d’audience  
+ Gérer la phase amiable avec l’entreprise en amont du 
+jugement 
+Envoyer des courriers à l’avocat pour superviser la délégation 
+du dossier et du jugement 
+Suivi  
+Enregistrer les mises à jour de la procédure dans le journal de suivi 
+pour le rendre accessible 
+ Relancer le commissaire de justice ou l’avocat  
+ Réceptionner les informations transmises par le 
+commissaire de justice (date de signification, PV 659, 
+certificat de non-opposition) et courriers sur le suivi de la 
+procédure 
+ Clôturer la procédure 
+Suivi des 
+encaissements 
+ Emettre une tâche du service encaissement avec la somme à ventiler 
+Envoyer au commissaire de justice les informations sur les 
+paiements réceptionnés pour lui permettre de suivre l’avancée 
+des procédures 
+CCSF 
+ Préparer la note rectificative à partir des informations du compte et 
+d’un modèle 
+ 
+ 
+
+[PAGE 16]
+  
+ 
+ 
+ 
+15 
+ 
+A. L’injonction de payer (qui peut inclure l’opposition à l’injonction, la signification, 
+la demande de titre exécutoire…) : 
+ 
+[EF1-17] Voici les schémas de la procédure : 
+ 
+ 
+Point d’attention sur le schéma : Nous avons rajouté une flèche en gris pointillés du gestionnaire 
+de l’IRC vers le Tribunal pour l’ouverture du dossier (ie. Echange hors plateforme). En effet, il 
+arrive fréquemment à date que l’IRC se charge d’imprimer et d’envoyer la requête d’IJP et ses 
+PJ directement au tribunal par La Poste pour initier le dossier avant de passer la main au 
+Commissaire de justice. 
+ 
+La requête d’une injonction de payer est envoyée au tribunal :  
+ Soit par le commissaire de justice qui a été mandaté par le gestionnaire d’une IRC pour 
+effectuer cette tâche. Le modèle opérationnel est à la main de l’IRC et pourra choisir dans 
+quel type de processus elle s’inscrit (cf. cas n°2 ci-dessous) 
+ 
+
+[PAGE 17]
+  
+ 
+ 
+ 
+16 
+ 
+ Soit directement au tribunal par le gestionnaire IRC (cf. cas n°1 ci-dessus) Cette possibilité 
+est une fonctionnalité optionnelle dont le développement et la mise en œuvre seront décidés 
+post notification,  
+ 
+La plateforme devra pouvoir gérer les deux cas de figure : 
+ 
+ Cas 1) L’IRC envoie au tribunal sans passer par un commissaire de justice (le 
+traitement s’appuie sur le paramétrage renseigné pour déterminer l’étude compétente selon 
+la localisation du débiteur). L’étude sera indiquée en tant que mandataire sur la requête et 
+sera donc destinataire des ordonnances. Il sera étudié l’opportunité de faire la partie 
+éditique via la plateforme (générer les courriers).  
+Les dossiers seront transmis à la plateforme par voie dématérialisée depuis le SI-RC. La 
+plateforme devra intégrer les flux et générer les dossiers pour les commissaires de justice 
+désignés en mandataire de la requête via le numéro national. Le flux contiendra la référence 
+interne de l’IRC du dossier pour suivi et échange avec la plateforme. Cette référence 
+dépendra de l’organisation des IRC et pourra être construite en conséquence 
+(identifiant/trigramme gestionnaire, identifiant service contentieux, …). 
+Le détail des créances de la retraite complémentaire devra être présent dans la consultation 
+du dossier : 
+o Cotisations 
+o Majorations 
+o Pénalités 
+o Frais 
+o … 
+ Cas 2) L’IRC assigne un commissaire de justice via la plateforme avec toutes les 
+informations transmises avec l’ensemble des pièces justificatives. 
+Point d’attention : Les protocoles décrits au chapitre 10.3.1 types de flux autorisés sont bien 
+applicables. 
+ 
+B. UO2 - Le déploiement de l’envoi direct de l’injonction de payer auprès des 
+greffes : 
+Cette fonctionnalité n’est pas requise dans la première version mise en production du LOT 1. Son 
+périmètre est décrit dans le présent chapitre afin de permettre d’en évaluer la charge, le prix et les 
+modalités de mise en œuvre ne doivent pas faire l’objet des premiers ateliers de cadrage, qui 
+porteront uniquement sur les procédures individuelles, les oppositions sur vente de fonds et les 
+3ième relances. 
+ 
+[EF1-18] En cible, la solution du LOT 1 doit pouvoir automatiser l'envoi des injonctions de 
+payer directement aux greffes des tribunaux de commerce. Cette automatisation couvre 85% 
+des cas d'injonctions de payer, c’est-à-dire toutes les procédures envoyées aux tribunaux de 
+commerce.  
+ Ce système reposera sur un webservice, (service Infogreffe ou équivalent), qui permet 
+d'envoyer directement les demandes d’injonction de payer aux greffes (pièces 
+justificatives, éléments de créances, commissaire de justice désigné pour le retour du 
+
+[PAGE 18]
+  
+ 
+ 
+ 
+17 
+ 
+tribunal, …), conformément à la procédure légale. Cette action, gérée directement depuis 
+la future plateforme fournie par le prestataire permet un envoi direct de l’injonction de 
+payer, évitant ainsi l’intermédiaire systématique du commissaire de justice. L'introduction 
+de cet envoi automatique ne supprimera pas les fonctionnalités existantes, car certaines 
+procédures ne peuvent être ni dématérialisées ni automatisées (représentant environ 15% 
+des cas). Il sera donc nécessaire d'intégrer cette nouvelle fonctionnalité tout en conservant 
+les systèmes actuels d'attribution et d'injonction de payer, et de prévoir des interfaces 
+utilisateurs adaptées.  
+ Le projet d’automatisation de la dématérialisation des flux avec les greffes dans le cadre 
+de l’envoi d’une injonction de payer ainsi que le retour du tribunal est un axe important 
+dans le contexte de dématérialisation et digitalisation de l’Agirc-Arrco.  Il revient au 
+titulaire du LOT 1 de concevoir et développer les écrans permettant la saisie/validation des 
+informations, qui seront ensuite transmises aux tribunaux de commerce via une API 
+(Application Programming Interface de type Infogreffe ou autre prestataire équivalent). 
+L’Agirc-Arrco souhaite que la souscription et la gestion de la relation avec le fournisseur 
+du Webservice soient portées directement par le titulaire du LOT 1. 
+ Les modalités pourront être approfondies dans les conditions d’activation de la prestation 
+facultative. 
+ Ce projet d’automatisation sera effectué via : 
+o La réception via la plateforme de toutes les informations mises à disposition par les 
+flux GCE.  
+o Afin de stocker la demande et consolider tous les éléments de la procédure, le 
+dossier sera généré et visualisable via la plateforme. La plateforme sera paramétrée 
+de telle sorte à ce que le gestionnaire soit informé dans le cas d’un rejet / 
+impossibilité d’utiliser cette dématérialisation automatique pour le dit tribunal. 
+o Cette demande d’injonction de payer (montants, pièces justificatives, tribunal 
+adéquat) sera envoyée directement aux tribunaux (possibilité d’ajouter des 
+moments clés de validation à coconstruire dans la phase de cadrage).  
+o L’appui d’un prestataire tiers fournira des interfaces développées, connectant les 
+greffes à la plateforme, type Infogreffe ou équivalent. 
+Le suivi des frais de tribunaux pour cette démarche (l’injonction de payer étant payante), un 
+suivi global sera à prévoir pour consolider les frais et assurer une trace comptable. Aucun 
+paiement n’est à prévoir via la plateforme directement. 
+ 
+ 
+
+[PAGE 19]
+  
+ 
+ 
+ 
+18 
+ 
+C. L’assignation en paiement : 
+ 
+[EF1-19] Voici les schémas de la procédure : 
+ 
+Point d’attention sur le schéma : Nous avons juste changé de couleur une flèche de l’Avocat vers 
+le Tribunal qui était noire par erreur au lieu d’entre en gris pointillés (ie. Echange hors 
+plateforme) 
+ 
+ 
+Dans le cadre d’une assignation :  
+ Le prestataire aura pour rôle la gestion de toutes les articulations entre Gestion IRC, 
+Commissaire de justice, avocats et SI-RC. 
+ Certaines IRC ne procèdent pas avec des avocats. Il sera donc nécessaire de rendre 
+facultatif l’envoi à l’avocat dans ce processus.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+[PAGE 20]
+  
+ 
+ 
+ 
+19 
+ 
+IV. Procédures autres : 
+ 
+A. Opposition sur vente de fonds de commerce : 
+ 
+ 
+[EF1-20] Voici les schémas de la procédure : 
+ 
+ 
+ 
+B. Compte / recouvrement – 3ème relance amiable : 
+ 
+[EF1-21] Voici les schémas de la procédure :  
+ 
+Cette 3ème relance amiable ne fait pas partie du périmètre contentieux mais peut être, selon les IRC, 
+transmis à des commissaires de justice. Il sera donc à la main de chaque IRC de définir dans GCE 
+leur processus concernant cette 3ème relance amiable :  
+
+[PAGE 21]
+  
+ 
+ 
+ 
+20 
+ 
+ Possibilité 1 : Gérer via le recouvrement amiable dans le SI-RC cette 3ième relance. Donc 
+aucun impact dans le cadre du projet de la plateforme de relation avec des tiers 
+ Possibilité 2 : Transmettre cette 3ème relance amiable à un réseau de commissaire de justice 
+partenaires, et ce, via la plateforme comme décrit dans ce schéma ci-dessous. 
+Le paramétrage sera réalisé en amont du LOT 1, dans GCE, selon les préférences de l’IRC et 
+pourra être décrit dans la phase de cadrage / déploiement (ie. Règle ou une action manuelle du 
+gestionnaire dans GCE pour décider des modalités de traitement de la 3ème relance avec, selon le 
+cas, un routage vers la plateforme LOT 1 ou une édition d’un document depuis GCE). Il n’est pas 
+possible, à date, de préciser quelle IRC choisira quel modèle et cela pourra évoluer au fil du temps. 
+Zoom sur les échanges dans le cadre de la 3ème relance : 
+ 
+Type de 
+procédure 
+Étape de la 
+procédure 
+Périmètre couvert  
+par GCE 
+Périmètre couvert  
+par la plateforme 
+3ème relance 
+Ciblage des 
+comptes 
+concernés par 
+une relance 3 
+ Echanger des informations avec les équipes du service 
+entreprise 
+ Analyser la situation de l’entreprise (identification du 
+besoin de réaliser une relance 3 précontentieuse) 
+ Effectuer le ciblage des entreprises concernées par une 
+relance 3 et le transmettre à la plateforme 
+Réceptionner le périmètre des entreprises ciblées par la relance 3 
+Attribution 
+de l’action à 
+un tiers de 
+justice 
+ Déterminer des règles de gestion permettant d’identifier le 
+tiers de justice 
+ Sur la base des règles de gestion définies, déterminer dans la 
+plateforme LOT 1 le tiers de justice auquel attribuer le 
+dossier 
+Suivi et mise 
+à jour du 
+dossier 
+Enregistrer les mises à jour de l’action pour mise à jour du 
+compte dans GCE et déclenchement des éventuelles actions de 
+gestion : 
+ Saisie d’un nouveau délai de paiement et suspension du 
+recouvrement pour le compte 
+ Renégociation d’un délai de paiement en cours 
+ Dénonciation d’un délai de paiement mise en œuvre via 
+huissier et reprise du recouvrement pour le compte 
+ Consigner des échanges entre le tiers de justice (huissier) et 
+l’entreprise 
+ Saisir les détails d’un délai de paiement mis en œuvre par 
+l’huissier pour le compte de l’entreprise (nombre 
+d’échéances, montant global, montant par échéance, ...) 
+ Signaler une renégociation du délai de paiement 
+ Signaler une dénonciation d’un délai de paiement mis en 
+œuvre par l’huissier auprès de l’entreprise  
+Suivi des frais 
+et de la 
+facturation 
+  
+Mettre à jour le suivi de la facturation du tiers de justice et des 
+frais liés à d’éventuelles procédures 
+ 
+Point d’attention : Les commissaires de justice mandatés dans la phase recouvrement amiable 
+peuvent ne pas être les mêmes que ceux mandatés dans la phase contentieux (et les gestionnaires 
+changent aussi puisque les actes de gestion du recouvrement amiable ne sont pas affectés aux 
+équipes du contentieux). Néanmoins, la récupération de certaines informations du dossier de 
+recouvrement amiable en cas de bascule au contentieux pourrait être envisagée. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+[PAGE 22]
+  
+ 
+ 
+ 
+21 
+ 
+8.2 LOT 2 : Gestion de l’Inscription de Privilège (IP) auprès des greffes 
+Le LOT 2 est un besoin exprimé pour la sélection d’un prestataire de services pour la gestion et 
+l'automatisation des IP ainsi que pour le traitement et le suivi (jugements et radiations). 
+ 
+Zoom sur les échanges dans le cadre des Inscriptions privilège et radiation : 
+ 
+Type de 
+procédure 
+Sous-processus 
+Périmètre couvert par la 
+plateforme/portail et le SI (GCE) 
+Contenus des documents. Informations à transmettre 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Gestion de 
+l’inscription 
+privilège 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Identification des IP à 
+prendre 
+Sur la base des informations connues au 
+compte dans GCE (montant de la dette, 
+calendrier de prise d’IP, éventuelles 
+suspensions du recouvrement présentes), 
+identifier automatiquement ou manuellement 
+le périmètre des inscriptions de privilège à 
+prendre 
+ 
+Transmettre à la plateforme les informations 
+du périmètre identifié (en masse ou 
+unitairement) par voie dématérialisée (format 
+à déterminer) 
+Réceptionner un flux contenant les informations transmises 
+Fréquence : 4 campagnes annuelles d’IP à un rythme trimestriel 
+– Vendredi en soirée (paramétrable et possible de décaler 
+certains traitements)  
+ 
+Cas particuliers sur certaines demandes d’IP :  
+ Si un délai de paiement est dénoncé, il n’y a que 2 mois pour 
+envoyer l’IP. Certains flux d’IP partiront donc plus 
+fréquemment (fréquence à affiner ~hebdomadaire) 
+ Si l’IP est demandée par un gestionnaire contentieux, dans 
+le cadre d’une procédure individuelle, il est important que la 
+demande soit réalisée à une fréquence plus rapide que 
+trimestrielle. 
+ Dans le cas où la surveillance de parcours suspend la prise 
+d’IP, il faudra néanmoins réaliser manuellement la prise 
+d’IP avant les 9 mois réglementaires. Le flux sera envoyé 
+par GCE. 
+Identification du 
+tribunal compétent, 
+sélection du tribunal et 
+détermination du 
+mode de 
+communication 
+privilégié du tribunal 
+Déterminer les règles de gestion permettant 
+d’identifier le tribunal compétent pour les 
+inscriptions de privilège : consolidation des 
+éléments nécessaires  
+[A l’étude/ optionnel], capacité à déterminer 
+la compétence territoriale 
+ 
+Identifier les modalités de communication 
+associées à chaque tribunal (papier ou voie 
+dématérialisée), en fonction de ses 
+préférences 
+ 
+Transmettre ces informations par voie 
+dématérialisée (format à déterminer) 
+ 
+L’éditique doit être couvert par le prestataire. 
+Réceptionner des informations transmises par GCE, mise à jour 
+des modalités de communication des tribunaux le cas échéant. 
+Correction des 
+éventuels rejets de la 
+plateforme pour 
+donnée manquante 
+Compléter manuellement (dans GCE ou dans 
+la plateforme du prestataire – à arbitrer lors 
+des phases de cadrage) les informations 
+nécessaires à la prise d’inscription de 
+privilège en cas de rejet du flux entre GCE et 
+la plateforme LOT 2 
+ 
+Réceptionner les corrections / l’information 
+de la correction lorsqu’un nouveau flux est 
+émis vers le tribunal suite à sa correction 
+Provoquer manuellement la transmission de 
+cette mise à jour des informations pour une 
+IP à prendre (flux unitaire) depuis GCE ou 
+depuis la plateforme du prestataire (à arbitrer 
+lors des phases de cadrage) 
+ Informer du rejet : IP concernée, motif de rejet… 
+ Permettre la modification du flux directement depuis la 
+plateforme et/ou, le cas échéant, recevoir des informations 
+de correction issues de GCE 
+ Générer un flux avec les informations corrigées vers le 
+tribunal 
+ Informer GCE de la réémission de ce flux et de son résultat 
+Demande de prise 
+d’inscription de 
+privilège auprès du 
+tribunal 
+Suivre l’étape de l’envoi 
+ Envoyer le bordereau au bon tribunal par le prestataire, en 
+s’appuyant sur un annuaire des tribunaux présent dans le 
+LOT 2 et des règles légales de sélection du tribunal 
+compétent, selon les modalités de communication du 
+tribunal défini 
+ Mettre à jour le statut via un portail de suivi 
+Traitement des 
+éventuels rejets 
+techniques dans le 
+cadre de la 
+Visualiser des rejets 
+En cas de rejets techniques dans la transmission des informations 
+au tribunal, corriger ces rejets et regénérer le flux pour 
+transmission des informations au tribunal 
+
+[PAGE 23]
+  
+ 
+ 
+ 
+22 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Gestion de 
+l’inscription 
+privilège 
+transmission au 
+tribunal 
+Prise de l’IP par le 
+tribunal 
+Prévoir des flux d’information permettant de 
+transmettre toutes les informations relatives à 
+la prise d’IP : mise à jour du recouvrement 
+dans GCE, inscription dans le compte du 
+numéro et de la date de l’IP prise.  
+Transmettre l’information de l’acception de l’inscription 
+privilège au gestionnaire via le portail mise à disposition (date, 
+numéro d’IP, …) 
+Rejet de la prise 
+d’inscription de 
+privilège par le 
+tribunal 
+Prévoir des flux d’information permettant de 
+transmettre toutes les informations relatives 
+au rejet de la prise d’IP : mise à jour du statut 
+dans GCE, génération d’une tâche en gestion 
+pour mise à jour de la demande d’inscription 
+de privilège ou son abandon 
+ Dans le cas où le rejet du tribunal est déclenché par un 
+problème dans la modalité de communication (non-
+dématérialisation par exemple), prévoir et réaliser côté 
+prestataire un envoi papier/mail complémentaire.  
+ Les rejets pour cause d’information manquante ou de 
+demande d’inscription de privilège non justifiée peuvent 
+être traités dans la plateforme du prestataire ou dans GCE 
+(à déterminer lors des phases de cadrage) par le gestionnaire 
+en IRC. 
+ Informer du rejet : une mise à jour du statut est attendue 
+pour suivi des rejets sur la plateforme, ainsi qu’un flux pour 
+générer un acte de gestion dans GCE : informer du rejet, 
+motif du rejet, … 
+ 
+Identification des IP à 
+radier 
+Sur la base des informations connues au 
+compte dans GCE (montant de la dette 
+restant à régler, date de la prise d’IP, mise en 
+œuvre d’un délai de paiement, ...), identifier 
+automatiquement ou manuellement le 
+périmètre des inscriptions de privilège à 
+radier, ainsi que la modalité de radiation 
+(partielle ou totale) et le montant à radier en 
+cas de radiation partielle 
+ 
+Transmettre à la plateforme les informations 
+du périmètre identifié (en masse ou 
+unitairement) par voie dématérialisée (format 
+à déterminer) 
+Réceptionner des informations transmises par GCE 
+Fréquence : hebdomadaire – Vendredi en soirée (paramétrable et 
+possible de décaler certains traitements)  
+ 
+Les radiations d’inscription de privilège peuvent arriver 
+n’importe quand et être provoquées par : 
+ La mise en œuvre d’un délai de paiement sur des périodes 
+concernées par une inscription de privilège (suite à une 
+action manuelle dans GCE) 
+ Le paiement total ou partiel des dettes concernées par 
+l’inscription de privilège (action manuelle ou automatique 
+dans GCE) 
+ Toute autre raison poussant le gestionnaire d’une IRC à 
+demander manuellement la radiation d’une inscription de 
+privilège. 
+Identification du 
+tribunal et 
+détermination du 
+mode de 
+communication 
+privilégié du tribunal 
+Le tribunal est le même que celui auprès 
+duquel l’IP à radier a été émise 
+ 
+Transmission de ces informations par voie 
+dématérialisée (format à déterminer) 
+ 
+L’éditique doit être couvert par le prestataire. 
+Réceptionner des informations transmises par GCE, mise à jour 
+des modalités de communication des tribunaux le cas échéant. 
+Correction des 
+éventuels rejets de la 
+plateforme pour 
+donnée manquante 
+ 
+ Informer du rejet : IP concernée, motif de rejet… 
+ Permettre la modification du flux directement depuis la 
+plateforme et/ou, le cas échéant, recevoir des informations 
+de correction issues de GCE 
+ Générer un flux avec les informations corrigées vers le 
+tribunal 
+ Informer GCE de la réémission de ce flux et de son résultat 
+Demande de radiation 
+d’inscription de 
+privilège auprès du 
+tribunal 
+Suivi de l’étape de l’envoi 
+ Sur la base du numéro de l’IP, demander la radiation 
+auprès du tribunal ayant pris l’IP, selon les modalités de 
+communication du tribunal défini 
+ Mettre à jour le statut via un portail de suivi 
+Traitement des 
+éventuels rejets 
+techniques dans le 
+cadre de la 
+transmission au 
+tribunal 
+Visualisation des rejets 
+En cas de rejets techniques dans la transmission des informations 
+au tribunal, corriger ces rejets et regénérer le flux pour 
+transmission des informations au tribunal 
+Radiation de l’IP par 
+le tribunal 
+Flux d’information permettant de transmettre 
+toutes les informations relatives à la radiation 
+d’IP : mise à jour du recouvrement dans 
+GCE, inscription dans le compte du numéro 
+et de la date de l’IP radiée. 
+ 
+Transmettre l’information de l’acception de la radiation de l’IP 
+au gestionnaire via le portail mis à disposition (date, numéro 
+d’IP, numéro de radiation …) 
+Rejet de la radiation 
+d’IP par le tribunal 
+Flux d’information permettant de transmettre 
+toutes les informations relatives au rejet de la 
+radiation d’IP : mise à jour du statut dans 
+ Dans le cas où le rejet du tribunal est déclenché par un 
+problème dans la modalité de communication (non-
+
+[PAGE 24]
+  
+ 
+ 
+ 
+23 
+ 
+GCE, génération d’une tâche en gestion pour 
+mise à jour de la demande de radiation ou 
+son abandon 
+dématérialisation par exemple), prévoir et réaliser côté 
+prestataire un envoi papier/mail complémentaire.  
+ Les rejets pour cause d’information manquante ou de 
+demande d’inscription de privilège non justifiée peuvent 
+être traités dans la plateforme du prestataire ou dans GCE 
+(à déterminer lors des phases de cadrage) par le gestionnaire 
+en IRC. 
+ Informer du rejet : une mise à jour du statut est attendue 
+pour suivi des rejets sur la plateforme, ainsi qu’un flux pour 
+générer un acte de gestion dans GCE : informer du rejet, 
+motif du rejet, … 
+Suivi  
+Enregistrer les mises à jour de la procédure 
+dans le journal de suivi pour le rendre 
+accessible  
+ 
+Facturation 
+ Transmettre une facturation de manière précise (frais avancés 
+aux tribunaux / frais de service séparés). En effet, une partie des 
+frais avancés aux tribunaux est imputée aux entreprises 
+ 
+ 
+Envoi de l’inscription de privilège (IP) : 
+Le besoin exprimé est celui de la gestion dématérialisée de l’IP auprès des tribunaux :  
+ 
+[EF2-01] Proposer un outil souple et instinctif pour les gestionnaires des IRC (action Prestataire) 
+avec un interfaçage complet avec le SI-RC permettant :  
+ La réception des informations pour la demande d’IP (flux de GCE vers la plateforme) : 
+o De manière récurrente (hebdomadairement a minima) : En masse d’IP en fonction 
+de critères prédéfinis (délais, solde, ...).  
+o Ponctuellement : En petits volumes d’IP  
+ Le retour des informations relatives à la demande d’IP avec les données modifiées par toute 
+action manuelle réalisée éventuellement dans l’espace dédié mis à disposition par le 
+prestataire entrainant une mise à jour des données (flux de la plateforme vers GCE) 
+ Le transfert des documents du dossier quotidiennement de la plateforme vers le SI-RC 
+ 
+[EF2-02] Réaliser automatiquement la sélection du tribunal adéquat (action Prestataire) selon 
+des critères définis et grâce aux informations reçues du SI-RC (adresse de l’entreprise, forme de 
+l’entreprise, …) et à partir d’un annuaire des tribunaux et des règles légales de sélection du tribunal 
+compétent dans la plateforme LOT 2. 
+ 
+[EF2-03] Envoyer des informations (action Prestataire) via un flux dématérialisé avec les 
+bordereaux nécessaires au tribunal. Dans le cas où le tribunal ne permet pas la dématérialisation 
+de l’IP via échange de flux de données informatique, un envoi papier/email doit être réalisé par le 
+titulaire du LOT 2. Entre 2% et 5% des courriers seront à envoyer sous le format papier/email. (Cf 
+Article 9 – Volumétries) 
+ 
+[EF2-04] Transmettre le retour du tribunal par voie dématérialisée (action Prestataire) dès que 
+le Tribunal a fait un retour - quotidien (date, référence de l’IP, statut, motif de rejet le cas échéant, 
+Tribunal adressé).  
+ 
+[EF2-05] Permettre aux gestionnaires de corriger les éléments nécessaires (en fonction du motif 
+de rejet du tribunal), prendre en compte la correction et renvoyer l’IP corrigée vers le tribunal 
+(action Prestataire). Voici les principaux motifs de rejets à date : erreur de greffe, erreur 
+d’identification débiteur, rue inexistante, forme juridique erronée, dénomination inexacte, numéro 
+
+[PAGE 25]
+  
+ 
+ 
+ 
+24 
+ 
+INSEE inconnu, bordereau non conforme, personne physique ou morale radiée, inscription 
+périmée, inscription déjà radiée.  
+ 
+[EF2-06] Prendre en charge les corrections face aux différents motifs de rejets et regénérer 
+le flux si ce dernier est lié à une anomalie relevant du périmètre du Prestataire (action Prestataire) 
+(ex. rejet technique lié à des déphasages de flux, mauvais calcul de la compétence du tribunal - si 
+la détermination de la compétence est à la charge du Prestataire, …) 
+ 
+Radiation : 
+Sur le même principe que l’IP, le besoin exprimé concerne les points suivants : 
+ 
+[EF2-07] Assurer un interfaçage du prestataire et du SI-RC en cours de déploiement : GCE. 
+L’interfaçage permettra la réception des informations pour la demande de Radiation d’IP et le 
+retour des informations relatives à la demande de Radiation (date, référence de l’IP, statut, …) : 
+ Réceptionner des flux automatiques envoyés par le SI-RC (GCE) hebdomadairement 
+notifiant le besoin de Radiation totale ou partielle en fonction de critères prédéfinis (délais, 
+solde, ...) 
+ Déclencher un flux de mise à jour du SI-RC (avec les données concernées et de fréquence 
+quotidienne) pour toute action manuelle réalisée dans l’espace dédié mis à disposition par 
+le prestataire 
+ Transférer des documents du dossier quotidiennement de la plateforme vers le SI-RC  
+ 
+[EF2-08] Envoyer des informations (action Prestataire) via un flux dématérialisé avec les 
+informations / bordereaux nécessaires auprès du tribunal auquel l’IP aura été transmise. Dans 
+le cas où le tribunal ne permet pas la dématérialisation via échange de flux de données 
+informatique, un envoi papier/email doit être réalisé par le titulaire du LOT 2. (cf Article 9 – 
+Volumétrie) 
+ 
+[EF2-09] Transmettre le retour du tribunal au SI-RC par voie dématérialisée (action Prestataire) 
+dès qu’il a fait un retour : 
+ Fréquence : quotidienne 
+ Nature des informations : date, référence de la Radiation, statut, motif de rejet le cas 
+échéant  
+ 
+[EF2-10] Permettre aux gestionnaires de corriger les éléments nécessaires (en fonction du motif 
+de rejet du tribunal), prendre en compte la correction et renvoyer la Radiation corrigée vers le 
+tribunal (action Prestataire). Voici les principaux motifs des refus de Radiation : Erreur de greffe, 
+Erreur identification débiteur, Rue inexistante, Forme juridique erronée, Dénomination inexacte, 
+Numéro INSEE inconnu, Redressement/liquidation judiciaire, Personne physique ou morale 
+radiée, Inscription périmée, Inscription déjà radiée, Bordereaux non conformes à l'article R521-6 
+du code de commerce, Adresse débiteur différente, Incompétence territoriale 
+ 
+[EF2-11] Prendre en charge les corrections face aux différents motifs de rejets et regénérer 
+le flux si ce dernier est lié à une anomalie relevant du périmètre du Prestataire (ex. rejet technique 
+lié à des déphasages de flux, mauvais calcul de la compétence du tribunal - si la détermination de 
+la compétence est à la charge du Prestataire, …) 
+
+[PAGE 26]
+  
+ 
+ 
+ 
+25 
+ 
+Point d’attention : L’Agirc-Arrco souhaite, dans la mesure du possible, recueillir au sein du SI-RC 
+certaines informations du référentiel des tiers de justice de la plateforme du lot 2 (par exemple : le 
+tribunal auprès duquel la prise d’inscription a été réalisée pour la composition des courriers aux 
+entreprises réalisés depuis le SI-RC).  
+ 
+Facturation et suivi par les gestionnaires des IRC : 
+Une avance des frais au tribunal est à gérer par le prestataire.  
+ 
+Le besoin exprimé concerne les points suivants : 
+ 
+[EF2-12] Mettre en place une double facturation afin de faciliter le suivi de service qui permettra 
+le suivi distinct :  
+ D’une part de la refacturation mensuelle des frais engendrés par les procédures pris en 
+charge par le prestataire dans le cadre de la prestation, incluant les frais avancés aux 
+tribunaux. 
+ D’autre part de la facturation des frais de services et de gestion liés à l’utilisation de la 
+plateforme.  
+ 
+[EF2-13] Permettre au gestionnaire des IRC un suivi à chaque étape des éléments ayant attrait 
+à la procédure, notamment via la mise à disposition d'une interface, pour suivre les demandes 
+réalisées et le statut associé.  
+ 
+[EF2-14] Assurer une facilité de collaboration entre le gestionnaire et le prestataire (ex. 
+pouvoir ajouter et transmettre des pièces justificatives en cas de refus, possibilité de commenter 
+ou suivre toutes les procédures de l’IRC, …) 
+ 
+[EF2-15] Pour faciliter la compréhension, voici des schémas de l’articulation des processus.  
+ 
+
+[PAGE 27]
+  
+ 
+ 
+ 
+26 
+ 
+ 
+Point d’attention :  
+Les étapes 5 et 14 liées à la gestion des rejets ont été rajoutées 
+ 
+Synthèse des contraintes principales de ce LOT : 
+ Le prestataire doit pouvoir s’interfacer avec le SI-RC afin de recevoir les informations 
+liées à l'entreprise et l'ensemble des dettes pour définir le tribunal compétent concerné et 
+par quel canal le contacter.  
+
+[PAGE 28]
+  
+ 
+ 
+ 
+27 
+ 
+ Le système doit permettre une gestion en masse des IP tout en assurant une traçabilité 
+(TCB) et un suivi détaillé pour chaque cas par les gestionnaires IRC. 
+ La gestion des accès doit être fine et adéquate à la situation, notamment en restreignant les 
+accès aux IP aux gestionnaires habilités (par IRC, par profil et par gestionnaire). 
+ La date de déploiement prévisionnelle du LOT 2 est la suivante : 30/06/2026 
+ 
+ 
+Article 9. Volumétries 
+ 
+9.1 Volumétries d’utilisateurs  
+L’utilisation, par lot, sera la suivante : 
+ 
+[EF1-22] LOT 1 :  
+Entités utilisatrices Nombre d’utilisateurs Nombre d’accès 
+Fédération Agirc-
+Arrco 
+1 Maximum 20 accès Fédéral (du 
+Support fonctionnel métier, du Support 
+technique, du Processus, de la Conduite 
+du Changement…) 
+IRC 14 (9 IRC classiques & 5 
+Sections Partenaires de Al-Pro) 
+Maximum 300 accès dans les IRC 
+Commissaire de 
+justices 
+100 études autonomes / 
+indépendants 
+ 
+Maximum 300 accès de 
+Commissaires de Justice partenaires 
+(qui peuvent être rattachés à une étude 
+et à un réseau de commissaires de 
+justice)  
+Avocats 30 cabinets Maximum 60 accès 
+ 
+[EF2-16] LOT 2 :  
+Gestionnaires IRC / 
+Administrateur Agirc-
+Arrco 
+~500 utilisateurs gestionnaires (selon les IRC souhaitant 
+rejoindre l’accord-cadre) et un maximum de 650 utilisateurs 
+ 
+ 
+
+[PAGE 29]
+  
+ 
+ 
+ 
+28 
+ 
+9.2 Volumétrie des procédures annuelles / du périmètre concerné par lot 
+Les volumétries sont des valeurs maximales estimatives approchées des procédures annuelles 
+pour le régime de l’Agirc-Arrco. Ces volumétries sont amenées à évoluer.  
+ 
+[EF1-23] LOT 1 :  
+3ème relance amiable Jusqu’à 200 000 traitées aujourd’hui 
+Injonction de payer (IJP) Jusqu’à 100 000 
+% des IJP qui pourraient être émises directement 
+aux greffes des tribunaux de commerce via API 
+85% des dossiers selon l’étude 
+d’opportunité (soit 85 000 dossiers) 
+Opposition sur vente de fonds de commerce Jusqu’à 5 000 
+Assignations en paiement Jusqu’à 500 
+ 
+Ces volumétries sont liées à l’activité économique et à la situation financière des entreprises et 
+peuvent varier d’une année sur l’autre. 
+ 
+[EF2-17] LOT 2 :  
+IP annuelles ~14 000 
+Demandes d’IP envoyées en papier annuelle (%)) ~250 (~2%) 
+Rejets des demandes annuelles ~70 
+ 
+Commentaire : Aujourd’hui, la volumétrie est basée sur un seuil dans l’outil de gestion à 20 
+000€. Or, les seuils sont amenés à évoluer et la cible est la suivante :  
+ 1 000€ pour les débiteurs multiples 
+ 4 000€ pour les débiteurs récurrents 
+ 12 000€ pour les primo-débiteurs 
+Cette modification de seuil pourrait entrainer une augmentation conséquente de volume (jusqu’à 
+x20) 
+ 
+ 
+
+[PAGE 30]
+  
+ 
+ 
+ 
+29 
+ 
+9.3 Rôles, profils utilisateurs et droits d’accès 
+[EF1-24] LOT 1 La gestion des rôles profil et utilisateurs est un besoin propre à chaque LOT et 
+la flexibilité sera appréciée concernant l’évolution des différents profils. A date, voici les 
+principaux profils et droits d’accès qui sont demandés :  
+ 
+Types de profils 
+(Métier Vs 
+Applicatif) 
+Droits de 
+consultation 
+des dossiers 
+Ajouts de 
+pièces / 
+procédures 
+Modification 
+des dossiers 
+Synthèse 
+d’une 
+procédure 
+Synthèse par 
+IRC des 
+procédures 
+Synthèse 
+globale 
+Accès Suivi 
+Performance 
+Volume 
+approximatif 
+d’utilisateurs 
+Administrateur 
+fédération 
+(Process, 
+Maintenance 
+technique, 
+MOA et 
+support fédéral) 
+X   X X X X ~ 20 
+Administrateur 
+Al-Pro 
+Uniquement 
+les procédures 
+de l’Al-Pro 
+Uniquement 
+les procédures 
+de l’Al-Pro 
+Uniquement 
+les procédures 
+de l’Al-Pro 
+Uniquement 
+les procédures 
+de l’Al-Pro 
+Uniquement 
+les procédures 
+de l’Al-Pro 
+  3  
+Administrateur 
+/ Manager IRC 
+(ou de la 
+Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al- Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+  42  
+Gestionnaire 
+Contentieux 
+IRC (ou de la 
+Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+   200 
+Fonction 
+support, service 
+encaissement de 
+l’IRC (ou de la 
+Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+  Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+  20 
+MOA, Process, 
+de l’IRC (ou de 
+la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+   Uniquement 
+les procédures 
+de l’IRC 
+associées (ou 
+de la Section 
+Partenaire pour 
+Al-Pro) 
+  35 
+Tiers de justice Uniquement 
+les dossiers qui 
+lui sont 
+affectés 
+Uniquement 
+les dossiers qui 
+lui sont 
+affectés 
+Uniquement 
+les dossiers qui 
+lui sont 
+affectés 
+    ~ 330 
+ 
+Point d’attention :  
+ A l’exception du profil Administrateur Alliance Professionnelle (Al-Pro), tous les profils 
+utilisateurs de l’Al-Pro seront limités aux dossiers d’une Section Partenaire de l’Al-Pro 
+(Audiens, B2V, IRP-Auto, Lourmel, Pro-BTP). 
+ Une Section Partenaire de Al-Pro est considérée comme une « IRC technique » (ie. 
+Cloisonnement des données à la maille Section Partenaire) 
+ 
+Le soumissionnaire devra détailler le processus d’ajout, de modification de droits / d’accès, les 
+délais et le processus associés.  
+ 
+Gestion des utilisateurs Tiers (commissaires de justice et avocats) 
+Un paramétrage général de la solution doit permettre d’initialiser et mettre à jour un annuaire des 
+utilisateurs Tiers de la plateforme : 
+
+[PAGE 31]
+  
+ 
+ 
+ 
+30 
+ 
+ Une structuration de la base des utilisateurs Tiers par type d’utilisateurs devra être définie 
+lors de la phase de cadrage de projet : 
+o Exemple : Un Commissaire de justice peut être rattaché à une étude, qui 
+peut elle-même être rattachée à un réseau d’huissier 
+ A l’onboarding d’un nouvel utilisateur Tiers, des données sont recensées et associées à son 
+profil (en le rattachant à une organisation initiale ou en en créant une nouvelle) : 
+o Information générale de l’organisation : libellé, SIREN / SIRET, adresse, 
+coordonnées de contact 
+o Information générale sur l’utilisateur : Dénomination (qualité/titre, nom, 
+prénom), coordonnées (adresse postale, téléphone(s), courriel), raison 
+sociale 
+ Les utilisateurs Tiers ont la possibilité de modifier les données de leurs profils à tout 
+moment et une réattribution du dossier doit être possible via la plateforme en cas de 
+changement de compétence géographique ou de disparition d’un Tiers :  
+o Exemple : En cas de changement d’adresse d’un commissaire de justice, si 
+ses compétences territoriales changent, la plateforme identifie une nouvelle 
+étude en charge du dossier (ie. bascule du tiers en cours de vie de la 
+procédure). L’information du changement de tiers en charge de la procédure 
+doit être communiqué à GCE. 
+ Cet annuaire doit : 
+o Garantir un fonctionnement fluide de toutes les procédures impliquant des 
+tiers et professionnels de justice présents dans le Lot 1 
+o Être communicable au le SI-RC   
+o Être exportable en fichier XLS (pour les profils Admin) 
+ 
+ 
+
+[PAGE 32]
+  
+ 
+ 
+ 
+31 
+ 
+[EF2-18] LOT 2 : La gestion des rôles profils et utilisateurs est un besoin propre à chaque LOT 
+et la flexibilité sera appréciée concernant l’évolution des différents profils. A date, voici les 
+principaux profils et droits d’accès qui sont demandés : 
+ 
+Types de profils 
+(Métier Vs 
+Applicatif) 
+Droits de 
+consultation des 
+dossiers 
+Ajouts de pièces 
+/ procédures 
+Modification 
+des dossiers 
+Synthèse d’une 
+IP 
+Synthèse par 
+IRC des IP 
+Synthèse 
+globale 
+Volume 
+approximatif 
+d’utilisateurs 
+Administrateur 
+fédération 
+(Process, 
+Maintenance 
+technique, 
+MOA et 
+support fédéral) 
+X    X X ~ 20 
+Administrateur 
+Al-Pro 
+Uniquement les 
+procédures de 
+l’Al-Pro 
+Uniquement les 
+procédures de 
+l’Al-Pro 
+Uniquement les 
+procédures de 
+l’Al-Pro 
+Uniquement les 
+procédures de 
+l’Al-Pro 
+Uniquement les 
+procédures de 
+l’Al-Pro 
+ 5 
+Administrateur 
+/ Manager IRC 
+(ou de la 
+Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+ 40 
+Gestionnaire 
+Compte et 
+Recouvrement 
+IRC (ou de la 
+Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+  500 
+Fonction 
+support, service 
+encaissement de 
+l’IRC (ou de la 
+Section 
+Partenaire pour 
+Al-Pro) 
+ 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+  Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+Uniquement les 
+procédures de 
+l’IRC associées 
+(ou de la Section 
+Partenaire pour 
+Al-Pro) 
+ 20 
+ 
+Point d’attention :  
+ A l’exception du profil Administrateur Alliance Professionnelle (Al-Pro), tous les profils 
+utilisateurs de l’Al-Pro seront limités aux dossiers d’une Section Partenaire de l’Al-Pro 
+(Audiens, B2V, IRP-Auto, Lourmel, Pro-BTP). 
+ Une Section Partenaire de Al-Pro est considérée comme une « IRC technique » (ie. 
+Cloisonnement des données à la maille Section Partenaire) 
+ 
+Le soumissionnaire devra détailler le processus d’ajout, de modification de droits / d’accès, les 
+délais et le processus associés.  
+ 
+ 
+ 
+ 
+
+[PAGE 33]
+  
+ 
+ 
+ 
+32 
+ 
+Article 10. Exigences Techniques  
+ 
+Toute justification / référence pouvant attester de la solidité de la solution proposée, utile, en lien 
+avec le projet, pourra être partagée et représenter un avantage certain.  
+ 
+10.1. Schéma d’échanges 
+Une copie de la base annuaire de la plateforme du LOT 1 sera créée pour envoi au SI-RC.  
+ 
+Par ailleurs, des informations provenant du référentiel des tribunaux du LOT 2 pourront être 
+transmises au SI-RC.  
+ 
+ 
+ 
+10.2 Gestion des flux 
+Les exigences techniques mentionnées dans les paragraphes suivants représentent les attendues 
+par l’Agirc-Arrco en matière de flux (qu’ils soient fichiers ou flux d’intégration type web services). 
+ 
+ 
+
+[PAGE 34]
+  
+ 
+ 
+ 
+33 
+ 
+10.2.1 Types de flux autorisés  
+[TEC-01] Les Interfaces Homme Machine (IHM) de la solution sont webisées, c’est-à-dire 
+rendues via un navigateur internet. Selon les lots, les attentes ne sont pas les mêmes mais les 
+prestataires devront détailler leurs solutions IHM pour chacun des lots. 
+ 
+[TEC-02] Hors IHM, pour le Lot 1 et le Lot 2, les échanges entre la solution et le SI-RC se feront 
+à travers des fichiers via un serveur SFTP (avec des IP fixes). 
+ 
+[TEC-03] Aux standards fixed position, CSV, JSON ou XML pour les transmissions serveurs 
+à serveurs 
+ 
+[TEC-04] Aux standards Portable Document Format (pdf), Office Open XML (docx), CSV, 
+texte brut, voire OpenDocument (odt) pour les documents générés à destination des utilisateurs 
+finaux, le format pdf étant obligatoire pour tout document destiné à être communiqué par l’Agirc-
+Arrco à des tiers ou à ne pas être modifié (documents de justice, …) 
+ 
+[TEC-05] Aux standards Tag Image File Format (TIFF), Portable Network 
+Graphics (PNG), Joint Photographic Experts Group (jpeg), webP, High Efficiency Image 
+File format (HEIF), Scalable Vector Graphics (SVG) pour les images. 
+ 
+[TEC-06] Cela concerne les échanges avec l’ensemble des systèmes de la Fédération Agirc-
+Arrco ou des IRC qu’ils soient gestionnaires de flux, systèmes de supervision, systèmes 
+exposés… 
+ 
+[TEC-07] La solution logicielle doit permettre de s’interfacer avec d’autres solutions tierces 
+hébergées aussi bien en mode SAAS qu’en mode On-premise. 
+ 
+[TEC-08] En cas de transmission de données par fichiers, le titulaire limite, ou permet à la 
+fédération Agirc-Arrco de limiter via un moyen authentifié et sécurisé, les systèmes autorisés à 
+dialoguer avec la solution, autrement dit à déposer des fichiers et, dans le cas de flux tirés, à 
+récupérer des fichiers. 
+ 
+[TEC-09] Idéalement l’Agirc-Arrco aimerait choisir l’encodage des flux. En particulier, la 
+solution gère l’unicode UTF8 : elle peut importer, générer des données et les transmettre dans cet 
+encodage, y compris pour les IHM. 
+ 
+[TEC-10] Les postes clients n’ont pas d’accès direct à la base de données de la solution. Les 
+transactions passent obligatoirement à travers des API hébergées par un serveur autre que 
+celui ou ceux qui hébergent le ou les gestionnaires de base de données. 
+ 
+ 
+10.2. 2 Filtrage des flux et données en transfert 
+L‘Agirc-Arrco segmente son réseau en fonction du domaine fonctionnel d’appartenance de 
+l’application et de la nature des serveurs. 
+
+[PAGE 35]
+  
+ 
+ 
+ 
+34 
+ 
+La Fédération Agirc-Arrco et plusieurs IRC mettent en place un Network Access Control (NAC) 
+au niveau des serveurs porteurs de service et des postes de travail. 
+ 
+[TEC-11] En conséquence, la solution proposée doit résister au filtrage de flux réseau entre les 
+composants installés dans le ou les datacenters du titulaire et les éléments du SI-RC et ceux des 
+systèmes d’information des IRC. La documentation fournie à la Fédération Agirc-Arrco doit lister 
+précisément les protocoles réseau, ports et sens des points de communication impliqués. 
+ 
+Protocoles autorisés : 
+ 
+[TEC-12] Pour les accès aux IHM et aux web services, la solution permet de restreindre les appels 
+au seul protocole https avec TLS 1.2 ou supérieure. 
+ 
+[TEC-13] La solution permet les transferts de fichiers, hors webservices ou API, de préférence 
+avec le protocole PESiT SSL (avec TLS 1.2), sFTP avec TLS 1.2 ou plus sinon. 
+ 
+[TEC-14] La solution doit implémenter TLS 1.2 avec les recommandations de l’ANSSI. Voir 
+document : https://www.ssi.gouv.fr/uploads/2020/03/anssi-guide-
+recommandations_de_securite_relatives_a_tls-v1.2.pdf 
+ 
+[TEC-15] La solution doit être maintenue de manière à garantir la compatibilité avec les 
+nouvelles versions de TLS, au fur et à mesure de leur publication. 
+ 
+ 
+10.2. 3 Filtrage des flux et données en transfert 
+[TEC-16] Le candidat décrira tous les efforts consentis pour réduire les déphasage et écarts liés 
+aux échanges et flux.  
+ 
+[TEC-17] Les échanges se feront quotidiennement. 
+ 
+10.3 Accès des postes de travail à la solution 
+[TEC-18] Les modalités de connexion des utilisateurs sont diverses : 
+ Depuis un poste fixe dans le réseau de l’entreprise (Fédération Agirc-Arrco ou IRC), 
+ Depuis un poste nomade à travers le VPN de l’entreprise (télétravail ou déplacement), 
+ A travers internet depuis un poste fixe ou nomade. 
+Un utilisateur de la solution se sert de moyens de connexion et du poste de travail fourni par son 
+entité de rattachement (IRC, Fédération Agirc-Arrco ou tiers de justice). De ce fait, le parc des 
+terminaux connectés à la solution est hétérogène. 
+ 
+[TEC-19] La solution est compatible avec les générations de PC datant de 2015 ou plus récents 
+et de toutes marques. 
+ 
+[TEC-20] La solution supporte l’utilisation de postes légers (thin client), comme Dell Wyse. 
+
+[PAGE 36]
+  
+ 
+ 
+ 
+35 
+ 
+ 
+La solution n’impose pas d’installation ou de définition d’imprimantes virtuelles. Elle 
+n’impose pas d’impressions sur des bacs forcés. Les drivers propriétaires sont proscrits. La 
+solution ne requiert pas de modèles Office forcés. 
+ 
+[TEC-21] La solution est compatible avec les technologies de virtualisation du poste client (type 
+Citrix XenDesktop, Azure Virtual Desktop…) 
+ 
+[TEC-22] La solution est compatible avec les technologies de virtualisation applicative (type 
+Citrix XenApp, Azure virtual App…) 
+ 
+[TEC-23] Afin que la DSI de la Fédération Agirc-Arrco puisse évaluer l’impact de la solution, le 
+soumissionnaire devra préciser les configurations matérielles minimales et recommandées pour 
+utiliser la solution sur un poste de travail physique ou virtuel dans le cadre de la réponse technique. 
+ 
+10.4 Navigateur  
+[TEC-24] L’application est compatible à 100% avec les navigateurs :  
+ Chrome (à partir de la version 107) et ses dérivés, 
+ Edge (à partir de la version 108), 
+ Safari, 
+ Firefox et ses dérivés. 
+Le titulaire s’engage à garantir le maintien de la compatibilité de sa solution avec les dernières 
+versions publiées de ces quatre navigateurs au maximum un mois après leur publication ou une 
+semaine en cas de version corrigeant une faille de sécurité. Le titulaire s’engage à faire fonctionner 
+sa solution sur un poste utilisateur Windows 11 en cours de support chez Microsoft ou version 
+supérieure.   
+ 
+[TEC-25] Sur le terminal de l’utilisateur, la solution ne nécessite aucun déploiement d’un 
+produit autre que le navigateur Web pour fonctionner : pas de plug-in ou extension pour le 
+navigateur, pas de plugin pour une suite bureautique, pas de driver, pas de librairies autres que 
+celles du système d’exploitation. 
+ 
+[TEC-26] Le titulaire fournit une solution n’ayant pas besoin de lancer des scripts sur le poste 
+de travail (hors javascript dans le navigateur) 
+ 
+[TEC-27] La solution fonctionne sans désactiver le Proxy ou Proxy Authentifiant de l’Agirc-
+Arrco. 
+ 
+[TEC-28] Les javascripts téléchargés sur le poste utilisateur par votre progiciel doivent pouvoir 
+être analysés par les antivirus du marché. 
+ 
+ 
+
+[PAGE 37]
+  
+ 
+ 
+ 
+36 
+ 
+10.5 Identification, Authentification et Autorisation (IAA) 
+[TEC-29] Nous désignerons par la suite différents types de comptes et leurs règles d’usage :  
+ Compte utilisateur : l'identifiant reconnu par la solution et donnant le droit à s'y connecter 
+ Compte nominatif : un compte utilisateur associé à une et une seule personne physique. 
+ Compte technique : un compte utilisateur utilisé par un autre système informatique pour 
+interagir de façon sécurisée avec la solution. 
+ Compte à hauts privilèges : compte utilisateur ayant des habilitations fortes permettant 
+de faire de l'administration, de lire/écrire la totalité ou quasi-totalité des données de 
+l'application ou modifier le paramétrage de sécurité de l'application. 
+ Privilège : droit d'accès à une fonctionnalité ou un groupe de données de la solution. Selon 
+la nature, il est en consultation, création, modification, suppression et/ou exécution. 
+ Rôle : groupe de privilèges que l'on peut associer à un compte d'utilisateur. Comme il le 
+sera indiqué dans les besoins suivants, la Fédération Agirc-Arrco souhaite pouvoir associer 
+un compte utilisateur à plusieurs rôles à la fois. 
+ Propriétaire d’un compte : personne ou système à qui le compte est attribué pour usage. 
+ Verrouillage / Déverrouillage / Désactivation :  
+o Le verrouillage d’un compte implique que le propriétaire du compte ne peut pas 
+l’utiliser pour interagir avec la solution. 
+o Le déverrouillage est l’opération inverse : redonner au propriétaire la jouissance de 
+son compte utilisateur. 
+o La désactivation est une opération similaire au verrouillage. Elle concerne le 
+blocage du compte suite au départ du propriétaire de l’entreprise ou de l’emploi qui 
+justifie l’accès à la solution. 
+o Il n’est pas exigé de la solution qu’elle implémente différemment le verrouillage et 
+la désactivation. Si elle le fait, le cadre de réponse technique pourra le préciser. 
+ 
+Identification et authentification 
+ 
+[TEC-30] La politique de l'Agirc-Arrco impose que chaque personne utilisant la solution soit 
+dotée d'un compte utilisateur nominatif qui lui est propre et qui est auditable. Les comptes 
+génériques ne sont pas autorisés. 
+ 
+[TEC-31] Un compte utilisateur dispose des attributs obligatoires suivants : 
+ Identifiant de connexion 
+ Nom du propriétaire 
+ Prénom du propriétaire dans le cas d’un compte nominatif 
+ Mot-de-passe chiffré 
+ 
+[TEC-32] La solution propose son propre système d’identification et d’authentification, 
+répondant au principe : 
+ De connexion multifactorielle (MFA ; SMS exclus) 
+ De conformité à la Directive Network and Information Security 2 (NIS2) 
+ De conformité aux règles de l’art et respecte les préconisations de la Commission Nationale 
+de l'Informatique et des Libertés (CNIL) et de l’Agence Nationale à la Sécurité des 
+Systèmes d’Information (ANSSI) ou permet de le faire par un paramétrage. De ce fait, le 
+
+[PAGE 38]
+  
+ 
+ 
+ 
+37 
+ 
+système d’authentification interne à la solution permet de paramétrer la politique des 
+mots-de-passe selon les dernières recommandations ANSSI et CNIL et ce paramétrage 
+doit être modifiable par le client à la demande. Ces fonctionnalités devront évoluer au 
+rythme des évolutions de la règlementation.  
+ De la politique des mots-de-passe de l’Agirc-Arrco, c’est à dire, un mot de passe complexe 
+d’au moins 12 caractères composé de majuscules, de minuscules, de chiffres et de 
+caractères spéciaux et ce paramétrage doit être modifiable par le client à la demande. 
+ 
+[TEC-33] La solution permet à l’utilisateur de changer son mot-de-passe de manière sécurisée. 
+ 
+[TEC-34] Les mots-de-passe permettant d’accéder à la solution sont stockés et chiffrés dans la 
+solution, conformément aux recommandations de l’ANSSI et de la CNIL. 
+ 
+[TEC-35] La solution doit disposer de la possibilité de s’authentifier via le protocole SAML 
+V2, a minima pour les collaborateurs de la Fédération Agirc-Arrco. 
+ 
+10.6 Sauvegarde et continuité de service  
+[TEC-36] Le titulaire effectue les sauvegardes nécessaires à la satisfaction des exigences de 
+sécurité et de disponibilité (RPO). L’objectif du point de récupération des données doit être de 
+2h00. 
+ 
+[TEC-37] Les sauvegardes sont conservées suffisamment longtemps pour permettre de revenir 
+jusqu’à 31 jours en arrière sur la production. 
+ 
+10.7 TraCaBilité (TCB) 
+[TEC-38] Le Titulaire dispose d’un système d’archivage des journaux (journalisation des accès 
+et des actions) afin de répondre à des impératifs d'authenticité (origine du fichier et des traces), 
+d'intégrité (contenu non altéré) et de conservation des traces recueillies.  
+ 
+[TEC-39] La solution génère les traces de l’activité des utilisateurs : identification de 
+l’utilisateur, succès et échecs de connexion, actions réalisées, horodatage de l’activité. Elle génère 
+aussi la trace de l’activité de ses composants et services (démarrage, arrêt, erreurs, …). 
+ 
+[TEC-40] Ces traces doivent être remontées et conservées dans le système d’archivage des 
+journaux. Elles doivent permettre de remonter jusqu’au propriétaire du compte utilisé. 
+ 
+[TEC-41] L’historique des flux vers et depuis la solution est également enregistré dans le système 
+d’archivage des journaux : a minima nature du flux, expéditeur, destinataire, horodatage. 
+[TEC-42] L’accès aux traces et aux journaux de la solution est restreint par des privilèges 
+(habilitations applicatives, système, …) pour les rendre inaccessibles aux personnes n’ayant pas 
+d’intérêt à les traiter. 
+ 
+
+[PAGE 39]
+  
+ 
+ 
+ 
+38 
+ 
+10.8 Modalités d’Hébergement (MOH) 
+[TEC-43] Compte tenu de la mission d’Intérêt Général dont est investie l’Agirc-Arrco et compte 
+tenu de la loi informatique et liberté sur le Règlement Général sur la Protection des Données 
+(RGPD) qui autorise le sous-traitant à héberger dans un pays tiers (hors Union Européenne) des 
+données à condition que le niveau de protection des données soit équivalent à celui mis en œuvre 
+au niveau européen, le candidat démontre dans son offre, son respect des exigences européennes 
+relatives à la protection des données à caractère personnel. 
+ 
+[TEC-44] Le ou les sites principaux d’hébergement de la solution, le ou les sites de repli et les 
+sites de stockage des sauvegardes et archives sont visés par cette restriction. 
+ 
+10.9 Environnements 
+[TEC-45] La Fédération Agirc-Arrco souhaite disposer de plusieurs environnements hors 
+production pour réaliser des tests. 
+Sont inclus pour l’accès à la solution les environnements suivants (calqués sur les 
+environnements côté GCE) : 
+ Recette : Environnement à volumétrie réduite (20% ou moins du volume de la production) 
+et puissance réduite anonymisée (environnement de test pour un échantillonnage de 
+recetteurs métier MOA ou gestionnaire des IRC), 
+ Pré-production : Environnement à volumétrie et puissance identiques à la production 
+(environnement de mise en condition réelle de production avant mise en production), 
+ Production. 
+ 
+10.10 Performances  
+10.10.1 Niveau de service proposé 
+Disponibilité minimale du service demandé : 
+Une supervision adéquate sera mise en œuvre selon les besoins en disponibilité et ouverture du 
+service et des intervenants nécessaires à la résolution d’incidents de disponibilité devront être 
+mobilisés pendant les plages d’ouverture du service mentionnées dans l’annexe du contrat 
+« niveaux de services » 
+ 
+Arrêts planifiés : 
+Les arrêts de service ont un impact sur la disponibilité de la plateforme, ces impacts seront soumis 
+à information préalable : 
+ Un délai de prévenance d’au moins 1 mois avant la date envisagée de mise en œuvre est 
+préférable en vue de prévoir les actions de communication correspondantes et de préparer 
+les conditions de l’arrêt.  
+
+[PAGE 40]
+  
+ 
+ 
+ 
+39 
+ 
+ Les arrêts planifiés devront, dans la mesure du possible, être réalisés en dehors des périodes 
+de pic d’utilisation. 
+ 
+Temps de réponse : 
+Les temps de réponse moyen et maximal de la plateforme sont mentionnés dans l’annexe du 
+contrat « niveaux de services (SLA) ». 
+ 
+10.10.2 Gestion des incidents 
+ 3 natures d’incidents :  
+o Incident bloquant : Interruption ou altération significative du service impactant un 
+volume significatif d’utilisateurs, sans qu’il n’existe une solution de 
+contournement. Cet incident peut apporter une dégradation importante de la 
+productivité pour l’utilisateur final (ex. altération de données, d’activités ou 
+production de résultats inexploitables) 
+o Incident majeur : Interruption ou altération portant sur une ou plusieurs 
+fonctionnalités du service impactant une part importante d’utilisateurs, mais où il 
+existe une solution de contournement temporaire. Cet incident affecte le bon 
+déroulement des travaux des utilisateurs ou des temps de traitement. 
+o Incident mineur : Désigne tout incident qui n’est ni bloquant ni majeur  
+ 
+ Délais de traitement maximal des incidents (prise en charge et résolution) :  
+o Les délais de prise en charge et de traitement des incidents sont mentionnés dans 
+l’annexe du contrat « niveaux de services (SLA) ». 
+o L’opérateur à l’origine de l’incident s’engage à mettre en œuvre tous les moyens 
+dont il dispose pour permettre le retour à un fonctionnement normal des services 
+attendus dans les délais impartis :  
+ En cas de non-résolution dans les délais indiqués, les incidents peuvent être 
+requalifiés à un niveau de gravité supérieur 
+ A noter qu’un incident mineur n’a pas forcément vocation à être requalifié. 
+ 
+10.10.3 Intégrité 
+[TEC-46] La solution déployée devra offrir une intégrité complète pour toutes les données 
+(transférées et enregistrées en base), soit une perte de données tolérée nulle.  
+ En cas d’incident, seule la perte des transactions en cours sera tolérée.  
+ En cas de sinistre, la perte maximale de données tolérée est de 24h. 
+ La stratégie de sauvegarde sera adaptée en conséquence et les soumissionnaires présenteront 
+les moyens matériels et/ou logiciels mis en œuvre pour répondre à ces exigences.  
+ Le candidat garantira l’intégrité et l’opposabilité des données lors de leur transmission vers 
+les IRC. Il détaillera tous les moyens mis en œuvre à cet effet. 
+ 
+ 
+
+[PAGE 41]
+  
+ 
+ 
+ 
+40 
+ 
+10.11 Plan de Reprise Informatique (PRI) des SI de la Fédération Agirc-
+Arrco et IRC 
+La Fédération Agirc-Arrco a mis en place un plan de reprise d’activités informatiques.  
+Dans ce cadre, la Fédération Agirc-Arrco et les IRC effectuent des tests de reprise informatique 
+sur leurs sites de secours une à plusieurs fois dans l’année. 
+ 
+Les serveurs et appareils qui solliciteront les services de la solution pendant cette période 
+pourraient changer d’identité et de localisation. 
+ 
+[TEC-47] Si cela impacte la surveillance, les mécanismes de sécurité ou autres de la solution, le 
+titulaire est invité à en faire état. Il en est de même s’il souhaite être prévenu à l’avance (1 semaine 
+au maximum) d’une telle opération. 
+ 
+10.12 Plan de Reprise Informatique (PRI) de la solution 
+Le titulaire réalise obligatoirement des tests de reprise informatique sur une base régulière. 
+ 
+Si des tests de reprise informatique ont lieu sur les infrastructures hébergeant l’instance de la 
+solution dédiée à la Fédération Agirc-Arrco et que ceux-ci peuvent avoir des impacts significatifs 
+sur la disponibilité ou la performance de l’application, ils doivent être traités comme une opération 
+de maintenance planifiée et leur préparation se conformer aux dispositions relatives. 
+ 
+Annexé à la réponse technique, le soumissionnaire fournit le PRI prévu en cas de perte totale ou 
+partielle de l’instance nominale de la solution. 
+ 
+[TEC-48] Annexé à la réponse technique, le soumissionnaire fournit le calendrier standard de 
+ses tests de reprise informatique (fréquence, organisation…). 
+ 
+10.13 Reprise de l’historique  
+LOT 1 :  
+Nous envisageons de ne pas reprendre l’historique des données et courriers de la plateforme 
+actuelle d’interaction avec les huissiers (MARS) dans la future plateforme afin de limiter les 
+risques de désynchronisation des données des procédures d’Injonctions de Payer qui seront gérées 
+hors outils de fin Janvier 2026 à début Juillet 2026 (ie. Décommissionnement de GRECCO et de 
+MARS prévus fin Janvier 2026 et mise en production du Lot 1 et de la brique Contentieux de GCE 
+prévue début Juillet 2026) 
+ 
+ 
+ 
+ 
+
+[PAGE 42]
+  
+ 
+ 
+ 
+41 
+ 
+LOT 2 : 
+Reprise des IP en cours à prévoir, afin de pouvoir effectuer d’éventuelles radiations :  
+Pour la gestion des IP, il faudra pouvoir réaliser des radiations pour les IP issues de l’historique 
+(c’est-à-dire des IP prises avant la mise en œuvre de la future plateforme). La reprise du stock d’IP 
+actuelles des IRC doit bien être prévue dans le contrat cible (à faciliter à minima avec le numéro 
+d’IP connu) afin notamment de pouvoir émettre des radiations ensuite. 
+ 
+ 
+Article 11. Conformité à la réglementation nationale et européenne 
+relative à la protection des données 
+ 
+11.1 Respect de la Loi Informatique et Liberté et du Règlement Général à la 
+Protection des Données  
+ 
+La Solution permettant le traitement de données à caractère personnel, le Titulaire doit s’engager 
+à respecter les dispositions légales et réglementaires applicables aux traitements de données à 
+caractère personnel en vigueur et, en particulier :  
+ La Loi n° 78-17 du 6 janvier 1978 relative à l'informatique, aux fichiers et aux libertés, 
+telle que modifiée par la loi n° 2018 - 493 du 20 juin 2018 relative à la protection des 
+données personnelles et son décret d’application n° 2019-536 du 29 mai 2019 (LIL),   
+ Le Règlement (UE) n° 2016/679 du 27 avril 2016 dit « Règlement Général sur la Protection 
+des Données » relatif à la protection des personnes physiques à l’égard du traitement des 
+données à caractère personnel et à la libre circulation de ces données, et abrogeant la 
+directive 95/46/CE (RGPD). 
+ 
+11.2 Respect du principe Privacy By Design et By Default  
+ 
+[TEC-49] La Solution proposée par le Titulaire doit permettre la mise en œuvre des mesures 
+techniques et organisationnelles appropriées pour garantir que, par défaut, les traitements de 
+données à caractère personnel qui s’appuient sur celle-ci respectent les principes édictés à l’article 
+5 du RGPD, à savoir :  
+ Principe de licéité, loyauté et transparence  
+ Principe de limitation des finalités (exemple : interdiction de toute réutilisation des données 
+à d’autres fins que celles définies dans le présent document) 
+ Principe de minimisation des données à caractère personnel (exemple : les champs 
+obligatoires à renseigner doivent être limités au strict nécessaires)  
+ Principe d’exactitude des données à caractère personnel (exemple : les données doivent 
+pouvoir être régulièrement mises à jour et/ou corrigées au fur et à mesure) 
+ Principe de limitation des durées de conservation (exemple : les durées de conservation des 
+données, quel qu’en soit le support, doivent être paramétrables et des mécanismes de 
+suppression des données doivent être implémentés en fonction des directives de l’Agirc-
+Arrco) 
+ Principe de sécurité  
+ 
+
+[PAGE 43]
+  
+ 
+ 
+ 
+42 
+ 
+Le Titulaire doit fournir toute documentation permettant d’établir le bon respect de ces principes. 
+Le Titulaire peut s’appuyer sur une certification au sens de l’article 42 du RGPD permettant de 
+démontrer que les opérations de traitement effectuées via la solution logicielle respectent la 
+réglementation en matière de protection des données. 
+ 
+11.3 Encadrement de la relation de sous-traitance (Respect des obligations visées 
+à l’article 28 du RGPD) 
+ 
+Le Titulaire est en mesure de s’acquitter des obligations qui lui incombent en tant que sous-traitant 
+conformément à l’article 28 du RGPD, et de démontrer le respect de celles-ci.  
+ 
+Dans l’hypothèse où le Titulaire recourt à des sous-traitants ultérieurs, celui-ci doit indiquer :  
+ L’identité de ses sous-traitants ultérieurs,  
+ Les finalités des activités sous-traitées,  
+ La localisation des activités sous-traitées  
+ Les mesures de protection adéquate mises en œuvre avec ces derniers.  
+ 
+Dans le cadre de la réversibilité, le Titulaire doit être en mesure de restituer l’ensemble des données 
+dans un format standard et lisible, ainsi que documenté.  
+ 
+Le Titulaire s’engage au respect des engagements de sécurité contractuels pendant toute la durée 
+du contrat, y compris dans le cadre d’une réversibilité (ex. résultat d’audit, d’exercice de 
+continuité, Service Level Agreement (SLA), niveau de disponibilité, rapport d’incidents, ...). 
+ 
+Article 12. Besoins Techniques – Sécurité 
+ 
+12.1 Gouvernance de la sécurité 
+Les éléments de ce paragraphe relèvent de la conformité, ils feront l’objet d’une analyse globale. 
+Une réponse non satisfaisante au stade de l’offre finale, après négociations, éliminera le 
+candidat. 
+12.1.1 Plan d’Assurance Sécurité (PAS) et audit 
+[TEC-50] Le Titulaire a complété la Fiche d’Evaluation de Sécurité des Tiers (FEST) qui constitue 
+une annexe au contrat faisant office de PAS. Ce document contractuel annexé au contrat global, 
+décrit l'ensemble des dispositions spécifiques que les Titulaires s'engagent à mettre en œuvre pour 
+garantir le respect des exigences de sécurité. Il permet de garantir la Disponibilité, l’Intégrité, la 
+Confidentialité, et la Preuve (DICP). 
+ 
+Le PAS couvre les thématiques de la norme ISO 27002 :2013 ou ISO27002 :2022 
+Proposition de plan selon ISO27002 :2014 :  
+1 Objet du document 
+
+[PAGE 44]
+  
+ 
+ 
+ 
+43 
+ 
+2 Utilisation du document 
+2.1 Convention de nommage 
+2.2 Mode d’utilisation 
+3 Documents de référence 
+4 Description du service 
+4.1 Schéma global de la solution 
+4.2 Objet de la prestation (Contexte, Rappel des exigences de sécurité) 
+5 Mesures de sécurité 
+5.1 Politique de sécurité (Politique de sécurité, applicabilité, diffusion, revue du PAS, 
+non-respect du PAS) 
+5.2 Organisation de la sécurité (Fonctions et responsabilités, pilotage, comitologie, 
+demande de dérogation, appareils mobiles et télétravail) 
+5.3 Sécurité liée aux ressources humaines 
+5.4 Gestion des actifs du service, du réseau et du système (Cartographie des actifs, 
+classification de l’information, manipulation des supports) 
+5.5 Contrôle d’accès (Exigences métier en matière de contrôle d’accès, gestion de 
+l’accès utilisateur) 
+5.6 Cryptographie 
+5.7 Sécurité physique et environnementale 
+5.8 Sécurité des opérations (Procédures et responsabilités opérationnelles, protection 
+contre les codes malveillants, sauvegardes, journalisation et surveillance, maîtrise 
+des logiciels en exploitation, gestion des vulnérabilités techniques, considérations 
+sur l’audit du SI) 
+5.9 Gestion des communications (Management de la sécurité des réseaux, transfert de 
+l’information) 
+5.10 Acquisition, développement et maintenance des services (Infrastructures hors 
+production, exigences de sécurité, conformité, donnée de tests) 
+5.11 Relations avec les fournisseurs 
+5.12 Gestion des incidents de sécurité (Procédure, moyens, qualification des alertes, 
+suivi) 
+5.13 Continuité d’activité 
+5.14 Conformité (Conformité avec les exigences légales et contractuelles, audit de 
+conformité) 
+Le PAS du Titulaire permet de gérer les thématiques de sécurité décrites dans la norme ISO 27002. 
+ 
+Le Titulaire décrit les modalités d'exécution d'un audit de sécurité diligenté le cas échéant par 
+l’Agirc-Arrco. 
+ 
+Le Titulaire présente ces éventuelles certifications (ISO, ANSSI, PCI DSS, PDS-RC, ISAE…, 
+article 42 du RGPD, …)  
+ 
+[TEC-51] Le titulaire indique s’il a le label « Cloud de Confiance ».  
+ 
+Le Titulaire fournit une solution ayant des certificats reconnus par une autorité de certification 
+(CA).  
+
+[PAGE 45]
+  
+ 
+ 
+ 
+44 
+ 
+12.1.2 Sécurisation des données et des traitements 
+Le Titulaire sépare les données hermétiquement entre ses clients. Le Titulaire applique la stratégie 
+de séparation des données. Les données doivent être stockées de façon sécurisée selon les 
+algorithmes et protocoles à l’état de l’art. 
+ 
+12.1.3 Exploitabilité 
+[TEC-52] Le Titulaire ou ses sous-traitants n’accèdent pas aux données fonctionnelles de l’Agirc-
+Arrco sans accord préalable de l’Agirc-Arrco. 
+ 
+[TEC-53] Si le support opère depuis l’étranger, l’Agirc-Arrco doit être informée de sa localisation 
+avant d’autoriser l’accès aux données métier, sous quelque forme que ce soit, permettant le 
+diagnostic. 
+ 
+Le Titulaire s’engage à notifier la Fédération de tout incident relatif à la donnée à caractère 
+personnel dans les 48h. 
+ 
+12.2 Mise en œuvre de la sécurité  
+12.1.4 Niveau de sécurité (DICP) 
+[TEC-54] Le titulaire fournit une solution qui permet de garantir une maitrise de l’intégrité des 
+données. 
+ 
+[TEC-55] Le titulaire fournit une solution qui permet de gérer la confidentialité des données : les 
+données sont à accès restreint. 
+ 
+[TEC-56] Le titulaire fournit une solution où des traces indicatives permettent de remonter les 
+informations sur le fonctionnement de l’application et de produire des statistiques SECU-094 
+ 
+12.1.5 Accès à la solution 
+[TEC-57] L’accès à la solution doit pouvoir se faire depuis : 
+ Un poste utilisateur dans les locaux de l’Agirc-Arrco 
+ Un poste d’un utilisateur en télétravail (connecté en VPN au réseau de l’Agirc-Arrco ou 
+aux réseaux des IRC) 
+ Un poste utilisateur connecté depuis internet (poste en dehors du réseau de l’Agirc-Arrco) 
+
+[PAGE 46]
+  
+ 
+ 
+ 
+45 
+ 
+12.1.6 Sécurisation des flux 
+[TEC-58] Les échanges entre l'utilisateur et la solution, entre le SI de l’Agirc-Arrco et la solution 
+sont chiffrés (en TLS 1.2 au minimum), via les protocoles HTTPS, SFTP, FTPS ou pesit sur TLS 
+en utilisant les ports standards.  
+ 
+[TEC-59] Le Titulaire détaillera les moyens dont il dispose pour faire transiter les flux de manière 
+sécurisée entre l’Agirc-Arrco et eux : 
+ Transferts chiffrés (y compris la méthode de chiffrement des flux),  
+ Solution d’envoi en point à point dédiée de type CFT, SFTP, PESIT ...), 
+ Tunnel sécurisé entre l’Agirc-Arrco et l’infrastructure du titulaire 
+ Capacité et politique de filtrage (y compris la capacité de l’Agirc-Arrco d’identifier les flux 
+entrants en provenance des infrastructures hébergeant la solution du titulaire) 
+ 
+[TEC-60] Le titulaire détaille dans son offre les modalités d’échanges avec l’application qui 
+garantissent l’intégrité des données (procédure, protocoles…).  
+ 
+[TEC-61] L’outil doit disposer d’une fonctionnalité de resynchronisation entre la plateforme et le 
+SI-RC d’un dossier afin de limiter les déphasages (état du dossier, document, …). 
+ 
+[TEC-62] Un contrôle de typage, de format, de cohérence est effectué sur les données en entrée 
+(IHM, import, API…) pour ne pas mettre en risque la solution 
+ 
+[TEC-63] Lors des imports, un rapport est produit, il doit être consultable et exportable (à la 
+demande ou de façon automatique). 
+ 
+12.1.7 Cas des courriels / notifications  
+[TEC-64] Les échanges de données par messagerie externe sont tolérés avec chiffrement de la 
+donnée et interdiction de la faire suivre sans l'accord du propriétaire. 
+ 
+12.1.8 Habilitations 
+[TEC-65] Les habilitations des comptes utilisateurs doivent pouvoir être décrites et implémentées 
+selon des principes de type Role-Based Access Control (RBAC).  
+ 
+[TEC-66] La gestion des habilitations est à la main d’un administrateur central (profil dédié) qui 
+peut déclarer les utilisateurs et leur attribuer un ou plusieurs profils et contrôler ces habilitations, 
+via une IHM dédiée. 
+ 
+[TEC-67] La solution doit permettre l’extraction au format tabulé (.csv) de la liste des comptes, 
+des profils et permissions associés afin de pouvoir réaliser des audits et des re-certifications de 
+
+[PAGE 47]
+  
+ 
+ 
+ 
+46 
+ 
+droits. En mode interactif (à la demande) cette solution est à la main exclusive de l’administrateur 
+central.  
+ 
+[TEC-68] Certaines données (traces, archives, ...) ne doivent pouvoir être accessibles que par des 
+“super utilisateurs”. 
+ 
+12.1.9 Gestion des sessions 
+[TEC-69] La gestion des sessions est décrite dans le cadre de réponse technique. 
+ 
+12.1.10 Surveillance de la disponibilité des services 
+[TEC-70] L’Agirc-Arrco souhaite avoir de la visibilité en temps réel sur le bon fonctionnement 
+des différents services de la solution. 
+ 
+12.1.11 TraCaBilité (TCB) 
+[TEC-71] La conservation des journaux doit être réalisée : 
+ Dans une base d’archive spécifique (SIEM), distincte de la base active, avec des accès 
+restreints aux seules personnes en ayant un intérêt en raison de leurs fonctions (ex.  
+contentieux, équipes de sécurité) 
+ Ou dans la base active (base applicative), à condition de procéder à un isolement des 
+données archivées au moyen d’une séparation logique (gestion des droits d’accès et des 
+habilitations) pour les rendre inaccessibles aux personnes n’ayant pas d’intérêt à les traiter. 
+ 
+Si la solution permet l’intégration des journaux dans le SI Agirc-Arrco, les flux des récupérations 
+des journaux provenant de la solution doivent être protégés par chiffrement et documentés.  
+ 
+Les traces des utilisateurs (succès et échecs de connexion, ID, horodatage, actions réalisées) 
+doivent être remontées, enregistrées et conservées. Ces traces doivent permettre de remonter 
+jusqu’au propriétaire du compte utilisé. La durée de conservation doit être établie à un an. La 
+nature des traces collectées doit être documentée.  
+ 
+Article 13. Gestion électronique des documents (GED) et archivage 
+13.1. Gestion électronique des documents 
+[EFT-01] La solution est capable de gérer la gestion électronique des documents et de se connecter 
+à un système de GED client. Les besoins en termes de GED sont divers (et déjà partiellement 
+évoqués dans le paragraphe 8.1 et 8.2 des LOTS 1 et 2). 
+
+[PAGE 48]
+  
+ 
+ 
+ 
+47 
+ 
+ 
+[EF1-25] Pouvoir joindre, importer, réceptionner, télécharger, imprimer des pièces 
+justificatives dans un dossier ou message (import manuel, dématérialisation des courriers, 
+sélectionner plusieurs pièces à imprimer d'un coup, …).  
+ 
+[EF1-26] Favoriser une collaboration active et directe entre tous les intervenants impliqués dans 
+les procédures via la possibilité de commenter des documents via la zone commentaire. 
+ 
+[EFT-02] Détecter automatiquement les dossiers / courriers sans réponse qui font l’objet d’un 
+retard pour relancer le tribunal si le délai est dépassé et informer les parties prenantes 
+impliquées via une notification. Ces délais sont propres aux procédures et à la volonté métier 
+d’ajouter des délais de réponse. 
+ 
+[EFT-03] Proposer des documents préremplis, notamment pour la relance suite à une non-
+réponse et pouvoir déclencher une relance automatique à un tiers de justice.  
+ 
+[EFT-04] Fournir des templates / modèles pour les principaux documents transmis à rédiger. 
+Ces courriers types pourront être pré-alimentés intelligemment (notamment avec les auxiliaires de 
+justice ou tribunaux adéquats). 
+ 
+[EF1-27] Proposer un ensemble de fonctionnalités de gestion de cycle de vie des documents 
+ET des dossiers prenant particulièrement en compte les délais de validité des signatures 
+électroniques et des dossiers de preuve qui y sont attachés. 
+ 
+[EF1-28] Assurer la journalisation des échanges entre la GED et d’autres GED ou les 
+composants et systèmes d’archivage électronique tiers garantissant l’authenticité des 
+documents reçus des systèmes tiers ou envoyés vers les systèmes tiers. 
+ 
+Le candidat devra fournir une copie du tableau ISO303cccc :2019 Annexe II complété des 
+colonnes « Exigence opérationnelle existante » et « Exigence opérationnelle à développer ». 
+ 
+13.2 Archivage 
+[TEC-72] La solution doit pouvoir stocker via sa GED des documents associés à des personnes 
+ou à des processus et les sauvegarder. 
+ 
+[TEC-73] La GED doit permettre un déversement dans un CFN ou un SAE :  
+ Etre opérés à la pièce ou en masse 
+ Être faits de machine à machine et d’humain à machine 
+ Être autorisés sur la base de rôles et profils propres 
+[TEC-74] Les modalités de réversibilité des fichiers, de leurs métadonnées et des journaux relatifs 
+à l’archivage doivent être détaillées :  
+ Délai de délivrance 
+ Format des documents, fichiers ou dossiers de preuves et des journaux 
+ Support selon volumétrie 
+
+[PAGE 49]
+  
+ 
+ 
+ 
+48 
+ 
+ Cryptage et clés de cryptage 
+ 
+[TEC-75] Le candidat fournit la liste complète des connecteurs (API...) existants ou en 
+développement vers les SAE du marché existants. 
+ 
+[TEC-76 
+] Sécurité des archivages de la GED : Le titulaire met en place des mesures afin d'assurer un 
+archivage sécurisé, notamment si les données archivées sont des données sensibles ou des données 
+pouvant avoir des impacts graves sur des personnes. Il garantit la disponibilité, intégrité, 
+confidentialité et TCB des archives 
+ 
+Article 14. Prise en compte des évolutions techniques, fonctionnelles 
+et réglementaires 
+ 
+L‘Agirc-Arrco accordera une attention particulière à la proactivité du candidat pour ce qui relève 
+des évolutions réglementaires susceptibles d’impacter le périmètre, la qualité et la tarification des 
+prestations. Le candidat doit démontrer dans son offre sa capacité à adapter la solution proposée 
+et ses services associés aux évolutions réglementaires. 
+ 
+Pendant toute la durée du contrat-cadre, le candidat s’engage à faire bénéficier l’Agirc-Arrco des 
+services les plus performants du point de vue des nouvelles techniques offertes à sa clientèle. 
+ 
+ 
+Article 15. Organisation pour les 2 LOTS (Projet & Maintenance) 
+ 
+En lien avec notre plan de charge et notre trajectoire du SI-RC, nous avons défini un périmètre 
+fonctionnel socle (UO1) et des fonctionnalités additionnelles (U02) qui seront potentiellement 
+déployées par la suite. 
+ 
+La date cible de mise en service production du périmètre socle de l’Agirc-Arrco est : 30/06/2026 
+Un rétroplanning devra être constitué pour nous coordonner sur nos actions réciproques (Agirc-
+Arrco et Prestataire de chaque LOT). 
+ 
+Dans son offre, le candidat fournit (pour chaque LOT auquel il répond) les modalités nécessaires 
+à la mise en œuvre effective et efficiente de sa solution et son service : 
+ Plan détaillé de déploiement :  
+o Planning : Présentez un planning détaillé incluant toutes les étapes du déploiement, 
+depuis le kick off jusqu'à la date de mise en production, et spécifiez notamment : 
+ Les dates de livraison des spécifications, du développement, de la 
+qualification, de la recette, de la VVR seront discutées en phase de 
+négociation mais devront être antérieures aux dates de livraison ci-dessus.  
+ Les dates d’accompagnement des utilisateurs dans le cadre de la conduite 
+du changement (incluant la formation des utilisateurs), 
+ Les dates d’accompagnement des intégrateurs de la DSI Agirc-Arrco. 
+
+[PAGE 50]
+  
+ 
+ 
+ 
+49 
+ 
+o Communication & conduite du changement :  
+ Présentez les modalités d'accompagnement des équipes projets MOE et 
+MOA de l’Agirc-Arrco et des utilisateurs cibles (Agirc-Arrco, IRC, tiers de 
+justice). 
+ Détaillez les différents types de support de communication (sensibilisation), 
+de contenu pédagogique (guide utilisateur, ModOp, tutoriels, …), de 
+formation (présentielle ou en ligne) utilisés pour assurer une bonne prise en 
+main du service et de l’outil. 
+ Gouvernance et pilotage : Expliquez le dispositif de gouvernance et de pilotage en 
+précisant les rôles et responsabilités des parties prenantes, les processus de prise de 
+décision, et les mécanismes de gestion des risques (Phase Projet et Maintenance). 
+ Equipe dédiée : Décrivez les effectifs dédiés, en précisant le nombre de personnes, leurs 
+rôles, qualifications et expériences (Phase Projet et Maintenance). 
+ Support technique et maintenance : Spécifiez les niveaux de support technique et de 
+maintenance, les temps de réponse à la demande de support, les modalités de prise en 
+charge des incidents et la continuité des services.  
+ Documentation : Détaillez la documentation fournie pour l’utilisation et la maintenance 
+de la plateforme, disponible en ligne ou en version papier. 
+ 
+Le candidat devra fournir des réponses détaillées et documentées à chacune de ces exigences afin 
+de permettre une évaluation complète et objective de la proposition. La clarté et la précision des 
+modalités de déploiement seront des critères déterminants dans le choix du prestataire. 
+ 
+Annexe I. Acronymes et définitions 
+ 
+Acronymes Signification 
+AGS Assurance pour la Garantie des Salaires : L’AGS est un régime de 
+garantie des créances des salariés qui assure le paiement des sommes 
+dues aux salariés (salaires, préavis, indemnités de rupture, ...) 
+Al-Pro Alliance Professionnelle : L’Alliance professionnelle Retraite est 
+une IRC qui regroupe les activités des 6 groupes de protection 
+sociale professionnelle, dites « Sections Partenaires », qui 
+représentent près de 7 millions d’assurés et gèrent la retraite de près 
+d’un Français sur cinq : Agrica, Audiens, B2V, IRP Auto, Lourmel, 
+Pro-BTP.  
+Dans le cadre de notre LOT 1 et 2, seuls 5 GPS utiliseront les solution 
+proposées (Audiens, B2V, IRP Auto, Lourmel, Pro-BTP) car le 
+recouvrement amiable et contentieux de Agrica est géré par la MSA 
+ANSSI Agence Nationale à la Sécurité des Systèmes d’Information 
+ANV Admission en Non-Valeur 
+API Application Programming Interface : Interface de programmation 
+d'application qui permet à des applications de communiquer entre 
+
+[PAGE 51]
+  
+ 
+ 
+ 
+50 
+ 
+elles, de lancer des requêtes de s'échanger mutuellement des services 
+ou des données. 
+Avocat Membre du barreau, chargé de défendre l'une des parties lors d'un 
+procès. Certains avocats / cabinets sont spécialisés en recouvrement 
+de créances et travaillent depuis de longue date sur la RC 
+(interactions faibles mais tjrs les mêmes points de contacts au sein 
+des IRC). Cependant, en cas de procédure d’opposition à vente de 
+fond, un avocat est désigné / assigné d’office : ces séquestres 
+interagiront sur le dossier et seront de nouveaux points de contacts à 
+créer dans le référentiel pour mener à bien la procédure 
+BODACC Bulletin Officiel Des Annonces Civiles et Commerciales : Bulletin 
+officiel ayant pour rôle de rendre public l'ensemble des actes 
+enregistrés au Registre du Commerce et des Sociétés. Il permet 
+d'assurer la gestion d'une partie du cycle de vie des entreprises 
+(fusion, suite économique, vente de fonds, procédure collective, etc.) 
+dans le référentiel Entreprise/Etablissement (RNE), ainsi que dans le 
+SI de gestion de la branche Recouvrement. 
+Brique DSN Brique Déclarations Sociales Nominatives : Brique applicative 
+centrale commune à toutes les IRC qui traite les DSN des cotisations 
+de RC des entreprises et leurs corrections, en amont de la brique 
+GRECCO 
+Brique GCE Brique Gestion de Compte Employeurs : Future brique centrale du 
+SI-RC, commune à toutes les IRC qui servira d’outil de gestion pour 
+les gestionnaires du compte, du recouvrement, du précontentieux et 
+du contentieux 
+Brique GRECCO Brique Gestion du Recouvrement, du Compte et du 
+Contentieux : Actuelle brique applicative locale de l’UR spécifique 
+à chaque IRC. C’est l’Outil de gestion de compte, du recouvrement 
+amiable, du précontentieux et du contentieux mis à disposition par 
+l’Agirc-Arrco pour les IRC, qui sera à terme décommissionné et 
+remplacé par GCE. 
+CFN Coffre-Fort Numérique 
+CNIL Commission Nationale de l'Informatique et des Libertés 
+CNO Certificat de Non-Opposition 
+Commissaire de 
+justice 
+Les fonctions de 2 officiers publics et ministériels nommés par le 
+Garde des Sceaux, les huissiers de justice et les commissaires–
+priseurs, fusionnent à partir du 1 er juillet 2022, pour exercer les 
+mêmes activités. À l'horizon de 2026, il n'y aura plus d'huissiers de 
+justice, ni de commissaires–priseurs, mais seulement des 
+commissaires de justice. Il dispose d'un monopole pour la 
+signification des actes et l'exécution des décisions de justice et des 
+titres exécutoires. Il peut signifier des actes judiciaires et 
+extrajudiciaires, établir des constats, recouvrer des créances, mettre 
+en application des décisions de justice, établir des inventaires, des 
+prisées et des ventes judiciaires, mettre en œuvre des mesures 
+conservatoires, ... 
+
+[PAGE 52]
+  
+ 
+ 
+ 
+51 
+ 
+Créance Somme que le créancier est en attente de recevoir, inscrite à l'actif du 
+bilan comptable. Elle concerne toutes les cotisations déclarées, 
+estimées, écart déclaré/calculé, majorations et frais : 
+- Contributive : c'est une créance dont la date de l’action de 
+recouvrement est atteinte ou dépassée, ne faisant pas l’objet d’une 
+mise en demeure de moins de trois mois ou de procédure 
+contentieuse. Cette créance permet de déterminer le solde au regard 
+du seuil de déclenchement de l’action de recouvrement. 
+- Participative : c'est une créance dont la date de mise en demeure 
+n'est pas atteinte et dont la date limite de paiement est dépassée. 
+DICP (= DICT) Disponibilité, Intégrité, Confidentialité, Preuve (= TCB) : 4 
+indicateurs clés utilisés pour évaluer la sécurité des systèmes 
+d’information (1. Garantir l’accès aux ressources, 2. Protéger la 
+fiabilité des données, 3. Protéger les données contre les accès non 
+autorisés, 4. Assurer la responsabilisation et la TCB) 
+FEST Fiche d’Evaluation de Sécurité des Tiers 
+Ce document annexé au contrat : 
+- Est rempli par le soumissionnaire (AO) ou le prestataire (achat 
+direct) 
+- Est évalué par GSIT et validé par la RSSI 
+- Permet l’évaluation de la posture de sécurité du partenaire selon : 
+o Les normes ISO 27001/27002  
+o Les recommandations de l’ANSSI 
+o La PSSI de l’Agirc-Arrco 
+Frais d’actes Actes obligatoires dont le commissaire de justice a le monopole : 
+Les tarifs sont fixés par la loi en fonction du type d’acte et ne 
+peuvent donc pas être négociés par les IRC. Ces tarifs peuvent 
+réévaluées à la hausse ou la baisse par décret (Ex : convocation en 
+justice, recouvrement judiciaire).  
+Actes hors monopole : Les tarifs sont fixés par le commissaire de 
+justice et peuvent être négociés avec le client (Ex : constats sur 
+internet, de nuisance sonore…, recouvrement amiable de créances). 
+Les actes sont déposés au fil de l’eau du dossier : PJ précisant le 
+type d’acte ainsi que le tarif  
+Les frais d’actes sont à la charge du débiteur : Les IRC les 
+prennent en charge dès lors que le recouvrement n’a pas abouti et 
+que les frais du commissaire n’ont pas pu être couverts. 
+Frais d’honoraires Au titre des commissaires de justice : 
+Ces frais correspondent au droit proportionnel. Il s’agit d’un type 
+d'émolument perçu lors du recouvrement ou de l'encaissement de 
+créances. Ce droit est calculé en fonction du montant de la créance 
+recouvrée ou encaissée, et il est dégressif, c'est-à-dire que le taux 
+appliqué diminue à mesure que le montant de la créance augmente. 
+Il est à la charge du créancier lorsque le recouvrement ou 
+l’encaissement des sommes dues par un débiteur, est réalisé après 
+avoir reçu mandat ou pouvoir.  
+
+[PAGE 53]
+  
+ 
+ 
+ 
+52 
+ 
+Le droit proportionnel est donc un mécanisme de rémunération des 
+commissaires de justice basé sur le montant des créances recouvrées. 
+Ce droit a été instauré par décret est ne peut pas être négocié par les 
+IRC.  
+Au titre des avocats : 
+Les honoraires constituent la plus grande partie de la rémunération 
+de l'avocat. Ils couvrent les actions menées par l'avocat dans l'intérêt 
+de son client, à savoir, consultations, conseils, rédaction d'un acte 
+juridique, plaidoirie. Ils sont fixés librement par l'avocat. 
+L'avocat qui accepte la charge d'un dossier peut demander à l’IRC 
+le versement préalable d'une provision à valoir sur ses frais et 
+honoraires et cela même si le dossier est en cours. 
+GED Gestion Electronique Documentaire 
+GPS Groupe de Protection Sociale : Gère des IRC 
+HO Heures Ouvrés 
+HNO Heures Non Ouvrés 
+IAA Identification, Authentification et Autorisation 
+IHM Interfaces Homme Machine : Interface utilisateur permettant de 
+connecter une personne à l’outil cible. L’IHM est l’écran final de 
+l’utilisateur alors que le wireframe est la maquette cible de l’interface 
+utilisateur (ie. Présentation visuelle de la structure et des 
+fonctionnalités de la solution).  
+IP Inscription de Privilège 
+IRC Institution de Retraite Complémentaire : Gérée par des GPS 
+Personne morale de droit privé à but non lucratif et remplissant une 
+mission d'intérêt général. Elles sont administrées paritairement par 
+des représentants, d'une part, des adhérents et, d'autre part, des 
+participants. 
+MARS Multichannel Advanced Recovery Services : Plateforme actuelle 
+d’interaction des IRC avec les Huissiers qui ne couvre à date que les 
+échanges pour des Injonctions de Payer dans le cadre de Procédures 
+Individuelles 
+MFA Multi-Factor Authentication : L’authentification multifactorielle 
+est une mesure de sécurité qui protège les personnes et les 
+organisations en exigeant des utilisateurs qu’ils fournissent au moins 
+deux facteurs d’authentification pour accéder à une application, un 
+compte ou un réseau privé virtuel (VPN) 
+MOA Maitrise d’OuvrAge : A l’Agirc-Arrco, équipe métier au sein de la 
+DPR, Direction du Produit Retraite 
+MOE Maitrise d’œuvre : A l’Agirc-Arrco, équipe IT au sein de la DSI, 
+Direction des Systèmes d’Information 
+MOH MOdalités d’Hébergement 
+NAC Network Access Control 
+NIS2 Network and Information Security 2 : Directive publiée au Journal 
+Officiel de l'Union européenne en décembre 2022, qui s’appuie sur 
+les acquis de la NIS1. Entrée en vigueur en 2024, cette directive vise 
+à d’augmenter le niveau de cybersécurité en limitant les risques 
+
+[PAGE 54]
+  
+ 
+ 
+ 
+53 
+ 
+d’exposition des SI tels que le SI-RC et en déclarant des incidents de 
+sécurité à l’ANSSI 
+Notaire Officier public et ministériel chargé d'authentifier et de conserver les 
+actes pour le compte de ses clients. Il a un rôle de conseil juridique. 
+Il sécurise notamment les contrats, les donations, les reconnaissances 
+de dettes ou les testaments. Les copies des actes notariés sont utilisées 
+pour procéder à une exécution forcée par un commissaire de justice 
+(anciennement huissier de justice et commissaire-priseur judiciaire). 
+PAS Plan d’Assurance Sécurité 
+PRI Plan de Reprise Informatique 
+PSSI  Politique de Sécurité des Systèmes d’Information 
+PV 659 Procès-Verbal 659 : Recherche infructueuse de l’entreprise 
+concernée par le litige par le commissaire de justice qui nécessite 
+alors un passage en ANV par le gestionnaire Contentieux de l’IRC 
+RBAC Role-Based Access Control 
+RC Retraite Complémentaire 
+Recouvrement Enchainement d’actions adapté au scoring de l’entreprise 
+(comportement de paiement, montant de la dette, date d’adhésion, 
+etc.) et aux résultats du processus d’accompagnement (fiabilisation, 
+consentement du calculé, etc.).  
+Le recouvrement prend deux formes :  
+- amiable : il englobe toutes les procédures mises en place par 
+l’Agirc-Arrco en vue de recouvrer des créances auprès d'une 
+entreprise débitrice sans recourir à l'arsenal juridique. 
+- forcé (aussi appelé Contentieux) : il constitue l’utilisation de 
+l’ensemble de l’arsenal juridique à disposition de l’Agirc-Arrco. 
+RGPD Règlement Général sur la Protection des Données 
+SI-RC Système d’Information de la Retraite Complémentaire 
+SIREN Système Informatique pour le Répertoire des Entreprises sur le 
+Territoire : Identifiant de neuf chiffres attribués par l'INSEE à 
+chaque unité légale : personne morale ou personne physique exerçant 
+une activité économique. Le SIREN permet ainsi d'identifier une 
+entreprise et reste valable tout au long de son existence. 
+SIRET Système Informatique pour le Répertoire des Établissements 
+sur le Territoire : Correspond au numéro d’identification d’un 
+établissement, c’est-à-dire un numéro par adresse d’activité exercée. 
+Une entreprise pourra avoir autant de SIRET que de lieux 
+d’exercice. 
+Ce numéro est un identifiant composé de 14 chiffres attribué par 
+l'INSEE à chaque entreprise. Il se compose d'une première série de 
+chiffres qui correspond au numéro SIREN ; la deuxième partie de 
+quatre chiffres est appelée NIC (Numéro Interne de Classement). 
+Dans ce système, une entreprise disposant de plusieurs 
+établissements se voit attribuer plusieurs numéros SIRET. 
+- SIREN Artificiel : Identifiant attribué à une entreprise pour une 
+population hors DSN (sans identifiant externe), calculé 
+automatiquement selon le choix du code de situation particulier, 
+
+[PAGE 55]
+  
+ 
+ 
+ 
+54 
+ 
+dont l'adhésion liée devra également porter un type de gestion 
+spécifique. 
+- SIRET Film : Identifiant pour un établissement film attribué par 
+les Urssaf lorsque la maison de production déclare une nouvelle 
+production de film. Le NIC démarre obligatoirement par un 9. 
+SLA Service Level Agreement : Accord de niveau de service 
+TCB TraCaBilité 
+UR Usine Retraite 
+VVR Validation Volumétrie Réelle 
+ 
+ 
+Annexe II. Exigences opérationnelles relatives aux processus liés 
+aux documents d’activité, à la maîtrise et aux systèmes documentaires  
+ 
+ 
+Norme ISO 
+30301 :2019 – 
+Annexe A 
+(normative) No  
+Catégories  Exigence opérationnelle  Ancien No. 
+ISO 
+30301:2011  
+A.1 Processus liés aux documents d’activité 
+A.1.1.  Création des 
+documents 
+d’activité  
+Les documents d'activité doivent être créés au 
+moment de l'opération ou de l’événement 
+auxquels ils se rapportent (ou juste après), par 
+des personnes ayant une connaissance directe 
+des faits ou par des instruments couramment 
+utilisés par l'organisme pour la conduite des 
+activités.  
+A.1.1.3  
+A.1.2.  Création des 
+documents 
+d’activité  
+La forme et la structure des informations 
+requises en tant que documents d'activité pour 
+chaque processus de travail doivent être 
+identifiées et documentées.  
+A.1.3.1  
+A.1.3.  Capture des 
+documents 
+d’activité  
+Les méthodes permettant d'intégrer la capture 
+de documents d'activité aux processus 
+opérationnels doivent y être décidées et 
+documentées.  
+A.1.1.6  
+A.1.4.  Capture des 
+documents 
+d’activité  
+Les informations contextuelles sur les 
+documents d’activité doivent être ajoutées au 
+moment de la capturé.  
+A.1.2.2  
+A.1.5.  Capture des 
+documents 
+d’activité  
+Un identifiant unique au moment de la capture 
+doit être mis en œuvre pour les processus de 
+travail qui nécessitent une preuve de capture.  
+A.2.1.1  
+A.1.6.  Capture des 
+documents 
+d’activité  
+Lorsqu'un document d’activité en remplace un 
+autre (mise à jour), par exemple, de certaines 
+des informations documentées, la nouvelle 
+version doit indiquer la version obsolète et les 
+modifications apportées.  
+< S/O  
+A.1.7.  Classement et 
+indexation des 
+documents 
+d’activité  
+Les documents d'activité doivent être regroupés 
+(classés) en fonction des processus de travail 
+auxquels ils se rapportent.  
+A.2.1.2  
+
+[PAGE 56]
+  
+ 
+ 
+ 
+55 
+ 
+A.1.8.  Stockage des 
+documents 
+d’activité  
+Les moyens employés pour conserver/stocker 
+les documents d'activité doivent satisfaire aux 
+normes pertinentes relatives au support et à la 
+technologie employés afin d'assurer qu'ils 
+demeurent accessibles et exploitables aussi 
+longtemps que nécessaire.  
+A.2.3.2  
+A.1.9.  Utilisation et 
+réutilisation  
+Les documents d’activité numériques doivent 
+demeurer accessibles et exploitables dans le 
+temps.  
+A.2.3.3  
+A.1.10.  Utilisation et 
+réutilisation  
+Les actions menées sur des documents d’activité 
+devant être enregistrées dans les métadonnées 
+doivent être définies et mises en œuvre.  
+A.2.1.5  
+A.1.11.  Migration et 
+conversion des 
+documents 
+d’activité  
+Une migration contrôlée des documents 
+d’activité vers un autre organisme ou système 
+doit être autorisée et documentée.  
+A.2.4.3  
+A.1.12.  Migration et 
+conversion des 
+documents 
+d’activité  
+Une conversion régulière des formats des 
+documents d’activité, y compris une conversion 
+d'un format analogique à un format numérique 
+(numérisation) doit être autorisée et 
+documentée.  
+A.2.4.4  
+A.1.13.  Migration et 
+conversion des 
+documents 
+d’activité  
+Pendant un processus de migration et de 
+conversion, le système ou format d’origine doit 
+être conserve jusqu’à ce que le processus soit 
+terminé et que l’intégrité et la fiabilité du format 
+ou système de destination aient été confirmées.  
+S/O  
+A.1.14.  Sort final  Les critères permettant de déterminer les 
+durées de conservation des documents 
+d’activité en fonction des exigences de chaque 
+processus de travail doivent être établis et 
+documentés.  
+A.1.1.4  
+A.1.15.  Sort final  Les décisions relatives au transfert, au retrait ou 
+à la destruction des documents d'activité 
+doivent être autorisées et documentées.  
+A.2.4.2  
+A.1.16.  Sort final  Les documents d'activité dont la destruction est 
+autorisée doivent être détruits sous une 
+supervision appropriée. La destruction doit être 
+documentée.  
+A.2.4.5  
+A.1.17.  Sort final  Les informations de contrôle (métadonnées 
+d'enregistrement, d'identification et 
+d'historique) relatives aux documents d'activité 
+qui ont été détruits doivent être conservées 
+lorsque la nature et la complexité des 
+responsabilité s vis-à-vis de l'entreprise et de la 
+législation l'exigent.  
+A.2.4.6  
+A.2 Moyens de maîtrise des documents d’activité 
+A.2.1.  Référentiels de 
+métadonnées 
+pour la gestion 
+des documents 
+d’activité  
+Les informations requises pour identifier les 
+documents d'activité de chaque processus de 
+travail, y compris l'identification de la section de 
+l'organisme responsable de ces documents et du 
+processus de travail, doivent être déterminées 
+et documentées.  
+A.1.2.1  
+A.2.2.  Référentiels de 
+métadonnées 
+pour la gestion 
+Les informations descriptives et de contrôle 
+(types de métadonnées) requises pour créer et 
+maîtriser les documents d'activité pour chaque 
+A.2.1.4  
+
+[PAGE 57]
+  
+ 
+ 
+ 
+56 
+ 
+des documents 
+d’activité  
+processus de travail doivent être identifiées et 
+documentées.  
+A.2.3.  Référentiels de 
+métadonnées 
+pour la gestion 
+des documents 
+d’activité  
+Les décisions relatives aux métadonnées 
+nécessaires pour identifier, gérer et maîtriser 
+les documents d'activité doivent être 
+documentées et mises en œuvre.  
+A.2.1.6  
+A.2.4.  Plans de 
+classement 
+fonctionnels  
+Un plan de classement permettant de relier les 
+activités opérationnelles et les documents d’activité 
+doit être établi et documenté.  
+A.2.1.3  
+A.2.5.  Règles d’accès et 
+d’habilitation  
+Les règles d’accès aux documents d’activité 
+doivent être établies, documentées et tenues à jour 
+aussi longtemps que les documents d’activité sont 
+nécessaires.  
+A.2.2.1  
+A.2.6.  Règles d’accès et 
+d’habilitation  
+Les règles d’accès aux systèmes documentaires 
+doivent être misés en œuvre en assignant un statut 
+d'accès aux documents d'activité et aux individus.  
+A.2.2.2  
+A.2.7.  Règles d’accès et 
+d’habilitation  
+Les restrictions, y compris l'utilisation d'un 
+chiffrement, doivent être supprimées après une 
+période spécifiée.  
+A.2.3.4  
+A.2.8.  Référentiel de 
+gestion des 
+documents 
+d’activité  
+Les décisions relatives à la conservation et à 
+l'élimination des documents d'activité fondées sur 
+les exigences opérationnelles, légales et autres 
+identifiées doivent être documentées dans un plan 
+d'élimination.  
+A.1.1.5  
+A.2.9.  Référentiel de 
+gestion des 
+documents 
+d’activité 
+Les calendriers et actions de conservation et 
+d’élimination doivent être autorisés et documentés.  
+A.2.4.1  
+A.3 Systèmes documentaires  
+A.3.1.  Intégrité / sécurité  Le système documentaire doit assurer l'intégrité /la 
+sécurité des documents d'activité afin d’empêcher 
+toute utilisation, modification, retrait, distribution, 
+dissimulation et/ou destruction non autorisés.  
+A.2.3.1  
+A.3.2.  Technologies  Les technologies employées pour la création et la 
+capturé des documents d'activité doivent être 
+choisies pour les processus de travail (qu'elles 
+soient automatiques ou manuelles). Le choix et tout 
+changement de technologies doivent être 
+documentés.  
+A.1.4.1.  
+A.3.3.  Inventaire  Les systèmes documentaires doivent être 
+clairement identifiés, assignés à un détenteur 
+responsable et documentés dans un inventaire 
+régulièrement mis à jour.  
+A.2.5.1  
+A.3.4.  Documentation  Les décisions de mise en œuvre de systèmes 
+documentaires doivent être documentées, 
+conservées et mises à la disposition de tous les 
+utilisateurs qui en ont besoin.  
+A.2.5.2  
+A.3.5.  Disponibilité  La disponibilité des systèmes documentaires doit 
+être assurée et documentée.  
+A.2.5.4  
+A.3.6.  Intégrité  Les dysfonctionnements du système, sa misé à 
+niveau ou sa maintenance régulière ne doivent pas 
+affecter l'intégrité des documents d’activité.  
+A.2.5.6  
+A.3.7.  Surveillance Une surveillance régulière des performances des 
+systèmes documentaires par rapport aux exigences 
+opé rationnelles et aux objectifs relatifs aux 
+A.2.5.5  
+
+[PAGE 58]
+  
+ 
+ 
+ 
+57 
+ 
+documents d'activité doit é tré misé en œuvre et 
+documentée.  
+A.3.8.  Accès  Les règles d’accès aux systèmes documentaires 
+dans le but de réaliser des tâches d'administration 
+du système doivent être établies, documentées et 
+ténues à jour.  
+A.2.5.3 
+ 

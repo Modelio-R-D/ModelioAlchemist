@@ -1,0 +1,8 @@
+=== RAPPORT DE VALIDATION DES EXIGENCES ===
+
+Statistiques :
+- Exigences extraites : 0
+- Exigences classifiées : 0
+- Validation : ✅ SUCCÈS
+
+✅ Toutes les exigences ont été correctement traitées.

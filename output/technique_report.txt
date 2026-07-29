@@ -1,0 +1,318 @@
+=== INVENTAIRE CONTEXTUALISÉ ===
+
+#### REQ-002 (EX-002)
+- **Contexte métier spécifique** : La solution s’inscrit dans la trajectoire de dématérialisation des échanges entre les institutions de retraite complémentaire (IRC) et les instances judiciaires, dans le cadre du nouveau SI-RC Agirc-Arrco.
+- **Impact sur l’architecture globale** : impose une architecture d’intégration orientée échanges numériques, avec forte dépendance à SI-RC comme socle de référence métier et documentaire.
+- **Niveau de criticité business** : **Très élevé** — prérequis structurant de l’urbanisation cible.
+- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-029, REQ-039, REQ-042, REQ-045, REQ-047.
+
+#### REQ-003 (EX-004)
+- **Contexte métier spécifique** : Décommissionnement de GRECCO en février 2026 et remplacement par GCE, nouvel outil central de compte et de recouvrement amiable/contentieux.
+- **Impact sur l’architecture globale** : changement majeur de système source, nécessitant adaptation des interfaces, reprise de données, gestion de coexistence et alignement des flux.
+- **Niveau de criticité business** : **Critique** — bascule applicative avec risque de rupture de service.
+- **Interdépendances identifiées** : REQ-004, REQ-013, REQ-029, REQ-039, REQ-045.
+
+#### REQ-004 (EX-005)
+- **Contexte métier spécifique** : GCE démarre avec le socle Compte/Recouvrement amiable, puis ajout du contentieux au 30/06/2026.
+- **Impact sur l’architecture globale** : architecture transitoire en deux temps, avec gestion de fonctionnalités indisponibles temporairement.
+- **Niveau de criticité business** : **Critique** — nécessité de concevoir pour une cohabitation fonctionnelle.
+- **Interdépendances identifiées** : REQ-003, REQ-013, REQ-029, REQ-039, REQ-045.
+
+#### REQ-005 (EX-009)
+- **Contexte métier spécifique** : Deux lots contractuels indépendants, potentiellement avec des prestataires distincts, sans obligation d’échanges entre plateformes.
+- **Impact sur l’architecture globale** : nécessité de cloisonnement fort des lots, avec interfaces optionnelles seulement.
+- **Niveau de criticité business** : **Élevé** — contrainte de non-couplage contractuel et technique.
+- **Interdépendances identifiées** : REQ-033, REQ-039, REQ-041 à REQ-049, REQ-053.
+
+#### REQ-013 (EX-019)
+- **Contexte métier spécifique** : Poste de travail unifié pour les gestionnaires IRC avec vue dossier, montants, états de procédure, mouvements et synchronisation documentaire quotidienne vers SI-RC.
+- **Impact sur l’architecture globale** : nécessite un agrégateur de données métier, une couche d’orchestration des vues et un mécanisme robuste de transfert documentaire.
+- **Niveau de criticité business** : **Très élevé** — élément central de l’expérience utilisateur et de la qualité de service.
+- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-029, REQ-039, REQ-042, REQ-045, REQ-047.
+
+#### REQ-029 (EX-035)
+- **Contexte métier spécifique** : Toute action manuelle dans la plateforme ayant un effet sur GCE doit générer un flux vers GCE.
+- **Impact sur l’architecture globale** : exige une architecture événementielle ou synchronisée garantissant la cohérence de l’état métier.
+- **Niveau de criticité business** : **Critique** — enjeu de vérité du compte et d’absence de divergence.
+- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-039, REQ-045.
+
+#### REQ-033 (EX-039)
+- **Contexte métier spécifique** : Envoi direct des demandes d’injonction de payer aux greffes via webservice type Infogreffe, avec pièces justificatives, éléments de créances et commissaire de justice désigné.
+- **Impact sur l’architecture globale** : intégration externe critique, dépendance à un fournisseur de service, gestion des écrans de saisie/validation et du contrat de service.
+- **Niveau de criticité business** : **Très élevé** — automatisation d’un acte procédural sensible.
+- **Interdépendances identifiées** : REQ-005, REQ-041, REQ-042, REQ-044, REQ-053.
+
+#### REQ-039 (EX-046)
+- **Contexte métier spécifique** : Réception récurrente des demandes d’IP depuis GCE au moins hebdomadaire en masse, avec modifications manuelles renvoyées vers GCE et documents transférés quotidiennement vers SI-RC.
+- **Impact sur l’architecture globale** : coexistence de flux batch massifs, d’échanges ponctuels et de synchronisation documentaire quotidienne.
+- **Niveau de criticité business** : **Élevé** — important pour la tenue opérationnelle et la volumétrie.
+- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-029, REQ-053.
+
+#### REQ-041 (EX-048)
+- **Contexte métier spécifique** : Envoi des informations au tribunal via flux dématérialisé avec bordereaux, avec bascule papier/email si le tribunal ne le permet pas.
+- **Impact sur l’architecture globale** : architecture hybride avec gestion de modes dégradés par juridiction.
+- **Niveau de criticité business** : **Élevé** — continuité de service malgré l’hétérogénéité des tribunaux.
+- **Interdépendances identifiées** : REQ-033, REQ-042, REQ-044, REQ-046, REQ-047, REQ-049.
+
+#### REQ-042 (EX-049)
+- **Contexte métier spécifique** : Retour tribunal dématérialisé quotidien avec date, référence IP, statut, motif de rejet et tribunal.
+- **Impact sur l’architecture globale** : boucle de retour structurée, nécessitant des traitements d’intégration, de rapprochement et de mise à jour d’état.
+- **Niveau de criticité business** : **Très élevé** — indispensable au pilotage des procédures.
+- **Interdépendances identifiées** : REQ-033, REQ-041, REQ-044, REQ-053.
+
+#### REQ-044 (EX-051)
+- **Contexte métier spécifique** : Prise en charge des rejets et régénération du flux si l’anomalie relève du prestataire, y compris les rejets techniques ou calcul de compétence tribunal.
+- **Impact sur l’architecture globale** : besoin de gestion d’erreurs métier/techniques, reprocessing, contrôle qualité des flux.
+- **Niveau de criticité business** : **Très élevé** — réduction des blocages et des délais.
+- **Interdépendances identifiées** : REQ-033, REQ-041, REQ-042, REQ-049.
+
+#### REQ-045 (EX-052)
+- **Contexte métier spécifique** : La radiation suit le même modèle que l’IP : réception hebdomadaire, mises à jour quotidiennes vers SI-RC pour actions manuelles, transfert quotidien des documents.
+- **Impact sur l’architecture globale** : réutilisation du pattern IP pour un second flux fonctionnel, avec besoins identiques de synchronisation.
+- **Niveau de criticité business** : **Élevé** — cohérence du cycle de vie des privilèges.
+- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-029, REQ-046, REQ-047, REQ-049.
+
+#### REQ-046 (EX-053)
+- **Contexte métier spécifique** : Informations au tribunal pour la radiation via flux dématérialisé avec bordereaux, sinon papier/email.
+- **Impact sur l’architecture globale** : même contrainte d’hybridation que pour l’IP, avec adaptation par tribunal.
+- **Niveau de criticité business** : **Élevé**.
+- **Interdépendances identifiées** : REQ-041, REQ-045, REQ-047, REQ-049.
+
+#### REQ-047 (EX-054)
+- **Contexte métier spécifique** : Retour tribunal pour la radiation dématérialisé, quotidien, avec date, référence, statut, motif de rejet.
+- **Impact sur l’architecture globale** : traitement de retours structurés et synchronisation quotidienne des états.
+- **Niveau de criticité business** : **Très élevé**.
+- **Interdépendances identifiées** : REQ-045, REQ-046, REQ-049.
+
+#### REQ-049 (EX-056)
+- **Contexte métier spécifique** : Régénération des flux de radiation en cas de rejet imputable au prestataire.
+- **Impact sur l’architecture globale** : mécanismes de reprise, correction et re-soumission.
+- **Niveau de criticité business** : **Élevé**.
+- **Interdépendances identifiées** : REQ-045, REQ-046, REQ-047.
+
+#### REQ-053 (EX-060)
+- **Contexte métier spécifique** : Gestion en masse des IP avec suivi détaillé par cas, traçabilité fine et accès restreint aux gestionnaires habilités.
+- **Impact sur l’architecture globale** : nécessite traitements batch, auditabilité forte, gestion des habilitations et cloisonnement des données.
+- **Niveau de criticité business** : **Très élevé** — enjeu d’industrialisation et de conformité.
+- **Interdépendances identifiées** : REQ-033, REQ-039, REQ-042, REQ-044.
+
+---
+
+=== REGROUPEMENT THÉMATIQUE ===
+
+## 1) Architecture applicative et patterns
+- **REQ-013** : vue dossier unifiée et poste de travail gestionnaire
+- **REQ-029** : synchronisation des actions manuelles vers GCE
+- **REQ-033** : saisie/validation et envoi direct des IP
+- **REQ-044** : traitement des rejets et régénération
+- **REQ-049** : régénération des flux radiation
+- **REQ-053** : gestion en masse, traçabilité, accès restreint
+
+### Lecture d’architecture
+- Besoin d’une **application de traitement métier** avec :
+  - orchestration de processus,
+  - gestion de dossiers,
+  - statuts métier,
+  - auditabilité,
+  - moteur de reprise sur rejet,
+  - séparation claire entre UI, logique métier, intégration.
+
+## 2) Infrastructure, déploiement, cloud
+- **REQ-002** : alignement trajectoire SI-RC
+- **REQ-003** : décommissionnement GRECCO / transition vers GCE
+- **REQ-004** : coexistence temporaire amiable/contentieux
+- **REQ-005** : indépendance contractuelle des lots
+- **REQ-039** : batch hebdo + quotidien documentaire
+- **REQ-041** : modes dégradés papier/email selon tribunal
+
+### Lecture d’infrastructure
+- Besoin d’une **architecture d’échanges industrialisée**, potentiellement en mode hybride :
+  - services exposés,
+  - traitement batch planifié,
+  - file d’attente/ordonnancement,
+  - stockage documentaire sécurisé,
+  - supervision des flux.
+
+## 3) Performance, scalabilité, disponibilité
+- **REQ-039** : volumes massifs hebdomadaires
+- **REQ-053** : gestion de masse des IP
+- **REQ-042 / REQ-047** : retours quotidiens systématiques
+- **REQ-041 / REQ-046** : continuité via modes dégradés
+- **REQ-044 / REQ-049** : reprise sur erreur
+
+### Lecture performance
+- Besoin de capacités de :
+  - traitement par lots,
+  - reprise sur incident,
+  - montée en charge ponctuelle,
+  - tenue des délais quotidiens,
+  - disponibilité suffisante des interfaces.
+
+## 4) Intégrations, APIs, protocoles
+- **REQ-033** : webservice type Infogreffe
+- **REQ-039** : flux GCE ↔ plateforme
+- **REQ-041 / REQ-046** : flux dématérialisés avec bordereaux
+- **REQ-042 / REQ-047** : retours quotidiens dématérialisés
+- **REQ-029** : flux de mise à jour GCE
+- **REQ-013** : transfert documentaire quotidien vers SI-RC
+
+### Lecture intégration
+- Besoin d’un **socle d’intégration** multi-protocoles :
+  - webservice synchrone,
+  - batch fichier,
+  - dépôt documentaire,
+  - notifications/retours,
+  - contrôles de cohérence et d’accusés de réception.
+
+## 5) Technologies, frameworks, composants
+Les exigences n’imposent pas de technologies nominatives, mais orientent fortement vers :
+- un **moteur de workflow / orchestration**,
+- une **API d’intégration** vers GCE/SI-RC,
+- un **stockage documentaire** centralisé ou synchronisé,
+- un **référentiel d’habilitations**,
+- une **couche d’audit et traçabilité**,
+- un **scheduler batch**,
+- une **brique de transformation/contrôle des flux**.
+
+---
+
+=== ANALYSE D’IMPACT SYSTÈME ===
+
+## Transversalité des exigences
+
+### REQ-002
+- **Impact transverse** : fixe le cadre de toute l’urbanisation, de l’intégration et du choix des patterns.
+- **Contraintes induites** : compatibilité avec SI-RC, réduction du manuel, traçabilité.
+- **Risque** : architecture non alignée sur la cible fédérale.
+- **Complexité** : structurelle, mais non technique en soi.
+
+### REQ-003 / REQ-004
+- **Impact transverse** : touchent toutes les interfaces amont/aval, la donnée, les écrans et les traitements batch.
+- **Contraintes induites** : gestion de la double temporalité GRECCO/GCE et séparation amiable/contentieux.
+- **Risque** : rupture d’échange au moment de la bascule.
+- **Complexité** : élevée, car migration et coexistence.
+
+### REQ-005
+- **Impact transverse** : impose une découpe nette des périmètres techniques et contractuels.
+- **Contraintes induites** : éviter toute dépendance forte entre plateformes des deux lots.
+- **Risque** : couplage involontaire difficile à contractualiser et à maintenir.
+- **Complexité** : moyenne à élevée selon interfaces optionnelles.
+
+### REQ-013 / REQ-029
+- **Impact transverse** : cœur du fonctionnement métier, liaison forte avec GCE et SI-RC.
+- **Contraintes induites** : cohérence temps quasi réel ou différé maîtrisé, gestion documentaire, sécurité des accès.
+- **Risque** : désynchronisation entre outil de travail et système de vérité.
+- **Complexité** : élevée.
+
+### REQ-033 / REQ-041 / REQ-042 / REQ-044
+- **Impact transverse** : chaîne complète de dépôt IP vers greffe, retour, rejet, correction, régénération.
+- **Contraintes induites** : gestion des formats, des accusés, des rejets, de la non-dématérialisation.
+- **Risque** : blocage procédural ou non-conformité légale.
+- **Complexité** : très élevée.
+
+### REQ-039 / REQ-045 / REQ-047 / REQ-049
+- **Impact transverse** : même logique que l’IP mais étendue à la radiation.
+- **Contraintes induites** : réutilisation de composants, paramètres métier distincts, volume et planification.
+- **Risque** : duplication de logique et divergence de comportement.
+- **Complexité** : élevée.
+
+### REQ-053
+- **Impact transverse** : impact sécurité, UI, performance, audit, gouvernance des données.
+- **Contraintes induites** : gestion fine des autorisations et de la traçabilité.
+- **Risque** : fuite d’information ou absence de preuve de traitement.
+- **Complexité** : élevée.
+
+---
+
+=== RECOMMANDATIONS OPÉRATIONNELLES ===
+
+## Solutions techniques concrètes
+1. **Architecture orientée services / événementielle**
+   - API REST ou SOAP selon capacité des SI tiers.
+   - Bus d’intégration ou file de messages pour les actions manuelles à répercuter vers GCE.
+   - Traitements batch planifiés pour les envois hebdomadaires et retours quotidiens.
+
+2. **Moteur de workflow**
+   - Pour piloter les statuts IP/radiation, les rejets, les reprises et les validations.
+   - Permet de gérer les cas métier et les exceptions.
+
+3. **Gestion documentaire industrialisée**
+   - Référentiel sécurisé des pièces.
+   - Synchronisation quotidienne vers SI-RC.
+   - Hachage, horodatage, journalisation des transferts.
+
+4. **Gestion des rejets et reprocessing**
+   - Mécanisme de quarantaine des flux rejetés.
+   - Règles de correction selon responsabilité.
+   - Possibilité de régénération idempotente.
+
+5. **Sécurisation des accès**
+   - RBAC fin par profil, gestionnaire, périmètre IRC.
+   - Journal d’audit complet des consultations, saisies et transmissions.
+
+## Bonnes pratiques du domaine
+- Concevoir des échanges **idempotents**.
+- Prévoir des **accusés de réception techniques et métier**.
+- Séparer les couches :
+  - présentation,
+  - orchestration,
+  - métier,
+  - intégration,
+  - persistance.
+- Documenter les **cas de rejet** et les règles de reprise.
+- Mettre en place des **référentiels de correspondance** : tribunaux, compétences, statuts, références dossiers.
+
+## Standards et normes applicables
+- **Sécurité et protection des données** : RGPD, PSSI interne, chiffrement en transit et au repos.
+- **Traçabilité** : journalisation probante, horodatage.
+- **Interopérabilité** : API REST/SOAP, échanges fichiers sécurisés, formats structurés (XML/JSON/PDF selon contexte).
+- **Qualité** : principes d’urbanisation du SI, gestion des versions d’API et de schémas.
+
+## Méthodes de validation et test
+- **Tests d’intégration bout en bout** avec GCE, SI-RC et fournisseur type Infogreffe.
+- **Tests de non-régression** sur les traitements batch hebdomadaires et quotidiens.
+- **Tests de charge** sur les massifs IP/radiations.
+- **Tests de reprise sur rejet** et scénarios de déphasage.
+- **Tests de sécurité** : habilitations, cloisonnement, audit.
+- **Tests de conformité métier** avec jeux d’essai représentatifs par tribunal.
+
+---
+
+=== POINTS DE VIGILANCE PROJET ===
+
+## Risques d’oubli ou de perte d’exigences
+- Sous-estimer la **coexistence GRECCO/GCE** et la temporalité de migration.
+- Oublier le **mode dégradé papier/email** pour les tribunaux non dématérialisés.
+- Négliger la **synchronisation documentaire quotidienne** vers SI-RC.
+- Omettre la **régénération des flux** après rejet.
+- Confondre les périmètres **IP** et **radiation** alors qu’ils sont similaires mais distincts.
+
+## Éléments nécessitant éclaircissement
+- Format exact des flux GCE ↔ plateforme.
+- Mode de transport des documents vers SI-RC.
+- Responsabilités précises en cas d’erreur de compétence tribunal.
+- Définition des bordereaux et des accusés de réception.
+- Liste des tribunaux dématérialisés vs non dématérialisés.
+- Nature exacte du webservice type Infogreffe et ses SLA.
+- Règles de volumétrie et fenêtres de traitement batch.
+
+## Contraintes d’intégration avec l’existant
+- Compatibilité avec le SI-RC cible fédéral.
+- Alignement avec les calendriers de bascule GCE.
+- Gestion des référentiels communs : dossiers, créances, juridictions, statuts.
+- Gouvernance des habilitations et des accès par gestionnaire.
+- Réversibilité ou substitution si prestataire différent sur les lots.
+
+## Planning et ressources nécessaires
+- Prévoir un lot **intégration/fondations** avant les fonctionnalités métiers.
+- Prévoir un lot **migration et coexistence** autour de février 2026.
+- Prévoir une phase de **stabilisation** avant l’arrivée du contentieux GCE au 30/06/2026.
+- Mobiliser :
+  - architecte d’intégration,
+  - expert métier recouvrement/contentieux,
+  - expert sécurité,
+  - spécialiste batch/ETL,
+  - test manager,
+  - référent documentaire et habilitations.
+
+Si vous le souhaitez, je peux maintenant produire la **version sous forme de tableau de traçabilité exigence → impacts → recommandations**, ou une **synthèse architecturale cible LOT 1 / LOT 2**.

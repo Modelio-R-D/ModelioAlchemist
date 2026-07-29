@@ -1,0 +1,350 @@
+=== INVENTAIRE CONTEXTUALISÉ ===
+
+### REQ-018 (EX-024)
+**Exigence :** Les KPI doivent être propres à chaque IRC et visibles uniquement par les membres des IRC ; les tiers de justice et autres IRC n’y ont pas accès.  
+**Contexte métier :** Cloisonnement inter-IRC, confidentialité des indicateurs de performance et de facturation, prévention des fuites d’informations sensibles entre institutions et vers les tiers de justice.
+
+- **Référence et ID :** REQ-018 / EX-024
+- **Contexte métier spécifique :**
+  - Données de pilotage internes à chaque IRC.
+  - Risque de corrélation entre performance, volumétrie, délais, facturation.
+  - Besoin de séparation forte entre organismes, y compris vis-à-vis des tiers de justice.
+- **Impact sur l’architecture globale :**
+  - Mise en place d’un modèle multi-tenant ou d’un cloisonnement logique strict par IRC.
+  - Filtrage systématique au niveau API, application et éventuellement base de données.
+  - Gestion des habilitations par organisation, rôle et appartenance.
+- **Niveau de criticité business :** Élevé
+  - Fuite de KPI = perte de confidentialité, risque concurrentiel et institutionnel, défaut de confiance.
+- **Interdépendances identifiées :**
+  - REQ-024 sur la confidentialité des factures.
+  - REQ-053 sur les habilitations fines.
+  - Transversal avec l’authentification et l’audit.
+
+---
+
+### REQ-022 (EX-028)
+**Exigence :** Le service doit fournir un accusé de réception simple et une notification de nouveau message reçu sans AR à valeur légale, prérequis pour l’UO1.  
+**Contexte métier :** Échanges IRC ↔ tiers, besoin de preuve de dépôt/réception opérationnelle non probante juridiquement pour sécuriser le suivi, les relances et la coordination de procédure dans UO1.
+
+- **Référence et ID :** REQ-022 / EX-028
+- **Contexte métier spécifique :**
+  - Notifications de bon fonctionnement et de suivi opérationnel.
+  - Pas de valeur probante légale, mais exigence de preuve d’acheminement métier.
+- **Impact sur l’architecture globale :**
+  - Gestion d’événements de messagerie avec journalisation des statuts.
+  - Mécanisme de notification asynchrone et accusé simple.
+  - Séparation claire entre preuve opérationnelle et valeur juridique.
+- **Niveau de criticité business :** Moyen à élevé
+  - Impact fort sur l’exploitation, la coordination et les délais de traitement.
+- **Interdépendances identifiées :**
+  - Audit et traçabilité des événements.
+  - Gestion de messages, workflow et notifications.
+  - Besoin d’éviter toute confusion avec un AR à valeur légale.
+
+---
+
+### REQ-024 (EX-030)
+**Exigence :** Les factures doivent être associées à chaque dossier ouvert et visibles uniquement par les IRC ayant droit ; elles doivent être accessibles, catégorisées, et la facturation peut être déclenchée au fil de l’eau ou en fin de dossier selon le type de procédure et le tiers intervenant.  
+**Contexte métier :** Confidentialité financière par dossier, empêchant l’accès aux informations de frais/factures par des tiers non autorisés.
+
+- **Référence et ID :** REQ-024 / EX-030
+- **Contexte métier spécifique :**
+  - Facturation liée au dossier et non globale.
+  - Variabilité du mode de déclenchement selon procédure.
+  - Sensibilité des données financières et relationnelles.
+- **Impact sur l’architecture globale :**
+  - Modèle de données dossier-facture fortement lié.
+  - Contrôles d’accès granulaires par dossier, IRC et éventuel rôle métier.
+  - Gestion des états de facturation, catégories et déclencheurs.
+- **Niveau de criticité business :** Élevé
+  - Risque de divulgation de données financières sensibles.
+- **Interdépendances identifiées :**
+  - REQ-018 sur le cloisonnement inter-IRC.
+  - REQ-053 sur les autorisations fines.
+  - Audit et conformité.
+
+---
+
+### REQ-053 (EX-060)
+**Exigence :** La plateforme doit permettre une gestion en masse des IP avec suivi détaillé par cas et traçabilité, ainsi qu’un accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.  
+**Contexte métier :** LOT 2 : habilitations fines nécessaires car les demandes d’IP et leurs pièces sont sensibles ; traçabilité requise pour audit et responsabilisation des actions.
+
+- **Référence et ID :** REQ-053 / EX-060
+- **Contexte métier spécifique :**
+  - Gestion de masse des IP.
+  - Données sensibles liées à des créances/entreprises.
+  - Besoin de gouvernance forte des accès et de l’historique des actions.
+- **Impact sur l’architecture globale :**
+  - Mécanismes de traitement batch avec journalisation détaillée.
+  - RBAC/ABAC fin selon IRC, profil, gestionnaire, éventuellement statut de dossier.
+  - Sécurisation des exports, listes et vues détaillées.
+- **Niveau de criticité business :** Très élevé
+  - Données sensibles, risque d’accès abusif, exigence d’auditabilité.
+- **Interdépendances identifiées :**
+  - REQ-018 et REQ-024 sur le cloisonnement et la confidentialité.
+  - Audit sécurité, gestion des habilitations, éventuellement conservation probatoire des traces.
+
+---
+
+=== REGROUPEMENT THÉMATIQUE ===
+
+## 1) Authentification, autorisation, SSO
+### Exigences concernées
+- **REQ-018** : visibilité limitée aux membres de l’IRC.
+- **REQ-024** : visibilité limitée aux IRC ayant droit.
+- **REQ-053** : accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.
+
+### Analyse
+- Nécessité d’un **contrôle d’accès multi-dimensionnel** :
+  - appartenance à l’IRC,
+  - rôle métier,
+  - habilitation nominative,
+  - éventuellement périmètre dossier/procédure.
+- L’authentification seule ne suffit pas : il faut une **autorisation forte** à chaque requête.
+- Si SSO présent, il devra véhiculer les attributs de tenant/organisation et de rôle, sans exposer de droits excessifs.
+
+### Risques
+- Contournement via URL directe, API ou export.
+- Sur-attribution de droits par rôle trop large.
+- Mauvaise séparation entre membres IRC et tiers de justice.
+
+---
+
+## 2) Protection des données, chiffrement
+### Exigences concernées
+- **REQ-018** : KPI sensibles.
+- **REQ-024** : factures sensibles par dossier.
+- **REQ-053** : IP et pièces de dossiers sensibles.
+
+### Analyse
+- Les données doivent être protégées :
+  - **au repos** par chiffrement de stockage si nécessaire,
+  - **en transit** par TLS,
+  - **au niveau applicatif** via masquage/filtrage selon le profil.
+- L’enjeu principal est moins le chiffrement seul que la **minimisation d’exposition** via cloisonnement.
+
+### Risques
+- Fuites via cache, logs, exports, pièces jointes ou erreurs de filtrage.
+- Reconstitution d’informations sensibles par corrélation entre KPI, factures et IP.
+
+---
+
+## 3) Audit, traçabilité, logs sécurité
+### Exigences concernées
+- **REQ-022** : accusé de réception simple et notification.
+- **REQ-053** : suivi détaillé par cas et traçabilité.
+- Indirectement **REQ-018** et **REQ-024** : besoin de tracer les accès.
+
+### Analyse
+- Les logs doivent couvrir :
+  - consultation,
+  - téléchargement,
+  - modification,
+  - envoi,
+  - traitement en masse,
+  - déclenchement de facturation,
+  - notifications et accusés reçus.
+- Les logs doivent être **séparés des données métier** et protégés contre la falsification.
+- Il faut distinguer :
+  - **trace opérationnelle**,
+  - **trace de sécurité**,
+  - **preuve métier non probante**.
+
+### Risques
+- Logs contenant des données sensibles en clair.
+- Absence de journalisation des accès interdites ou des échecs d’autorisation.
+- Difficulté de reconstitution d’incident.
+
+---
+
+## 4) Conformité RGPD, normes sécuritaires
+### Exigences concernées
+- **REQ-018**, **REQ-024**, **REQ-053** : données sensibles et cloisonnement.
+- **REQ-022** : traçabilité d’échange, même non probante.
+
+### Analyse
+- Principes RGPD impactés :
+  - minimisation,
+  - limitation des finalités,
+  - intégrité et confidentialité,
+  - traçabilité des traitements.
+- Les données de KPI, factures et IP peuvent être des données à caractère personnel ou indirectement sensibles selon le contexte.
+- Besoin d’encadrer :
+  - durées de conservation,
+  - habilitations,
+  - accès des sous-traitants,
+  - gestion des incidents.
+
+### Normes et référentiels utiles
+- **RGPD**
+- **ISO 27001 / 27002**
+- **ANSSI** : guides d’hygiène informatique, journalisation, cloisonnement
+- Selon contexte : **OWASP ASVS**, **OWASP Top 10**
+
+---
+
+## 5) Gestion des risques, continuité
+### Exigences concernées
+- **REQ-022** : continuité des échanges et suivi.
+- **REQ-053** : traitement en masse et traçabilité.
+- **REQ-018 / REQ-024** : continuité sans fuite inter-tenant.
+
+### Analyse
+- Les contrôles d’accès et de traçabilité ne doivent pas empêcher l’exploitation.
+- Il faut prévoir :
+  - reprise sur incident,
+  - sauvegarde des journaux,
+  - archivage des éléments de suivi,
+  - supervision des anomalies d’accès.
+- La gestion en masse des IP augmente les risques d’erreur humaine et d’effet de bord.
+
+---
+
+=== ANALYSE D’IMPACT SYSTÈME ===
+
+## Impact sur les autres domaines
+- **Métier / processus :**
+  - Les règles de visibilité influencent le parcours utilisateur, les écrans, les exports et les relances.
+  - La facturation doit être alignée avec le cycle de vie des dossiers.
+  - Les notifications doivent être intégrées aux workflows sans créer d’ambiguïté juridique.
+- **Données / référentiel :**
+  - Besoin d’un modèle de tenant/IRC robuste.
+  - Liaison stricte dossier–facture–KPI–IP.
+- **Sécurité :**
+  - Gestion fine des rôles, des périmètres et des actions en masse.
+  - Journalisation structurée et exploitable.
+- **Exploitation :**
+  - Supervision des échecs d’accès, des notifications et des volumes de traitement.
+
+## Contraintes techniques induites
+- Contrôle d’accès à plusieurs niveaux : tenant, rôle, dossier, ressource.
+- Filtrage côté serveur obligatoire ; jamais côté front uniquement.
+- Gestion des événements asynchrones pour les notifications.
+- Segmentation des données en base ou via une couche d’isolation stricte.
+- Mécanisme d’audit inviolable ou au minimum fortement protégé.
+
+## Risques de non-conformité
+- Accès croisé entre IRC.
+- Exposition de factures ou KPI dans des exports ou API.
+- Traçabilité insuffisante des accès aux IP.
+- Confusion entre accusé simple et AR à valeur légale.
+- Non-respect des principes de minimisation et de cloisonnement.
+
+## Complexité de mise en œuvre
+- **REQ-018 / REQ-024 :** complexité élevée, car le cloisonnement doit être systématique.
+- **REQ-053 :** très élevée, car il combine volume, accès fin et audit.
+- **REQ-022 :** complexité moyenne, mais vigilance sur la sémantique et la traçabilité.
+
+---
+
+=== RECOMMANDATIONS OPÉRATIONNELLES ===
+
+## 1) Solutions techniques concrètes
+- Mettre en place un **RBAC complété par ABAC** :
+  - rôle,
+  - IRC d’appartenance,
+  - périmètre dossier,
+  - statut de la demande,
+  - type de ressource.
+- Appliquer des **filtres d’autorisation côté back-end** sur toutes les routes.
+- Prévoir un **modèle multi-tenant** avec isolation logique stricte, voire séparation physique si le niveau de sensibilité l’impose.
+- Pour les factures et KPI :
+  - accès par dossier/tenant,
+  - suppression de toute exposition indirecte via listes globales.
+- Pour les IP :
+  - workflow de masse avec file de traitement,
+  - journal d’opérations détaillé,
+  - contrôle des accès nominatif et révisable.
+- Pour REQ-022 :
+  - accusé simple horodaté,
+  - notification de réception,
+  - statut “reçu / en attente / traité” sans portée légale.
+
+## 2) Bonnes pratiques du domaine
+- Principe du **moindre privilège**.
+- **Séparation des rôles** : consultation, validation, administration.
+- **Journalisation exhaustive** des actions sensibles.
+- **Masquage** des données dans les interfaces et exports.
+- **Revue régulière des habilitations**.
+- Tests de non-régression sécurité à chaque évolution.
+
+## 3) Standards et normes applicables
+- **RGPD**
+- **ISO 27001 / 27002**
+- **ANSSI** : recommandations de sécurité applicative, journalisation, gestion des accès
+- **OWASP ASVS** pour les contrôles applicatifs
+- Selon besoin d’archivage probant, définir explicitement si un mécanisme à valeur légale est requis ou non, afin d’éviter toute ambiguïté.
+
+## 4) Méthodes de validation et test
+- **Tests d’autorisation** :
+  - un utilisateur IRC ne voit que ses données,
+  - un tiers de justice n’accède pas aux KPI/factures/IP non autorisés,
+  - un autre IRC n’accède à rien.
+- **Tests d’intrusion fonctionnels** :
+  - accès direct par URL,
+  - modification d’ID dans la requête,
+  - export de masse,
+  - API non documentée.
+- **Tests de non-régression** sur :
+  - filtres multi-tenant,
+  - traitement en masse,
+  - notification et accusé.
+- **Audit des logs** :
+  - complétude,
+  - horodatage,
+  - non-répudiation opérationnelle,
+  - absence d’exfiltration de données sensibles.
+- **Revue RGPD / sécurité** :
+  - base légale,
+  - minimisation,
+  - durées de conservation,
+  - droits d’accès internes.
+
+---
+
+=== POINTS DE VIGILANCE PROJET ===
+
+## Risques d’oubli ou de perte d’exigences
+- Exposition involontaire via :
+  - exports CSV/PDF,
+  - notifications email,
+  - tableaux de bord globaux,
+  - caches applicatifs,
+  - index de recherche.
+- Assimilation erronée de l’AR simple à un AR légal.
+- Oubli du cloisonnement dans les APIs techniques, pas seulement dans les écrans.
+
+## Éléments nécessitant éclaircissement
+- Définition exacte de “membres des IRC” :
+  - tous les utilisateurs du tenant ou seulement certains rôles ?
+- Définition de “tiers de justice” :
+  - quels statuts, quels droits, quels périmètres ?
+- Nature des IP :
+  - données personnelles, pièces justificatives, documents de procédure ?
+- Politique de conservation :
+  - durée des KPI, factures, notifications, logs ?
+- Exigence de séparation logique ou physique entre IRC.
+
+## Contraintes d’intégration avec l’existant
+- SSO et annuaires existants à interfacer.
+- Compatibilité avec les workflows déjà en place.
+- Gestion des identités externes pour les tiers de justice.
+- Interfaçage avec outils de reporting, BI, export, GED ou facturation.
+
+## Planning et ressources nécessaires
+- Attribuer dès le cadrage :
+  - un expert sécurité applicative,
+  - un référent RGPD,
+  - un architecte IAM/autorisation,
+  - un responsable métier par IRC.
+- Prévoir une phase dédiée de :
+  - modélisation des droits,
+  - revue des cas d’usage,
+  - tests d’intrusion fonctionnels,
+  - validation de conformité.
+- Risque projet élevé si les règles d’habilitation et de cloisonnement ne sont pas figées tôt.
+
+---
+
+Si vous le souhaitez, je peux maintenant produire une **matrice de conformité par exigence** sous forme de tableau, avec colonnes :
+**Exigence / Risque / Contrôle attendu / Preuve de conformité / Priorité / Responsable**.
