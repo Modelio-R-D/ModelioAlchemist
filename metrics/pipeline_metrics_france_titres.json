@@ -1,0 +1,52 @@
+{
+  "source_document" : "2024-0319_CCTP_VD.pdf",
+  "timings_ms" : {
+    "mcp_creation" : 130350,
+    "extraction" : 4314,
+    "classification" : 28771,
+    "filtering" : 10738,
+    "domain_analysis" : 21794,
+    "uml_synthesis" : 92233,
+    "total" : 340026
+  },
+  "filtering" : {
+    "total_items_analyzed" : 0,
+    "requirements_retained" : 10,
+    "items_rejected" : 1
+  },
+  "classification_validation" : {
+    "extracted_count" : 0,
+    "classified_count" : 0,
+    "missing_requirements" : 0,
+    "extra_requirements" : 0,
+    "is_valid" : true
+  },
+  "context_validation" : {
+    "total_requirements" : 15,
+    "contextualized_requirements" : 15,
+    "contextRate_pct" : 100.0,
+    "category_distribution" : {
+      "fonctionnel" : 6,
+      "rssi" : 3,
+      "ecoconception" : 0,
+      "rse" : 2,
+      "technique" : 4
+    },
+    "missing_references" : 0
+  },
+  "source_location" : {
+    "from_llm" : 10,
+    "from_deterministic_fallback" : 0,
+    "still_missing" : 0
+  },
+  "mcp_requirements" : {
+    "attempted" : 10,
+    "created_successfully" : 10,
+    "failed" : 0
+  },
+  "mcp_satisfy_links" : {
+    "uml_elements_created" : 0,
+    "satisfy_relations_attempted" : 0,
+    "satisfy_relations_confirmed" : 0
+  }
+}

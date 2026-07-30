@@ -1,0 +1,53 @@
+{
+  "source_document" : "CCTP_AGIRC.pdf",
+  "timings_ms" : {
+    "mcp_creation" : 111910,
+    "extraction" : 1408,
+    "classification" : 20192,
+    "filtering" : 5912,
+    "domain_analysis" : 18793,
+    "uml_synthesis" : 65934,
+    "total" : 276682
+  },
+  "filtering" : {
+    "total_items_analyzed" : 5,
+    "requirements_retained" : 5,
+    "items_rejected" : 0,
+    "retention_rate_pct" : 100.0
+  },
+  "classification_validation" : {
+    "extracted_count" : 0,
+    "classified_count" : 5,
+    "missing_requirements" : 0,
+    "extra_requirements" : 5,
+    "is_valid" : true
+  },
+  "context_validation" : {
+    "total_requirements" : 8,
+    "contextualized_requirements" : 8,
+    "contextRate_pct" : 100.0,
+    "category_distribution" : {
+      "fonctionnel" : 4,
+      "rssi" : 1,
+      "ecoconception" : 1,
+      "rse" : 1,
+      "technique" : 1
+    },
+    "missing_references" : 0
+  },
+  "source_location" : {
+    "from_llm" : 5,
+    "from_deterministic_fallback" : 0,
+    "still_missing" : 0
+  },
+  "mcp_requirements" : {
+    "attempted" : 5,
+    "created_successfully" : 5,
+    "failed" : 0
+  },
+  "mcp_satisfy_links" : {
+    "uml_elements_created" : 0,
+    "satisfy_relations_attempted" : 0,
+    "satisfy_relations_confirmed" : 0
+  }
+}
