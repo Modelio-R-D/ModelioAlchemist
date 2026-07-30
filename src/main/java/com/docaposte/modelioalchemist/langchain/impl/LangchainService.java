@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -50,11 +51,6 @@ public class LangchainService {
     private static final Pattern REAL_UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
     private static final Pattern PLACEHOLDER_UUID_VALUE_PATTERN = Pattern.compile("\"[^\"]*uuid[^\"]*\"\\s*:\\s*\"uuid-[^\"]+\"", Pattern.CASE_INSENSITIVE);
     private static final Pattern REQUIREMENT_ID_PATTERN = Pattern.compile("(?i)(?:REQ|EXG|EX)[-_\\s]?(\\d{1,6})");
-    private static final Pattern MISSING_REQUIREMENT_CONTAINER_PATTERN =
-            Pattern.compile("(?i)no\\s+requirementcontainer\\s+found");
-    private static final Pattern MANUAL_INSTRUCTIONS_PATTERN = Pattern.compile(
-            "(?i)(^|\\b)(?:étape\\s*1|step\\s*1|ouvrez?\\s+modelio|ouvrir\\s+modelio|suivez\\s+les\\s+étapes|vous\\s+pouvez\\s+trouver\\s+l['’]uuid|trouver\\s+l['’]uuid|assurez-vous\\s+d['’]avoir\\s+modelio|créez\\s+un\\s+nouveau\\s+projet)");
-    private static final String MCP_NO_TOOL_CALL_SUFFIX = "completed without MCP tool calls.";
 
     // -------------------------------------------------- Logging --------------------------------------------------
     private static final boolean DEBUG = true;
@@ -71,6 +67,11 @@ public class LangchainService {
     private static final Duration MCP_RESOURCES_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration MCP_PROMPTS_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration MCP_PING_TIMEOUT = Duration.ofSeconds(15);
+    private static final int PHASE2_CHUNKING_CLASS_THRESHOLD = 45;
+    private static final int PHASE2_CHUNKING_RELATION_THRESHOLD = 60;
+    private static final int PHASE2_CLASSES_CHUNK_SIZE = 20;
+    private static final int PHASE2_ASSOCIATIONS_CHUNK_SIZE = 25;
+    /** Max requirement UUIDs injected into a single chunk prompt to avoid context bloat. */
     
     // -------------------------------------------------- Infrastructure partagée (construite une fois) --------------------------------------------------
     private static volatile boolean infraInitialized = false;
@@ -85,6 +86,7 @@ public class LangchainService {
     private static List<String> cachedToolNames = new ArrayList<>();
     private static List<ToolSpecification> cachedToolSpecifications = new ArrayList<>();
     private static volatile String mcpInitErrorDetail;
+
 
     /**
      * Initialise l'infrastructure partagée (client MCP, modèle de chat, pool d'assistants)
@@ -213,66 +215,6 @@ public class LangchainService {
         ASSISTANT_POOL.offer(newAssistant()); // offrir un nouveau pour éviter le contexte résiduel
     }
 
-    private static String executeAssistantWithMcpTrace(PooledUmlAssistant pa, String phaseName, String prompt, String outputDirectory) throws IOException {
-        debug("MCP discovery snapshot for phase '" + phaseName + "': tools=" + cachedToolNames.size() + " " + cachedToolNames);
-        if (outputDirectory != null && !outputDirectory.trim().isEmpty()) {
-            saveDebugFile(prompt + System.lineSeparator(), phaseName + "_prompt.txt", outputDirectory);
-        }
-        PolicyAwareAzureChatModel.startToolExecutionTrace(phaseName);
-        String result;
-        try {
-            result = pa.assistant.createUmlModel(prompt);
-        } finally {
-            PolicyAwareAzureChatModel.ToolExecutionTrace trace = PolicyAwareAzureChatModel.finishToolExecutionTrace();
-            String traceSummary = formatToolExecutionTrace(trace);
-            debug(traceSummary);
-            if (outputDirectory != null && !outputDirectory.trim().isEmpty()) {
-                saveDebugFile(traceSummary + System.lineSeparator(), phaseName + "_mcp_trace.txt", outputDirectory);
-            }
-            if (trace == null || trace.modelRequestedToolCalls <= 0) {
-                throw new IllegalStateException(
-                        "MCP_EXECUTION_FAILED: phase '" + phaseName + "' completed without MCP tool calls.");
-            }
-        }
-        return result;
-    }
-
-    private static String executeAssistantWithMcpTraceWithRetry(
-            PooledUmlAssistant pa, String phaseName, String prompt, String outputDirectory, int maxAttempts) throws IOException {
-        if (maxAttempts <= 1) {
-            return executeAssistantWithMcpTrace(pa, phaseName, prompt, outputDirectory);
-        }
-
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            String attemptPrompt = prompt;
-            if (attempt > 1) {
-                attemptPrompt = prompt + System.lineSeparator() + System.lineSeparator()
-                        + "RETRY #" + attempt + ": la tentative précédente n'a exécuté aucun outil MCP."
-                        + " Exécutez maintenant les appels MCP requis et retournez uniquement la sortie as-built.";
-                debug("♻️ Retrying phase '" + phaseName + "' after zero MCP tool call response (attempt " + attempt + "/" + maxAttempts + ")");
-            }
-            try {
-                return executeAssistantWithMcpTrace(pa, phaseName, attemptPrompt, outputDirectory);
-            } catch (IllegalStateException e) {
-                if (!isNoToolCallFailure(e) || attempt == maxAttempts) {
-                    throw e;
-                }
-            }
-        }
-
-        throw new IllegalStateException("MCP_EXECUTION_FAILED: phase '" + phaseName + "' exceeded retry limit.");
-    }
-
-    private static boolean isNoToolCallFailure(IllegalStateException e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains(MCP_NO_TOOL_CALL_SUFFIX);
-    }
-
-    private static String formatToolExecutionTrace(PolicyAwareAzureChatModel.ToolExecutionTrace trace) {
-        if (trace == null) {
-            return "MCP_TRACE phase=unknown status=no-trace";
-        }
-        return trace.toSummary();
-    }
 
     private static void ensureMcpToolsAvailable() {
         if (sharedToolProvider == null || cachedToolNames.isEmpty()) {
@@ -356,6 +298,45 @@ public class LangchainService {
 
     private static String nullToEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private static String formatRequirementId(int numericId) {
+        int safeId = Math.max(1, numericId);
+        return CANONICAL_REQUIREMENT_PREFIX + "-" + String.format("%03d", safeId);
+    }
+
+    private static String normalizeRequirementId(String rawId, int fallbackIndex) {
+        if (rawId != null) {
+            Matcher idMatcher = REQUIREMENT_ID_PATTERN.matcher(rawId.trim());
+            if (idMatcher.find()) {
+                return formatRequirementId(Integer.parseInt(idMatcher.group(1)));
+            }
+        }
+        return formatRequirementId(fallbackIndex);
+    }
+
+    private static String buildRequirementOrigin(com.fasterxml.jackson.databind.JsonNode reqNode, String sourceDocumentName, String fallbackDescription) {
+        List<String> originParts = new ArrayList<>();
+        if (sourceDocumentName != null && !sourceDocumentName.isBlank()) {
+            originParts.add("document=" + sourceDocumentName.trim());
+        }
+        String originalRef = reqNode.path("original_ref").asText("").trim();
+        if (!originalRef.isEmpty()) originParts.add("ref=" + originalRef);
+        String sourceLocation = reqNode.path("source_location").asText("").trim();
+        if (sourceLocation.isEmpty()) sourceLocation = reqNode.path("location").asText("").trim();
+        if (sourceLocation.isEmpty()) sourceLocation = reqNode.path("page").asText("").trim();
+        if (!sourceLocation.isEmpty()) originParts.add("location=" + sourceLocation);
+        String context = reqNode.path("context").asText("").trim();
+        if (!context.isEmpty()) originParts.add("context=" + context);
+        String sourceQuote = reqNode.path("source_quote").asText("").trim();
+        if (sourceQuote.isEmpty()) sourceQuote = reqNode.path("excerpt").asText("").trim();
+        if (sourceQuote.isEmpty()) sourceQuote = reqNode.path("origin_excerpt").asText("").trim();
+        if (!sourceQuote.isEmpty()) originParts.add("quote=" + truncate(sourceQuote.replaceAll("\\s+", " "), 240));
+        if (originParts.isEmpty()) {
+            String fallback = fallbackDescription == null ? "" : fallbackDescription.replaceAll("\\s+", " ").trim();
+            if (!fallback.isEmpty()) originParts.add("description=" + truncate(fallback, 120));
+        }
+        return String.join(" | ", originParts);
     }
 
     // -------------------------------------------------- API Publique (poolée) --------------------------------------------------
@@ -492,10 +473,10 @@ public class LangchainService {
             }
             
             // Créer le prompt pour l'assistant - utiliser l'ancienne approche monolithique pour generateModelFromPlantUML
-            String prompt = createLegacyModelGenerationPrompt(plantUMLContent, requirementsDocuments, parsedRequirements);
+            String prompt = UmlPromptBuilder.createLegacyModelGenerationPrompt(plantUMLContent, requirementsDocuments, parsedRequirements);
             
             // Laisser l'assistant IA gérer la création du modèle avec les outils MCP disponibles
-            String result = executeAssistantWithMcpTrace(pa, "legacy_generation", prompt, outputDirectory);
+            String result = McpRetryHandler.executeAssistantWithMcpTrace(pa, "legacy_generation", prompt, outputDirectory);
             
             return result;
             
@@ -596,7 +577,7 @@ public class LangchainService {
             Requirement requirement = requirements.get(i);
             String response = createRequirementElement(requirement, requirementContainerUuid, mapper, executionTrace);
 
-            if (requirementContainerUuid == null && isMissingRequirementContainerError(response)) {
+            if (requirementContainerUuid == null && McpFailurePatterns.isMissingRequirementContainerError(response)) {
                 debug("📁 No RequirementContainer found. Creating one automatically before retrying " + requirement.id);
                 requirementContainerUuid = createRequirementContainer(outputDirectory, mapper, executionTrace);
                 response = createRequirementElement(requirement, requirementContainerUuid, mapper, executionTrace);
@@ -733,9 +714,6 @@ public class LangchainService {
         return response;
     }
 
-    private static boolean isMissingRequirementContainerError(String response) {
-        return response != null && MISSING_REQUIREMENT_CONTAINER_PATTERN.matcher(response).find();
-    }
 
     private static String extractMcpErrorMessage(String response, String fallbackMessage) {
         if (response == null || response.isBlank()) {
@@ -790,19 +768,10 @@ public class LangchainService {
         try {
             debug("🏗️ Creating UML model in Modelio using 3-phase approach...");
             
-            // Récupération des requirements parsés depuis les documents d'analyse si disponibles
+            // Requirements always come from the input document (filteredJson → createRequirementsInModelio
+            // → existingRequirementsReport). The PlantUML is the solution and must never be used as a
+            // requirement source, so parsedRequirements is intentionally left empty here.
             List<Requirement> parsedRequirements = new ArrayList<>();
-            String requirementsDocuments = "";
-            
-            // Extraire les documents d'analyse du PlantUML s'ils sont intégrés
-            if (analysisResults != null && analysisResults.contains("EXTRACTED REQUIREMENTS")) {
-                int startIdx = analysisResults.indexOf("EXTRACTED REQUIREMENTS");
-                int endIdx = analysisResults.indexOf("@startuml", startIdx);
-                if (endIdx == -1) endIdx = analysisResults.length();
-                requirementsDocuments = analysisResults.substring(startIdx, endIdx);
-                parsedRequirements = parseRequirementsFromDocuments(requirementsDocuments);
-                debug("📋 Found " + parsedRequirements.size() + " parsed requirements in analysis results");
-            }
             
             // PHASE 1 : Création des Requirements
             String requirementsResult;
@@ -818,7 +787,7 @@ public class LangchainService {
                 if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
                     requirementsResult = createRequirementsDirectlyViaMcp(parsedRequirements, outputDirectory);
                 } else {
-                    String requirementsPrompt = createRequirementsPrompt(analysisResults, parsedRequirements, requirementsDocuments);
+                    String requirementsPrompt = UmlPromptBuilder.createRequirementsPrompt(parsedRequirements);
 
                     PooledUmlAssistant pa1 = borrowAssistant();
                     if (pa1 == null) {
@@ -826,7 +795,7 @@ public class LangchainService {
                     }
 
                     try {
-                        requirementsResult = executeAssistantWithMcpTrace(pa1, "requirements_phase", requirementsPrompt, outputDirectory);
+                        requirementsResult = McpRetryHandler.executeAssistantWithMcpTrace(pa1, "requirements_phase", requirementsPrompt, outputDirectory);
                         // Apply fallback synthesis for requirements
                         requirementsResult = ensureStructuredRequirementsResult(requirementsResult);
                     } finally {
@@ -854,7 +823,7 @@ public class LangchainService {
             // Extract only requirement element UUIDs (exclude package/container UUIDs)
             List<String> requirementUUIDs = extractRequirementUUIDs(requirementsResult);
             debug("📋 Extracted " + requirementUUIDs.size() + " requirement UUIDs from Phase 1 for Phase 2 linking");
-            String classesPrompt = createClassesPrompt(analysisResults, requirementsResult, parsedRequirements, requirementUUIDs);
+            String classesPrompt = UmlPromptBuilder.createClassesPrompt(analysisResults, requirementsResult, parsedRequirements, requirementUUIDs);
             
             PooledUmlAssistant pa2 = borrowAssistant();
             if (pa2 == null) {
@@ -863,7 +832,14 @@ public class LangchainService {
             
             String classesResult;
             try {
-                classesResult = executeAssistantWithMcpTraceWithRetry(pa2, "domain_model_phase", classesPrompt, outputDirectory, 2);
+                classesResult = executePhase2DomainModelWithChunking(
+                        pa2,
+                        analysisResults,
+                        requirementsResult,
+                        parsedRequirements,
+                        requirementUUIDs,
+                        classesPrompt,
+                        outputDirectory);
                 classesResult = ensureStructuredDomainModelResult(classesResult);
                 validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
                 finalReport.append("PHASE 2 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
@@ -871,7 +847,7 @@ public class LangchainService {
                 // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES  
                 List<String> classesUUIDs = extractUUIDs(classesResult);
                 String domainModelJSON = extractJSONStructure(classesResult, "domain_model_created", "modele_domaine_cree");
-                String asBuildPlantUML = extractPlantUMLDiagram(classesResult, "AS_BUILT_DOMAIN_MODEL");
+                String asBuildPlantUML = PlantUmlParser.extractPlantUMLDiagram(classesResult, "AS_BUILT_DOMAIN_MODEL");
                 
                 debug("✅ Classes and associations creation completed - UUIDs extracted: " + classesUUIDs.size());
                 if (domainModelJSON != null) {
@@ -891,7 +867,7 @@ public class LangchainService {
             
             // PHASE 3 : Création des Use Cases et Actors
             debug("👥 PHASE 3: Creating Use Cases and Actors...");
-            String useCasesPrompt = createUseCasesPrompt(analysisResults, requirementsResult, classesResult, parsedRequirements, requirementUUIDs);
+            String useCasesPrompt = UmlPromptBuilder.createUseCasesPrompt(analysisResults, requirementsResult, classesResult, parsedRequirements, requirementUUIDs);
             
             PooledUmlAssistant pa3 = borrowAssistant();
             if (pa3 == null) {
@@ -900,7 +876,8 @@ public class LangchainService {
             
             String useCasesResult;
             try {
-                useCasesResult = executeAssistantWithMcpTrace(pa3, "use_cases_phase", useCasesPrompt, outputDirectory);
+                useCasesResult = McpRetryHandler.executeAssistantWithMcpTrace(pa3, "use_cases_phase", useCasesPrompt, outputDirectory);
+                useCasesResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(pa3, "use_cases_phase", useCasesPrompt, outputDirectory, useCasesResult, 2);
                 useCasesResult = ensureStructuredUseCasesResult(useCasesResult);
                 validateMcpExecutionResult("use_cases_phase", useCasesResult, "use_cases_created");
                 finalReport.append("PHASE 3 - USE CASES & ACTORS:\n").append(useCasesResult).append("\n\n");
@@ -908,7 +885,7 @@ public class LangchainService {
                 // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES
                 List<String> useCasesUUIDs = extractUUIDs(useCasesResult);
                 String useCasesJSON = extractJSONStructure(useCasesResult, "use_cases_created");
-                String useCasePlantUML = extractPlantUMLDiagram(useCasesResult, "USE_CASES_DIAGRAM");
+                String useCasePlantUML = PlantUmlParser.extractPlantUMLDiagram(useCasesResult, "USE_CASES_DIAGRAM");
                 
                 debug("✅ Use cases and actors creation completed - UUIDs extracted: " + useCasesUUIDs.size());
                 if (useCasesJSON != null) {
@@ -1116,284 +1093,6 @@ public class LangchainService {
         return requirements;
     }
 
-    /** 
-                Pattern.DOTALL
-            );
-            
-            // Pattern 3: Format "Exigence 001: Description" ou "Requirement 001: Description"
-            Pattern reqPattern3 = Pattern.compile(
-                "(?i)(Exigence|Requirement)\\s+(\\d+)\\s*[:.] *(.+?)(?=(?:Exigence|Requirement)\\s+\\d+|$)", 
-                Pattern.DOTALL
-            );
-            
-            // Pattern 4: Format numéroté simple "1. Description", "2. Description"
-            Pattern reqPattern4 = Pattern.compile(
-                "(?m)^\\s*(\\d+)\\. *(.+?)(?=^\\s*\\d+\\.|$)", 
-                Pattern.DOTALL
-            );
-            
-            // Pattern 5: Lignes qui commencent par des mots-clés d'exigences
-            Pattern reqPattern5 = Pattern.compile(
-                "(?im)^\\s*(Le système|The system|L'application|The application|Il faut|Must|Shall).{10,}$"
-            );
-            
-            // Pattern 6: Format du pipeline ModelioAlchemist "EX-001: description"
-            Pattern reqPattern6 = Pattern.compile(
-                "(EX-\\d+)\\s*[:.] *(.+?)(?=EX-\\d+|$)", 
-                Pattern.DOTALL
-            );
-            
-            // Pattern 7: Lignes débutant par des puces ou numéros dans les rapports
-            Pattern reqPattern7 = Pattern.compile(
-                "(?m)^\\s*[-•*]\\s*(.{20,})$"
-            );
-            
-            debug("Tentative d'extraction avec Pattern 1 (REQ001:)");
-            extractWithPattern(documentsText, reqPattern1, requirements, "REQ");
-            
-            if (requirements.isEmpty()) {
-                debug("Tentative d'extraction avec Pattern 2 ([REQ-001])");
-                extractWithPattern(documentsText, reqPattern2, requirements, "BRACKET");
-            }
-            
-            if (requirements.isEmpty()) {
-                debug("Tentative d'extraction avec Pattern 3 (Exigence 001:)");
-                extractWithPattern(documentsText, reqPattern3, requirements, "WORD");
-            }
-            
-            if (requirements.isEmpty()) {
-                debug("Tentative d'extraction avec Pattern 4 (1. Description)");
-                extractWithPattern(documentsText, reqPattern4, requirements, "NUMBERED");
-            }
-            
-            if (requirements.isEmpty()) {
-                debug("Tentative d'extraction avec Pattern 5 (phrases d'exigences)");
-                extractRequirementSentences(documentsText, reqPattern5, requirements);
-            }
-            
-            if (requirements.isEmpty()) {
-                debug("Tentative d'extraction avec Pattern 6 (EX-001: format pipeline)");
-                extractWithPattern(documentsText, reqPattern6, requirements, "PIPELINE");
-            }
-            
-            if (requirements.isEmpty()) {
-                debug("Tentative d'extraction avec Pattern 7 (listes à puces)");
-                extractRequirementSentences(documentsText, reqPattern7, requirements);
-            }
-            
-            // Post-traitement : nettoyer les descriptions
-            for (int i = 0; i < requirements.size(); i++) {
-                Requirement req = requirements.get(i);
-                String cleanDesc = cleanRequirementDescription(req.description);
-                String category = detectRequirementCategory(cleanDesc);
-                String priority = detectRequirementPriority(cleanDesc);
-                
-                requirements.set(i, new Requirement(req.id, req.title, cleanDesc, category, priority, req.origin));
-            }
-            
-            debug("Extraction terminée: " + requirements.size() + " exigences trouvées");
-            
-            // Debug : afficher les premières exigences trouvées
-            for (int i = 0; i < Math.min(3, requirements.size()); i++) {
-                debug("Requirement " + i + ": " + requirements.get(i).toString());
-            }
-            
-        } catch (Exception e) {
-            debug("Erreur lors du parsing des exigences: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        return requirements;
-    }
-    
-    /**
-     * Extrait les exigences avec un pattern donné
-     */
-    private static void extractWithPattern(String text, Pattern pattern, List<Requirement> requirements, String patternType) {
-        Matcher matcher = pattern.matcher(text);
-        int count = 0;
-        
-        while (matcher.find() && count < 100) { // Limite pour éviter les boucles infinies
-            String id, description;
-            
-            switch (patternType) {
-                case "REQ":
-                case "BRACKET":
-                case "PIPELINE":
-                    id = normalizeRequirementId(matcher.group(1).trim(), requirements.size() + 1);
-                    description = matcher.group(2).trim();
-                    break;
-                case "WORD":
-                    id = formatRequirementId(Integer.parseInt(matcher.group(2)));
-                    description = matcher.group(3).trim();
-                    break;
-                case "NUMBERED":
-                    id = formatRequirementId(Integer.parseInt(matcher.group(1)));
-                    description = matcher.group(2).trim();
-                    break;
-                default:
-                    continue;
-            }
-            
-            if (!description.isEmpty() && description.length() > 10) {
-                requirements.add(new Requirement(id, description));
-                count++;
-            }
-        }
-        
-        debug("Pattern " + patternType + " a trouvé " + count + " exigences");
-    }
-    
-    /**
-     * Extrait les phrases qui ressemblent à des exigences
-     */
-    private static void extractRequirementSentences(String text, Pattern pattern, List<Requirement> requirements) {
-        Matcher matcher = pattern.matcher(text);
-        int count = 0;
-        
-        while (matcher.find() && count < 50) {
-            String sentence = matcher.group().trim();
-            
-            if (sentence.length() > 20 && sentence.length() < 500) {
-                String id = formatRequirementId(requirements.size() + 1);
-                requirements.add(new Requirement(id, sentence));
-                count++;
-            }
-        }
-        
-        debug("Pattern sentences a trouvé " + count + " exigences");
-    }
-    
-    /**
-     * Nettoie la description d'une exigence
-     */
-    private static String cleanRequirementDescription(String description) {
-        if (description == null) return "";
-        
-        return description
-            .replaceAll("\\s+", " ")  // Normaliser les espaces
-            .replaceAll("[\\r\\n]+", " ")  // Supprimer les retours à la ligne
-            .replaceAll("(?i)(priorité|priority)\\s*[:=]\\s*\\w+", "")  // Supprimer info priorité
-            .replaceAll("(?i)(catégorie|category)\\s*[:=]\\s*\\w+", "")  // Supprimer info catégorie
-            .trim();
-    }
-
-    private static String buildRequirementOrigin(JsonNode reqNode, String sourceDocumentName, String fallbackDescription) {
-        List<String> originParts = new ArrayList<>();
-        if (sourceDocumentName != null && !sourceDocumentName.isBlank()) {
-            originParts.add("document=" + sourceDocumentName.trim());
-        }
-
-        String originalRef = reqNode.path("original_ref").asText("").trim();
-        if (!originalRef.isEmpty()) {
-            originParts.add("ref=" + originalRef);
-        }
-
-        String sourceLocation = reqNode.path("source_location").asText("").trim();
-        if (sourceLocation.isEmpty()) {
-            sourceLocation = reqNode.path("location").asText("").trim();
-        }
-        if (sourceLocation.isEmpty()) {
-            sourceLocation = reqNode.path("page").asText("").trim();
-        }
-        if (!sourceLocation.isEmpty()) {
-            originParts.add("location=" + sourceLocation);
-        }
-
-        String context = reqNode.path("context").asText("").trim();
-        if (!context.isEmpty()) {
-            originParts.add("context=" + context);
-        }
-
-        String sourceQuote = reqNode.path("source_quote").asText("").trim();
-        if (sourceQuote.isEmpty()) {
-            sourceQuote = reqNode.path("excerpt").asText("").trim();
-        }
-        if (sourceQuote.isEmpty()) {
-            sourceQuote = reqNode.path("origin_excerpt").asText("").trim();
-        }
-        if (!sourceQuote.isEmpty()) {
-            originParts.add("quote=" + truncate(sourceQuote.replaceAll("\\s+", " "), 240));
-        }
-
-        if (originParts.isEmpty()) {
-            String fallback = fallbackDescription == null ? "" : fallbackDescription.replaceAll("\\s+", " ").trim();
-            if (!fallback.isEmpty()) {
-                originParts.add("description=" + truncate(fallback, 120));
-            }
-        }
-        return String.join(" | ", originParts);
-    }
-
-    private static String normalizeRequirementId(String rawId, int fallbackIndex) {
-        if (rawId != null) {
-            Matcher idMatcher = REQUIREMENT_ID_PATTERN.matcher(rawId.trim());
-            if (idMatcher.find()) {
-                return formatRequirementId(Integer.parseInt(idMatcher.group(1)));
-            }
-        }
-        return formatRequirementId(fallbackIndex);
-    }
-
-    private static String formatRequirementId(int numericId) {
-        int safeNumericId = Math.max(1, numericId);
-        return CANONICAL_REQUIREMENT_PREFIX + "-" + String.format("%03d", safeNumericId);
-    }
-    
-    /**
-     * Détecte la catégorie d'une exigence basée sur son contenu
-     */
-    private static String detectRequirementCategory(String description) {
-        String lowerDesc = description.toLowerCase();
-        
-        if (lowerDesc.contains("sécurité") || lowerDesc.contains("security") || 
-            lowerDesc.contains("authentification") || lowerDesc.contains("authorization") ||
-            lowerDesc.contains("chiffrement") || lowerDesc.contains("encryption")) {
-            return "Sécurité";
-        }
-        
-        if (lowerDesc.contains("performance") || lowerDesc.contains("temps de réponse") ||
-            lowerDesc.contains("response time") || lowerDesc.contains("débit") ||
-            lowerDesc.contains("throughput") || lowerDesc.contains("latence")) {
-            return "Performance";
-        }
-        
-        if (lowerDesc.contains("interface") || lowerDesc.contains("ui") || 
-            lowerDesc.contains("utilisateur") || lowerDesc.contains("user") ||
-            lowerDesc.contains("ergonomie") || lowerDesc.contains("usability")) {
-            return "Interface";
-        }
-        
-        if (lowerDesc.contains("intégration") || lowerDesc.contains("integration") ||
-            lowerDesc.contains("api") || lowerDesc.contains("service") ||
-            lowerDesc.contains("connexion") || lowerDesc.contains("connection")) {
-            return "Intégration";
-        }
-        
-        return "Fonctionnel";  // Par défaut
-    }
-    
-    /**
-     * Détecte la priorité d'une exigence basée sur son contenu
-     */
-    private static String detectRequirementPriority(String description) {
-        String lowerDesc = description.toLowerCase();
-        
-        if (lowerDesc.contains("critique") || lowerDesc.contains("critical") ||
-            lowerDesc.contains("obligatoire") || lowerDesc.contains("mandatory") ||
-            lowerDesc.contains("essentiel") || lowerDesc.contains("essential")) {
-            return "Haute";
-        }
-        
-        if (lowerDesc.contains("optionnel") || lowerDesc.contains("optional") ||
-            lowerDesc.contains("souhaitable") || lowerDesc.contains("nice to have") ||
-            lowerDesc.contains("bonus")) {
-            return "Basse";
-        }
-        
-        return "Moyenne";  // Par défaut
-    }
-    
     /**
      * Méthode de debug pour sauvegarder le contenu dans un fichier
      */
@@ -1424,427 +1123,145 @@ public class LangchainService {
         }
     }
 
-    /**
-     * Génère le prompt spécialisé pour la création des requirements (PHASE 1)
-     */
-    private static String createRequirementsPrompt(String analysisResults, List<Requirement> parsedRequirements, String requirementsDocuments) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append("🇷🇷 Vous êtes un analyste d'exigences Modelio. Votre mission : créer TOUTES les exigences en français dans Modelio.\n\n");
-        
-        prompt.append("## MISSION PHASE 1 : CRÉATION DES EXIGENCES\n");
-        prompt.append("🎯 Créer des exigences complètes en français basées sur l'analyse et PlantUML.\n");
-        prompt.append("🚨 Utiliser les outils MCP pour créer CHAQUE exigence comme élément d'analyse.\n\n");
-        
-        // Section requirements parsés si disponible
-        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
-            prompt.append("## EXIGENCES PARSÉES (PRIORITÉ)\n");
-            
-            // For large requirement sets, limit to top N to avoid MCP token fatigue
-            int displayLimit = Math.min(parsedRequirements.size(), 15);
-            prompt.append("Les ").append(displayLimit).append(" exigences principales").append(
-                parsedRequirements.size() > 15 ? " (sur " + parsedRequirements.size() + " totales)" : "")
-                .append(" :\n\n");
-            
-            for (int i = 0; i < displayLimit; i++) {
-                Requirement req = parsedRequirements.get(i);
-                prompt.append(String.format("**%s**: %s\n", req.id, req.description));
-                prompt.append(String.format("  - Catégorie: %s | Priorité: %s\n\n", req.category, req.priority));
-            }
-            
-            if (parsedRequirements.size() > displayLimit) {
-                prompt.append("⚠️ ").append(parsedRequirements.size() - displayLimit).append(" exigences supplémentaires existent mais sont résumées pour limiter la charge MCP.\n\n");
-            }
-            
-            prompt.append("🚨 OBLIGATOIRE : Créer CHACUNE de ces exigences affichées EXACTEMENT avec les outils MCP.\n\n");
-        }
-        
-        // Section documents d'analyse si disponible
-        if (requirementsDocuments != null && !requirementsDocuments.trim().isEmpty()) {
-            prompt.append("## CONTEXTE DES DOCUMENTS D'ANALYSE\n");
-            if (requirementsDocuments.length() > 2000) {
-                prompt.append(requirementsDocuments.substring(0, 2000)).append("\n... (contexte tronqué)\n\n");
-            } else {
-                prompt.append(requirementsDocuments).append("\n\n");
-            }
-        }
-        
-        prompt.append("## Analyse PlantUML à traiter\n");
-        prompt.append("```plantuml\n");
-        prompt.append(preparePlantUmlForPrompt(analysisResults));
-        prompt.append("\n```\n\n");
-        
-        prompt.append("## INSTRUCTIONS D'EXÉCUTION\n");
-        prompt.append("🚨 OBLIGATOIRE : Utiliser les outils MCP de création d'exigences pour CHAQUE exigence\n");
-        
-        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
-            prompt.append("- Créer les " + parsedRequirements.size() + " exigences parsées EXACTEMENT comme spécifié\n");
-            prompt.append("- Utiliser les ID, descriptions, catégories et priorités fournis\n");
-        } else {
-            prompt.append("- Extraire 8-15 exigences complètes du PlantUML\n");
-            prompt.append("- Utiliser le format : 'EXG-001 : Le système doit gérer l'authentification utilisateur'\n");
-        }
-        
-        prompt.append("- Créer les exigences comme éléments d'analyse dans Modelio\n");
-        prompt.append("- Rapporter l'UUID de chaque exigence créée pour la traçabilité\n");
-        prompt.append("- Organiser dans le package 'Exigences'\n\n");
-        
-        prompt.append("📊 **CRITIQUE : PRODUIRE UNE SORTIE STRUCTURÉE**\n");
-        prompt.append("Après avoir créé toutes les exigences, générer ce format EXACT :\n\n");
-        prompt.append("```json\n");
-        prompt.append("{\n");
-        prompt.append("  \"requirements_created\": [\n");
-        prompt.append("    {\n");
-        prompt.append("      \"id\": \"EXG-001\",\n");
-        prompt.append("      \"uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
-        prompt.append("      \"description\": \"Le système doit...\",\n");
-        prompt.append("      \"categorie\": \"Fonctionnelle\",\n");
-        prompt.append("      \"priorite\": \"Haute\",\n");
-        prompt.append("      \"elements_plantuml\": [\"Utilisateur\", \"Authentification\"]\n");
-        prompt.append("    }\n");
-        prompt.append("  ],\n");
-        prompt.append("  \"total_requirements\": 12,\n");
-        prompt.append("  \"package_uuid\": \"00000000-0000-0000-0000-000000000000\"\n");
-        prompt.append("}\n");
-        prompt.append("```\n\n");
-        prompt.append("🔗 **elements_plantuml** : Lister les classes/acteurs PlantUML liés à cette exigence\n\n");
-        
-        prompt.append("## CRITÈRES DE RÉUSSITE\n");
-        prompt.append("✅ Toutes les exigences couvertes par des éléments d'analyse appropriés\n");
-        prompt.append("✅ UUIDs rapportés pour toutes les exigences créées\n");
-        prompt.append("✅ Exigences correctement catégorisées et priorisées\n");
-        prompt.append("✅ Toutes les descriptions en français\n\n");
-        
-        prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez les exigences avec les outils MCP et retournez uniquement le JSON demandé.");
-        
-        return prompt.toString();
-    }
     
-    /**
-     * Génère le prompt spécialisé pour la création des classes et associations (PHASE 2)
-     */
-    private static String createClassesPrompt(String analysisResults, String requirementsResult, List<Requirement> parsedRequirements, List<String> requirementUUIDs) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append("🇫🇷 Vous êtes un modélisateur de domaine Modelio. Votre mission : créer TOUTES les classes et associations en français.\n\n");
-        
-        prompt.append("## MISSION PHASE 2 : CLASSES & ASSOCIATIONS\n");
-        prompt.append("🎯 Créer un modèle de domaine complet en français à partir du PlantUML avec toutes les relations.\n");
-        prompt.append("🚨 Utiliser les outils MCP pour créer classes, attributs et associations.\n\n");
-        
-        // Contexte des requirements créés
-        prompt.append("## TRAÇABILITÉ - EXIGENCES CRÉÉES\n");
-        if (requirementsResult != null && !requirementsResult.trim().isEmpty()) {
-            if (requirementsResult.length() > 1500) {
-                prompt.append(requirementsResult.substring(0, 1500)).append("\n... (contexte exigences tronqué)\n\n");
-            } else {
-                prompt.append(requirementsResult).append("\n\n");
-            }
-            
-            prompt.append("🔗 MAINTENIR LA TRAÇABILITÉ : Lier les classes aux exigences pertinentes lors de leur création.\n\n");
+
+    private static String executePhase2DomainModelWithChunking(
+            PooledUmlAssistant assistant,
+            String analysisResults,
+            String requirementsResult,
+            List<Requirement> parsedRequirements,
+            List<String> requirementUUIDs,
+            String defaultPrompt,
+            String outputDirectory) throws IOException {
+        String plantUml = PlantUmlParser.preparePlantUmlForPrompt(analysisResults);
+        PlantUmlParser.DomainPlantUmlParts parts = PlantUmlParser.extractDomainPlantUmlParts(plantUml);
+        boolean shouldChunk = parts.classBlocks.size() >= PHASE2_CHUNKING_CLASS_THRESHOLD
+                || parts.relationLines.size() >= PHASE2_CHUNKING_RELATION_THRESHOLD;
+        if (!shouldChunk) {
+            String classesResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(assistant, "domain_model_phase", defaultPrompt, outputDirectory, 2);
+            classesResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
+            classesResult = McpRetryHandler.retryOnMissingModelingRequest(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
+            classesResult = McpRetryHandler.retryOnProjectOverviewOnly(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
+            classesResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
+            return classesResult;
         }
-        
-        // ✨ NEW: Add requirement UUIDs for direct linking (avoid keyword search failures)
-        if (requirementUUIDs != null && !requirementUUIDs.isEmpty()) {
-            prompt.append("## UUIDS DES EXIGENCES POUR LIEN DIRECT (À UTILISER OBLIGATOIREMENT)\n");
-            prompt.append("🚨 NE PAS CHERCHER LES EXIGENCES PAR MOTS-CLÉS! Utiliser directement ces UUIDs pour créer les liens «Satisfait»:\n\n");
-            for (int i = 0; i < requirementUUIDs.size(); i++) {
-                prompt.append(String.format("- UUID exigence #%d: %s\n", (i + 1), requirementUUIDs.get(i)));
-            }
-            prompt.append("\n🚨 CRITIQUE : Lors de la création de chaque classe, appeler analyst_createRelation IMMÉDIATEMENT\n");
-            prompt.append("   avec relation_type=\"satisfy\", source_uuid=<UUID classe>, target_uuid=<l'un des UUIDs exigences ci-dessus>\n");
-            prompt.append("   NE PAS attendre la fin. Lier chaque classe AU FUR ET À MESURE.\n\n");
+
+        debug("📦 domain_model_phase switched to chunked mode: "
+                + parts.classBlocks.size() + " classes, " + parts.relationLines.size() + " relations.");
+
+        List<String> chunkReports = new ArrayList<>();
+        List<String> chunkPhaseNames = new ArrayList<>();
+        List<String> collectedUuids = new ArrayList<>();
+
+        List<List<String>> classChunks = PlantUmlParser.splitIntoChunks(parts.classBlocks, PHASE2_CLASSES_CHUNK_SIZE);
+        for (int i = 0; i < classChunks.size(); i++) {
+            PooledUmlAssistant chunkAssistant = newAssistant();
+            String phaseName = "domain_model_phase_classes_chunk_" + (i + 1);
+            String prompt = UmlPromptBuilder.createClassesChunkPrompt(
+                    requirementsResult,
+                    parsedRequirements,
+                    requirementUUIDs,
+                    classChunks.get(i),
+                    i + 1,
+                    classChunks.size());
+            String chunkResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(chunkAssistant, phaseName, prompt, outputDirectory, 2);
+            chunkResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnMissingModelingRequest(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnProjectOverviewOnly(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnMemberUuidNotFound(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpFailurePatterns.acceptSatisfaitOnlyFailure(phaseName, chunkResult);
+            validateMcpExecutionResult(phaseName, chunkResult);
+            chunkReports.add("### " + phaseName + System.lineSeparator() + chunkResult.trim());
+            chunkPhaseNames.add(phaseName);
+            collectedUuids.addAll(extractUUIDs(chunkResult));
         }
-        
-        // Contexte des requirements parsés pour traçabilité
-        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
-            prompt.append("## CONTEXTE DES EXIGENCES POUR TRAÇABILITÉ\n");
-            prompt.append("Considérer ces exigences lors de la création des classes :\n");
-            
-            for (int i = 0; i < Math.min(parsedRequirements.size(), 10); i++) {
-                Requirement req = parsedRequirements.get(i);
-                prompt.append(String.format("- %s: %s\n", req.id, 
-                    req.description.length() > 80 ? req.description.substring(0, 80) + "..." : req.description));
-            }
-            
-            if (parsedRequirements.size() > 10) {
-                prompt.append("... et " + (parsedRequirements.size() - 10) + " exigences supplémentaires\n");
-            }
-            prompt.append("\n");
+
+        List<List<String>> relationChunks = PlantUmlParser.splitIntoChunks(parts.relationLines, PHASE2_ASSOCIATIONS_CHUNK_SIZE);
+        for (int i = 0; i < relationChunks.size(); i++) {
+            PooledUmlAssistant chunkAssistant = newAssistant();
+            String phaseName = "domain_model_phase_associations_chunk_" + (i + 1);
+            String prompt = UmlPromptBuilder.createAssociationsChunkPrompt(
+                    requirementsResult,
+                    requirementUUIDs,
+                    parts.classNames,
+                    relationChunks.get(i),
+                    i + 1,
+                    relationChunks.size());
+            String chunkResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(chunkAssistant, phaseName, prompt, outputDirectory, 2);
+            chunkResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnMissingModelingRequest(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnProjectOverviewOnly(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnMemberUuidNotFound(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
+            chunkResult = McpFailurePatterns.acceptSatisfaitOnlyFailure(phaseName, chunkResult);
+            validateMcpExecutionResult(phaseName, chunkResult);
+            chunkReports.add("### " + phaseName + System.lineSeparator() + chunkResult.trim());
+            chunkPhaseNames.add(phaseName);
+            collectedUuids.addAll(extractUUIDs(chunkResult));
         }
-        
-        prompt.append("## PlantUML à implémenter\n");
-        prompt.append("```plantuml\n");
-        prompt.append(preparePlantUmlForPrompt(analysisResults));
-        prompt.append("\n```\n\n");
-        
-        prompt.append("## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)\n");
-        prompt.append("1️⃣ **Créer les Packages** : Utiliser les outils MCP\n");
-        prompt.append("   - Créer le package 'Modèle de Domaine' pour toutes les classes\n");
-        prompt.append("   - Rapporter l'UUID du package\n\n");
-        
-        prompt.append("2️⃣ **Créer les Classes** : Utiliser les outils MCP UNE PAR UNE\n");
-        prompt.append("   - Parser TOUTES les classes du PlantUML\n");
-        prompt.append("   - Conserver les noms exacts du PlantUML\n");
-        prompt.append("   - Créer dans le package 'Modèle de Domaine'\n");
-        prompt.append("   - Rapporter l'UUID de chaque classe\n");
-        prompt.append("   - 🚨 OBLIGATOIRE : pour chaque classe liée à une exigence, matérialiser le lien «Satisfait» avec l'outil MCP\n");
-        prompt.append("     `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID de la classe>, target_uuid=<UUID de l'exigence>,\n");
-        prompt.append("     module_name=\"ModelerModule\") en un seul appel.\n");
-        prompt.append("     Sans cette dépendance «Satisfait» réelle dans le modèle, la classe N'EST PAS considérée comme tracée.\n\n");
-        
-        prompt.append("3️⃣ **Ajouter les Attributs** : Utiliser les outils MCP POUR CHAQUE CLASSE\n");
-        prompt.append("   - Ajouter TOUS les attributs du PlantUML\n");
-        prompt.append("   - Utiliser les types : String, int, boolean, float (compatibles Modelio)\n");
-        prompt.append("   - NE JAMAIS utiliser : Date, Integer, Boolean\n");
-        prompt.append("   - Attendre la confirmation de création de classe avant d'ajouter les attributs\n\n");
-        
-        prompt.append("4️⃣ **Créer les Associations** : Utiliser les outils MCP POUR CHAQUE RELATION\n");
-        prompt.append("   - Parser CHAQUE relation : -->, --|>, --o, --*, <|--\n");
-        prompt.append("   - Créer les associations SEULEMENT après que toutes les classes existent\n");
-        prompt.append("   - Définir les cardinalités appropriées (1, 0..1, 1..*, 0..*)\n");
-        prompt.append("   - Nommer les relations de manière significative\n");
-        prompt.append("   - 🚨 NE PAS IGNORER AUCUNE ASSOCIATION\n\n");
-        
-        prompt.append("📊 **CRITIQUE : PRODUIRE UNE SORTIE AS-BUILT**\n");
-        prompt.append("Après création du modèle de domaine, générer :\n\n");
-        prompt.append("### 1. DIAGRAMME PLANTUML AS-BUILT\n");
-        prompt.append("```plantuml\n");
-        prompt.append("@startuml MODELE_DOMAINE_AS_BUILT\n");
-        prompt.append("' Générer le PlantUML EXACT de ce qui a été créé dans Modelio\n");
-        prompt.append("class Utilisateur {\n");
-        prompt.append("  +nom: String\n");
-        prompt.append("  +email: String\n");
-        prompt.append("}\n");
-        prompt.append("' Inclure TOUTES les classes, attributs et associations créés\n");
-        prompt.append("@enduml\n");
-        prompt.append("```\n\n");
-        prompt.append("### 2. JSON DU MODÈLE DE DOMAINE STRUCTURÉ\n");
-        prompt.append("```json\n");
-        prompt.append("{\n");
-        prompt.append("  \"domain_model_created\": {\n");
-        prompt.append("    \"package_uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
-        prompt.append("    \"classes\": [\n");
-        prompt.append("      {\n");
-        prompt.append("        \"nom\": \"Utilisateur\",\n");
-        prompt.append("        \"uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
-        prompt.append("        \"attributs\": [{\"nom\": \"email\", \"type\": \"String\"}],\n");
-        prompt.append("        \"exigences_liees\": [\"EXG-001\", \"EXG-003\"]\n");
-        prompt.append("      }\n");
-        prompt.append("    ],\n");
-        prompt.append("    \"associations\": [\n");
-        prompt.append("      {\"de\": \"Utilisateur\", \"vers\": \"Commande\", \"type\": \"Association\", \"cardinalite\": \"1..*\"}\n");
-        prompt.append("    ]\n");
-        prompt.append("  }\n");
-        prompt.append("}\n");
-        prompt.append("```\n\n");
-        
-        prompt.append("## CRITICAL TYPE RULES\n");
-        prompt.append("✅ ALLOWED: String, int, boolean, float\n");
-        prompt.append("❌ FORBIDDEN: Date, Integer, Boolean, LocalDate\n");
-        prompt.append("🔄 FALLBACK: Use String for complex types\n\n");
-        
-        prompt.append("## ASSOCIATION TYPES\n");
-        prompt.append("- --> = Association\n");
-        prompt.append("- --|> = Generalization\n");
-        prompt.append("- --o = Aggregation\n");
-        prompt.append("- --* = Composition\n\n");
-        
-        prompt.append("## RÈGLE DE TRAÇABILITÉ OBLIGATOIRE («Satisfait»)\n");
-        prompt.append("🚨 Chaque élément de modélisation créé (classe, etc.) qui répond à une exigence DOIT être relié à celle-ci\n");
-        prompt.append("   par une relation de Dépendance stéréotypée «Satisfait» (stéréotype défini par le profil Modelio Analyst).\n");
-        prompt.append("   - Appel MCP exact à exécuter dès que l'élément et l'exigence existent (UUIDs réels requis) :\n");
-        prompt.append("     `analyst_createRelation` avec relation_type=\"satisfy\", source_uuid=<UUID de l'élément>,\n");
-        prompt.append("     target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\"\n");
-        prompt.append("   - Sens de la relation : source = élément de modélisation (satisfait), target = exigence (satisfaite).\n");
-        prompt.append("   - Un élément sans dépendance «Satisfait» réelle vers son/ses exigence(s) n'est PAS conforme.\n");
-        prompt.append("   - Ne pas se contenter de le mentionner dans le JSON : la relation doit exister dans le modèle Modelio.\n\n");
-        
-        prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. START NOW: create packages, classes, attributes, then associations with MCP tools and return the as-built outputs only.");
-        
-        return prompt.toString();
+
+        String asBuiltPlantUml = PlantUmlParser.buildAsBuiltDomainPlantUml(parts.classBlocks, parts.relationLines);
+        StringBuilder aggregated = new StringBuilder();
+        aggregated.append("=== DOMAIN MODEL CHUNKED EXECUTION ===").append(System.lineSeparator());
+        aggregated.append("Chunk strategy applied because model volume exceeded single-pass safety limits.").append(System.lineSeparator());
+        aggregated.append("Classes: ").append(parts.classBlocks.size())
+                .append(", Relations: ").append(parts.relationLines.size()).append(System.lineSeparator()).append(System.lineSeparator());
+        aggregated.append(String.join(System.lineSeparator() + System.lineSeparator(), chunkReports)).append(System.lineSeparator());
+
+        List<String> deduplicatedUuids = PlantUmlParser.deduplicatePreservingOrder(collectedUuids);
+        if (asBuiltPlantUml != null) {
+            aggregated.append(System.lineSeparator())
+                    .append("```plantuml").append(System.lineSeparator())
+                    .append(asBuiltPlantUml).append(System.lineSeparator())
+                    .append("```").append(System.lineSeparator());
+        }
+        String synthesizedJson = PlantUmlParser.synthesizeDomainModelJsonWithFallback(asBuiltPlantUml, deduplicatedUuids);
+        if (synthesizedJson != null) {
+            aggregated.append(System.lineSeparator())
+                    .append("```json").append(System.lineSeparator())
+                    .append(synthesizedJson).append(System.lineSeparator())
+                    .append("```").append(System.lineSeparator());
+        }
+
+        consolidateDomainPhaseChunkTraces(outputDirectory, chunkPhaseNames);
+        return aggregated.toString();
     }
+
+
+    private static void consolidateDomainPhaseChunkTraces(String outputDirectory, List<String> chunkPhaseNames) {
+        if (outputDirectory == null || outputDirectory.isBlank() || chunkPhaseNames == null || chunkPhaseNames.isEmpty()) {
+            return;
+        }
+        Path outDir = Path.of(outputDirectory);
+        StringBuilder promptAggregate = new StringBuilder();
+        StringBuilder traceAggregate = new StringBuilder();
+        for (String chunkPhaseName : chunkPhaseNames) {
+            appendFileIfExists(promptAggregate, outDir.resolve(chunkPhaseName + "_prompt.txt"), chunkPhaseName);
+            appendFileIfExists(traceAggregate, outDir.resolve(chunkPhaseName + "_mcp_trace.txt"), chunkPhaseName);
+        }
+        if (!promptAggregate.isEmpty()) {
+            saveDebugFile(promptAggregate.toString(), "domain_model_phase_prompt.txt", outputDirectory);
+        }
+        if (!traceAggregate.isEmpty()) {
+            saveDebugFile(traceAggregate.toString(), "domain_model_phase_mcp_trace.txt", outputDirectory);
+        }
+    }
+
+    private static void appendFileIfExists(StringBuilder target, Path path, String title) {
+        if (path == null || !Files.exists(path)) {
+            return;
+        }
+        try {
+            target.append("==== ").append(title).append(" ====").append(System.lineSeparator());
+            target.append(Files.readString(path)).append(System.lineSeparator()).append(System.lineSeparator());
+        } catch (IOException e) {
+            debug("⚠️ Could not read chunk debug file " + path + ": " + e.getMessage());
+        }
+    }
+
     
-    /**
-     * Génère le prompt spécialisé pour la création des use cases et actors (PHASE 3)
-     */
-    private static String createUseCasesPrompt(String analysisResults, String requirementsResult, String classesResult, List<Requirement> parsedRequirements, List<String> requirementUUIDs) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append("🇫🇷 Vous êtes un analyste de cas d'usage Modelio. Votre mission : créer TOUS les cas d'usage et acteurs en français.\n\n");
-        
-        prompt.append("## MISSION PHASE 3 : CAS D'USAGE & ACTEURS\n");
-        prompt.append("🎯 Créer un modèle de cas d'usage complet en français avec acteurs et scénarios.\n");
-        prompt.append("🚨 Utiliser les outils MCP pour créer acteurs, cas d'usage et leurs associations.\n\n");
-        
-        // Contexte des requirements pour lien fonctionnel
-        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
-            prompt.append("## CONTEXTE FONCTIONNEL - APERÇU DES EXIGENCES\n");
-            prompt.append("Baser les cas d'usage sur ces exigences fonctionnelles :\n");
-            
-            for (int i = 0; i < Math.min(parsedRequirements.size(), 12); i++) {
-                Requirement req = parsedRequirements.get(i);
-                if (req.category.contains("Fonctionnel") || req.category.contains("Interface") || req.category.contains("Intégration") ||
-                    req.category.contains("Fonctionnelle") || req.category.contains("UI") || req.category.contains("Integration")) {
-                    prompt.append(String.format("- **%s** (%s): %s\n", req.id, req.category,
-                        req.description.length() > 100 ? req.description.substring(0, 100) + "..." : req.description));
-                }
-            }
-            prompt.append("\n🔗 LIEN : Créer des cas d'usage qui implémentent ces exigences fonctionnelles.\n\n");
-        }
-        
-        prompt.append("## CONTEXTE DES PHASES PRÉCÉDENTES\n");
-        prompt.append("### Exigences Créées (Phase 1) :\n");
-        if (requirementsResult != null && requirementsResult.length() > 2000) {
-            prompt.append(requirementsResult.substring(0, 2000)).append("\n... (contexte exigences tronqué)\n\n");
-        } else {
-            prompt.append(requirementsResult).append("\n\n");
-        }
-        
-        // ✨ NEW: Add requirement UUIDs for direct linking (avoid keyword search failures)
-        if (requirementUUIDs != null && !requirementUUIDs.isEmpty()) {
-            prompt.append("## UUIDS DES EXIGENCES POUR LIEN DIRECT (À UTILISER OBLIGATOIREMENT)\n");
-            prompt.append("🚨 NE PAS CHERCHER LES EXIGENCES PAR MOTS-CLÉS! Utiliser directement ces UUIDs pour créer les liens «Satisfait»:\n\n");
-            for (int i = 0; i < requirementUUIDs.size(); i++) {
-                prompt.append(String.format("- UUID exigence #%d: %s\n", (i + 1), requirementUUIDs.get(i)));
-            }
-            prompt.append("\n🚨 CRITIQUE : Lors de la création de chaque cas d'usage, appeler analyst_createRelation IMMÉDIATEMENT\n");
-            prompt.append("   avec relation_type=\"satisfy\", source_uuid=<UUID cas d'usage>, target_uuid=<l'un des UUIDs exigences ci-dessus>\n");
-            prompt.append("   NE PAS attendre la fin. Lier chaque cas d'usage AU FUR ET À MESURE.\n\n");
-        }
-        
-        prompt.append("🔍 **EXTRAIRE LE JSON DES EXIGENCES** : Rechercher la structure JSON dans les résultats ci-dessus\n\n");
-        
-        prompt.append("### Modèle de Domaine Créé (Phase 2) :\n");
-        if (classesResult != null && classesResult.length() > 2000) {
-            prompt.append(classesResult.substring(0, 2000)).append("\n... (contexte classes tronqué)\n\n");
-        } else {
-            prompt.append(classesResult).append("\n\n");
-        }
-        
-        prompt.append("🔍 **EXTRAIRE LE MODÈLE DE DOMAINE** : Rechercher le PlantUML MODELE_DOMAINE_AS_BUILT et JSON ci-dessus\n");
-        prompt.append("🎯 **UTILISER LE MODÈLE AS-BUILT** : Baser les cas d'usage sur les classes réellement créées, pas le PlantUML original\n\n");
-        
-        prompt.append("## RÉFÉRENCE PLANTUML ORIGINAL\n");
-        prompt.append("```plantuml\n");
-        prompt.append(preparePlantUmlForPrompt(analysisResults));
-        prompt.append("\n```\n\n");
-        
-        prompt.append("## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)\n");
-        prompt.append("1️⃣ **Créer le Package Cas d'Usage** : Utiliser les outils MCP\n");
-        prompt.append("   - Créer le package 'Cas d Usage'\n");
-        prompt.append("   - Rapporter l'UUID du package\n\n");
-        
-        prompt.append("2️⃣ **Créer les Acteurs** : Utiliser les outils MCP\n");
-        prompt.append("   - Identifier tous les types d'utilisateurs à partir des exigences et du modèle de domaine\n");
-        prompt.append("   - Créer les acteurs : Utilisateur, Administrateur, Système Externe, etc.\n");
-        prompt.append("   - Placer dans le package 'Cas d Usage'\n");
-        prompt.append("   - Rapporter l'UUID de chaque acteur\n\n");
-        
-        prompt.append("3️⃣ **Créer les Cas d'Usage** : Utiliser les outils MCP\n");
-        prompt.append("   - Extraire les fonctionnalités principales des exigences et classes\n");
-        prompt.append("   - Créer les cas d'usage : 'Gérer les Utilisateurs', 'Traiter les Données', etc.\n");
-        prompt.append("   - Lier aux exigences d'implémentation quand c'est possible\n");
-        prompt.append("   - Placer dans le package 'Cas d Usage'\n");
-        prompt.append("   - Rapporter l'UUID de chaque cas d'usage\n");
-        prompt.append("   - 🚨 OBLIGATOIRE : pour chaque cas d'usage lié à une exigence, matérialiser le lien «Satisfait» avec l'outil MCP\n");
-        prompt.append("     `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>,\n");
-        prompt.append("     module_name=\"ModelerModule\") en un seul appel.\n\n");
-        
-        prompt.append("4️⃣ **Créer les Associations Acteur-Cas d'Usage** : Utiliser les outils MCP\n");
-        prompt.append("   - Connecter chaque acteur aux cas d'usage pertinents\n");
-        prompt.append("   - Utiliser les types d'association appropriés\n");
-        prompt.append("   - Ajouter les relations <<include>> et <<extend>> si nécessaire\n");
-        prompt.append("   - Maintenir la traçabilité vers les exigences\n\n");
-        
-        prompt.append("📊 **CRITICAL: PRODUCE VALIDATION & OUTPUTS**\n");
-        prompt.append("After creating use cases, generate:\n\n");
-        prompt.append("### 1. REQUIREMENTS COVERAGE VALIDATION\n");
-        prompt.append("```\n");
-        prompt.append("REQUIREMENTS COVERAGE ANALYSIS:\n");
-        prompt.append("- REQ-001: Covered by [Login, User Management] use cases\n");
-        prompt.append("- REQ-002: Covered by [Data Processing] use case\n");
-        prompt.append("- REQ-XXX: NOT COVERED - Missing use case needed\n");
-        prompt.append("\n");
-        prompt.append("COVERAGE RATE: 85% (11/13 requirements covered)\n");
-        prompt.append("```\n\n");
-        prompt.append("### 2. USE CASE DIAGRAM PLANTUML\n");
-        prompt.append("```plantuml\n");
-        prompt.append("@startuml USE_CASES_DIAGRAM\n");
-        prompt.append("actor User\n");
-        prompt.append("actor Admin\n");
-        prompt.append("rectangle System {\n");
-        prompt.append("  usecase \"Login\" as UC1\n");
-        prompt.append("  usecase \"Manage Data\" as UC2\n");
-        prompt.append("}\n");
-        prompt.append("User --> UC1\n");
-        prompt.append("Admin --> UC2\n");
-        prompt.append("@enduml\n");
-        prompt.append("```\n\n");
-        prompt.append("### 3. USE CASES SUMMARY JSON\n");
-        prompt.append("```json\n");
-        prompt.append("{\n");
-        prompt.append("  \"use_cases_created\": {\n");
-        prompt.append("    \"package_uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
-        prompt.append("    \"actors\": [{\"name\": \"User\", \"uuid\": \"00000000-0000-0000-0000-000000000000\"}],\n");
-        prompt.append("    \"use_cases\": [\n");
-        prompt.append("      {\n");
-        prompt.append("        \"name\": \"Login\",\n");
-        prompt.append("        \"uuid\": \"00000000-0000-0000-0000-000000000000\",\n");
-        prompt.append("        \"actors\": [\"User\"],\n");
-        prompt.append("        \"linked_requirements\": [\"REQ-001\"],\n");
-        prompt.append("        \"domain_classes_used\": [\"User\", \"Authentication\"]\n");
-        prompt.append("      }\n");
-        prompt.append("    ],\n");
-        prompt.append("    \"coverage_rate\": 0.85,\n");
-        prompt.append("    \"uncovered_requirements\": [\"REQ-007\"]\n");
-        prompt.append("  }\n");
-        prompt.append("}\n");
-        prompt.append("```\n\n");
-        
-        prompt.append("## ACTEURS TYPIQUES À CONSIDÉRER\n");
-        prompt.append("- Utilisateurs principaux (qui vont utiliser le système)\n");
-        prompt.append("- Administrateurs (qui gèrent le système)\n");
-        prompt.append("- Systèmes externes (APIs, bases de données)\n");
-        prompt.append("- Parties prenantes (managers, auditeurs)\n\n");
-        
-        prompt.append("## CAS D'USAGE TYPIQUES À CONSIDÉRER\n");
-        prompt.append("- Gestion des utilisateurs (inscription, connexion, profil)\n");
-        prompt.append("- Opérations sur les données (créer, lire, modifier, supprimer)\n");
-        prompt.append("- Reporting et analytiques\n");
-        prompt.append("- Administration système\n");
-        prompt.append("- Intégration avec systèmes externes\n\n");
-        
-        prompt.append("## EXIGENCES DE TRAÇABILITÉ\n");
-        prompt.append("🔗 Lier les cas d'usage aux exigences qui définissent leurs fonctionnalités\n");
-        prompt.append("🔗 Référencer les classes du modèle de domaine manipulées par les cas d'usage\n");
-        prompt.append("🔗 Assurer une couverture complète des exigences fonctionnelles\n");
-        prompt.append("🚨 RAPPEL OBLIGATOIRE : chaque lien de traçabilité vers une exigence DOIT être matérialisé dans Modelio via l'outil MCP\n");
-        prompt.append("   `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID de l'élément>, target_uuid=<UUID de l'exigence>,\n");
-        prompt.append("   module_name=\"ModelerModule\"). Un simple champ JSON 'linked_requirements' ne suffit pas.\n\n");
-        
-        prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.");
-        
-        return prompt.toString();
-    }
 
-    private static String preparePlantUmlForPrompt(String analysisResults) {
-        if (analysisResults == null || analysisResults.isBlank()) {
-            return "";
-        }
-
-        String extractedDiagram = extractPlantUMLDiagram(analysisResults, "PROMPT_INPUT");
-        if (extractedDiagram != null && !extractedDiagram.isBlank()) {
-            return PlantUMLAnalyzer.cleanPlantUMLCode(extractedDiagram);
-        }
-
-        String cleaned = PlantUMLAnalyzer.cleanPlantUMLCode(analysisResults);
-        if (PlantUMLAnalyzer.isValidPlantUML(cleaned)) {
-            return cleaned;
-        }
-
-        return analysisResults.trim();
-    }
 
     /**
      * Extrait automatiquement les UUIDs depuis un output d'agent
@@ -2013,12 +1430,12 @@ public class LangchainService {
         List<String> realUuids = extractUUIDs(result);
 
         // Fallback 1: PlantUML + UUIDs → synthesize full JSON from PlantUML
-        String asBuiltPlantUml = extractPlantUMLDiagram(result, "MODELE_DOMAINE_AS_BUILT");
+        String asBuiltPlantUml = PlantUmlParser.extractPlantUMLDiagram(result, "MODELE_DOMAINE_AS_BUILT");
         if (asBuiltPlantUml == null) {
-            asBuiltPlantUml = extractPlantUMLDiagram(result, "AS_BUILT_DOMAIN_MODEL");
+            asBuiltPlantUml = PlantUmlParser.extractPlantUMLDiagram(result, "AS_BUILT_DOMAIN_MODEL");
         }
         if (asBuiltPlantUml != null && PlantUMLAnalyzer.isValidPlantUML(asBuiltPlantUml) && !realUuids.isEmpty()) {
-            String synthesizedJson = synthesizeDomainModelJson(asBuiltPlantUml, realUuids);
+            String synthesizedJson = PlantUmlParser.synthesizeDomainModelJson(asBuiltPlantUml, realUuids);
             if (synthesizedJson != null) {
                 debug("⚠️ domain_model_phase returned no structured JSON; synthesized fallback domain_model_created payload from as-built PlantUML");
                 return result
@@ -2036,7 +1453,7 @@ public class LangchainService {
         // This covers the case where MCP tools executed (UUIDs prove it) but the LLM
         // didn't produce a PlantUML diagram or structured JSON in its final output.
         if (!realUuids.isEmpty()) {
-            String synthesizedJson = synthesizeMinimalDomainModelJson(realUuids);
+            String synthesizedJson = PlantUmlParser.synthesizeMinimalDomainModelJson(realUuids);
             if (synthesizedJson != null) {
                 debug("⚠️ domain_model_phase returned no structured JSON or PlantUML; synthesized minimal domain_model_created payload from " + realUuids.size() + " UUIDs");
                 return result
@@ -2067,9 +1484,9 @@ public class LangchainService {
         List<String> realUuids = extractUUIDs(result);
 
         // Fallback 1: PlantUML + UUIDs → synthesize a full JSON payload from the as-built output.
-        String useCasesPlantUml = extractPlantUMLDiagram(result, "USE_CASES_DIAGRAM");
+        String useCasesPlantUml = PlantUmlParser.extractPlantUMLDiagram(result, "USE_CASES_DIAGRAM");
         if (useCasesPlantUml != null && PlantUMLAnalyzer.isValidPlantUML(useCasesPlantUml) && !realUuids.isEmpty()) {
-            String synthesizedJson = synthesizeUseCasesJson(useCasesPlantUml, realUuids);
+            String synthesizedJson = PlantUmlParser.synthesizeUseCasesJson(useCasesPlantUml, realUuids);
             if (synthesizedJson != null) {
                 debug("⚠️ use_cases_phase returned no structured JSON; synthesized fallback use_cases_created payload from as-built PlantUML");
                 return result
@@ -2085,7 +1502,7 @@ public class LangchainService {
 
         // Fallback 2: UUIDs present but no PlantUML → synthesize a minimal JSON payload from UUIDs.
         if (!realUuids.isEmpty()) {
-            String synthesizedJson = synthesizeMinimalUseCasesJson(realUuids);
+            String synthesizedJson = PlantUmlParser.synthesizeMinimalUseCasesJson(realUuids);
             if (synthesizedJson != null) {
                 debug("⚠️ use_cases_phase returned no structured JSON or PlantUML; synthesized minimal use_cases_created payload from " + realUuids.size() + " UUIDs");
                 return result
@@ -2102,442 +1519,6 @@ public class LangchainService {
         return result;
     }
 
-    private static String synthesizeMinimalUseCasesJson(List<String> realUuids) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            ObjectNode useCases = root.putObject("use_cases_created");
-            useCases.put("synthesized_from_uuids_only", true);
-            useCases.put("uuid_count", realUuids.size());
-
-            if (!realUuids.isEmpty()) {
-                useCases.put("package_uuid", realUuids.get(0));
-            }
-
-            ArrayNode actors = useCases.putArray("actors");
-            ArrayNode useCasesArray = useCases.putArray("use_cases");
-            ArrayNode relations = useCases.putArray("relations");
-
-            // Heuristic: keep the payload useful even when the LLM omits its final JSON block.
-            for (int i = 1; i < realUuids.size(); i++) {
-                ObjectNode item = (i % 2 == 1 ? actors : useCasesArray).addObject();
-                item.put("uuid", realUuids.get(i));
-                item.put("synthesized", true);
-            }
-
-            useCases.putArray("uncovered_requirements");
-            useCases.put("coverage_rate", 0.0);
-            useCases.put("synthesized_relations_count", relations.size());
-
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
-        } catch (Exception e) {
-            debug("⚠️ Could not synthesize minimal use_cases_created JSON: " + e.getMessage());
-            return null;
-        }
-    }
-
-    private static String synthesizeUseCasesJson(String plantUml, List<String> realUuids) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            ObjectNode useCases = root.putObject("use_cases_created");
-            useCases.put("package_uuid", realUuids.get(0));
-            useCases.put("synthesized_from_as_built_output", true);
-
-            ArrayNode actors = useCases.putArray("actors");
-            ArrayNode useCasesArray = useCases.putArray("use_cases");
-            ArrayNode relations = useCases.putArray("relations");
-
-            appendActorsFromPlantUml(actors, plantUml);
-            appendUseCasesFromPlantUml(useCasesArray, plantUml);
-            appendUseCaseRelationsFromPlantUml(relations, plantUml);
-
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
-        } catch (Exception e) {
-            debug("⚠️ Could not synthesize use_cases_created JSON: " + e.getMessage());
-            return null;
-        }
-    }
-
-    private static void appendActorsFromPlantUml(ArrayNode actors, String plantUml) {
-        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
-        for (String rawLine : plantUml.split("\\R")) {
-            String line = rawLine == null ? "" : rawLine.trim();
-            if (!line.contains("actor ")) {
-                continue;
-            }
-            String actorName = extractActorNameFromPlantUml(line);
-            if (actorName != null && seen.add(actorName)) {
-                ObjectNode actor = actors.addObject();
-                actor.put("name", actorName);
-                actor.putNull("uuid");
-                actor.put("synthesized", true);
-            }
-        }
-    }
-
-    private static String extractActorNameFromPlantUml(String line) {
-        if (line == null) {
-            return null;
-        }
-        String working = line.substring("actor ".length()).trim();
-        if (working.isEmpty()) {
-            return null;
-        }
-        if (working.startsWith("\"")) {
-            int endQuote = working.indexOf('"', 1);
-            if (endQuote > 1) {
-                return working.substring(1, endQuote).trim();
-            }
-        }
-        int asIndex = working.indexOf(" as ");
-        if (asIndex >= 0) {
-            working = working.substring(0, asIndex).trim();
-        }
-        return working.isEmpty() ? null : working;
-    }
-
-    private static void appendUseCasesFromPlantUml(ArrayNode useCases, String plantUml) {
-        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
-        for (String rawLine : plantUml.split("\\R")) {
-            String line = rawLine == null ? "" : rawLine.trim();
-            if (!line.contains("usecase ")) {
-                continue;
-            }
-            String useCaseName = extractUseCaseNameFromPlantUml(line);
-            if (useCaseName != null && seen.add(useCaseName)) {
-                ObjectNode useCase = useCases.addObject();
-                useCase.put("name", useCaseName);
-                useCase.putNull("uuid");
-                useCase.put("synthesized", true);
-                useCase.putArray("actors");
-                useCase.putArray("linked_requirements");
-                useCase.putArray("domain_classes_used");
-            }
-        }
-    }
-
-    private static void appendUseCaseRelationsFromPlantUml(ArrayNode relations, String plantUml) {
-        for (String rawLine : plantUml.split("\\R")) {
-            String line = rawLine == null ? "" : rawLine.trim();
-            if (line.isEmpty() || line.startsWith("'") || line.startsWith("//")) {
-                continue;
-            }
-            if (!(line.contains("-->") || line.contains("<--") || line.contains("..>") || line.contains("<.."))) {
-                continue;
-            }
-            String relationToken = detectPlantUmlRelationToken(line);
-            if (relationToken == null) {
-                continue;
-            }
-
-            String relationWithoutLabel = line;
-            String relationLabel = null;
-            int labelSeparator = line.indexOf(':');
-            if (labelSeparator >= 0) {
-                relationWithoutLabel = line.substring(0, labelSeparator).trim();
-                relationLabel = line.substring(labelSeparator + 1).trim();
-            }
-
-            String[] endpoints = relationWithoutLabel.split(Pattern.quote(relationToken), 2);
-            if (endpoints.length != 2) {
-                continue;
-            }
-
-            String from = cleanupPlantUmlRelationEndpoint(endpoints[0]);
-            String to = cleanupPlantUmlRelationEndpoint(endpoints[1]);
-            if (from.isEmpty() || to.isEmpty()) {
-                continue;
-            }
-
-            ObjectNode relation = relations.addObject();
-            relation.put("from", from);
-            relation.put("to", to);
-            relation.put("type", mapPlantUmlRelationType(relationToken));
-            if (relationLabel != null && !relationLabel.isEmpty()) {
-                relation.put("label", relationLabel);
-            }
-        }
-    }
-
-    private static String extractUseCaseNameFromPlantUml(String line) {
-        if (line == null) {
-            return null;
-        }
-        int firstQuote = line.indexOf('"');
-        int secondQuote = firstQuote >= 0 ? line.indexOf('"', firstQuote + 1) : -1;
-        if (firstQuote >= 0 && secondQuote > firstQuote) {
-            return line.substring(firstQuote + 1, secondQuote).trim();
-        }
-        String[] tokens = line.split("\\s+");
-        if (tokens.length >= 2) {
-            return tokens[tokens.length - 1].trim();
-        }
-        return null;
-    }
-
-    private static String synthesizeMinimalDomainModelJson(List<String> realUuids) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            ObjectNode domainModel = root.putObject("domain_model_created");
-            domainModel.put("synthesized_from_uuids_only", true);
-            domainModel.put("uuid_count", realUuids.size());
-
-            // Heuristic: the first UUID is likely the package, the rest are classes/elements
-            if (!realUuids.isEmpty()) {
-                domainModel.put("package_uuid", realUuids.get(0));
-            }
-
-            ArrayNode classes = domainModel.putArray("classes");
-            // Treat UUIDs after the first as class UUIDs
-            for (int i = 1; i < realUuids.size(); i++) {
-                ObjectNode cls = classes.addObject();
-                cls.put("uuid", realUuids.get(i));
-                cls.put("synthesized", true);
-                cls.putArray("attributs");
-                cls.putArray("exigences_liees");
-            }
-
-            domainModel.putArray("associations");
-
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
-        } catch (Exception e) {
-            debug("⚠️ Could not synthesize minimal domain_model_created JSON: " + e.getMessage());
-            return null;
-        }
-    }
-
-    private static String synthesizeDomainModelJson(String plantUml, List<String> realUuids) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            ObjectNode domainModel = root.putObject("domain_model_created");
-            domainModel.put("package_uuid", realUuids.get(0));
-            domainModel.put("synthesized_from_as_built_output", true);
-
-            ArrayNode classes = domainModel.putArray("classes");
-            appendClassesFromPlantUml(classes, plantUml);
-
-            ArrayNode associations = domainModel.putArray("associations");
-            appendAssociationsFromPlantUml(associations, plantUml);
-
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
-        } catch (Exception e) {
-            debug("⚠️ Could not synthesize domain_model_created JSON: " + e.getMessage());
-            return null;
-        }
-    }
-
-    private static void appendClassesFromPlantUml(ArrayNode classes, String plantUml) {
-        java.util.Set<String> seenClassNames = new java.util.LinkedHashSet<>();
-        ObjectNode currentClass = null;
-
-        for (String rawLine : plantUml.split("\\R")) {
-            String line = rawLine == null ? "" : rawLine.trim();
-            if (line.isEmpty() || line.startsWith("'") || line.startsWith("//")) {
-                continue;
-            }
-            if (line.startsWith("@startuml") || line.startsWith("@enduml")) {
-                continue;
-            }
-            if (line.startsWith("}")) {
-                currentClass = null;
-                continue;
-            }
-
-            String className = extractPlantUmlClassifierName(line);
-            if (className != null) {
-                if (seenClassNames.add(className)) {
-                    currentClass = classes.addObject();
-                    currentClass.put("nom", className);
-                    currentClass.putNull("uuid");
-                    currentClass.putArray("attributs");
-                    currentClass.putArray("exigences_liees");
-                } else {
-                    currentClass = null;
-                }
-                if (!line.contains("{")) {
-                    currentClass = null;
-                }
-                continue;
-            }
-
-            if (currentClass != null && line.contains(":") && !line.contains("(")) {
-                String[] parts = line.split(":", 2);
-                if (parts.length == 2) {
-                    String attributeName = cleanupPlantUmlAttributeToken(parts[0]);
-                    String attributeType = cleanupPlantUmlAttributeToken(parts[1]);
-                    if (!attributeName.isEmpty() && !attributeType.isEmpty()) {
-                        ArrayNode attributes = (ArrayNode) currentClass.get("attributs");
-                        ObjectNode attribute = attributes.addObject();
-                        attribute.put("nom", attributeName);
-                        attribute.put("type", attributeType);
-                    }
-                }
-            }
-        }
-    }
-
-    private static void appendAssociationsFromPlantUml(ArrayNode associations, String plantUml) {
-        for (String rawLine : plantUml.split("\\R")) {
-            String line = rawLine == null ? "" : rawLine.trim();
-            if (line.isEmpty() || line.startsWith("'") || line.startsWith("//")) {
-                continue;
-            }
-
-            String relationToken = detectPlantUmlRelationToken(line);
-            if (relationToken == null) {
-                continue;
-            }
-
-            String relationWithoutLabel = line;
-            String relationLabel = null;
-            int labelSeparator = line.indexOf(':');
-            if (labelSeparator >= 0) {
-                relationWithoutLabel = line.substring(0, labelSeparator).trim();
-                relationLabel = line.substring(labelSeparator + 1).trim();
-            }
-
-            String[] endpoints = relationWithoutLabel.split(Pattern.quote(relationToken), 2);
-            if (endpoints.length != 2) {
-                continue;
-            }
-
-            String from = cleanupPlantUmlRelationEndpoint(endpoints[0]);
-            String to = cleanupPlantUmlRelationEndpoint(endpoints[1]);
-            if (from.isEmpty() || to.isEmpty()) {
-                continue;
-            }
-
-            ObjectNode association = associations.addObject();
-            association.put("de", from);
-            association.put("vers", to);
-            association.put("type", mapPlantUmlRelationType(relationToken));
-            if (relationLabel != null && !relationLabel.isEmpty()) {
-                association.put("nom", relationLabel);
-            }
-
-            String cardinality = extractPlantUmlCardinality(relationWithoutLabel);
-            if (cardinality == null || cardinality.isBlank()) {
-                association.putNull("cardinalite");
-            } else {
-                association.put("cardinalite", cardinality);
-            }
-        }
-    }
-
-    private static String extractPlantUmlClassifierName(String line) {
-        String working = line;
-        if (working.startsWith("abstract ")) {
-            working = working.substring("abstract ".length()).trim();
-        }
-
-        String[] prefixes = {"class ", "interface ", "enum ", "entity "};
-        String matchedPrefix = null;
-        for (String prefix : prefixes) {
-            if (working.startsWith(prefix)) {
-                matchedPrefix = prefix;
-                break;
-            }
-        }
-        if (matchedPrefix == null) {
-            return null;
-        }
-
-        working = working.substring(matchedPrefix.length()).trim();
-        if (working.isEmpty()) {
-            return null;
-        }
-
-        if (working.startsWith("\"")) {
-            int endQuote = working.indexOf('"', 1);
-            if (endQuote > 1) {
-                return working.substring(1, endQuote).trim();
-            }
-        }
-
-        int cutIndex = working.length();
-        String[] delimiters = {" {", " as ", " <<", " extends ", " implements "};
-        for (String delimiter : delimiters) {
-            int index = working.indexOf(delimiter);
-            if (index >= 0 && index < cutIndex) {
-                cutIndex = index;
-            }
-        }
-        String name = working.substring(0, cutIndex).trim();
-        if (name.endsWith("{")) {
-            name = name.substring(0, name.length() - 1).trim();
-        }
-        return name;
-    }
-
-    private static String cleanupPlantUmlAttributeToken(String token) {
-        if (token == null) {
-            return "";
-        }
-        String cleaned = token.trim()
-                .replace("+", "")
-                .replace("-", "")
-                .replace("#", "")
-                .replace("~", "")
-                .trim();
-        int genericStart = cleaned.indexOf('{');
-        if (genericStart >= 0) {
-            cleaned = cleaned.substring(0, genericStart).trim();
-        }
-        return cleaned;
-    }
-
-    private static String detectPlantUmlRelationToken(String line) {
-        String[] relationTokens = {"<|--", "--|>", "*--", "--*", "o--", "--o", "<--", "-->", "..>", "<..", "..", "--"};
-        for (String token : relationTokens) {
-            if (line.contains(token)) {
-                return token;
-            }
-        }
-        return null;
-    }
-
-    private static String cleanupPlantUmlRelationEndpoint(String endpoint) {
-        if (endpoint == null) {
-            return "";
-        }
-        String cleaned = endpoint.replaceAll("\"[^\"]*\"", " ")
-                .replaceAll("\\b(left|right|up|down|hidden)\\b", " ")
-                .trim();
-        Matcher matcher = Pattern.compile("[\\p{L}_][\\p{L}\\p{N}_.-]*").matcher(cleaned);
-        String lastMatch = "";
-        while (matcher.find()) {
-            lastMatch = matcher.group();
-        }
-        return lastMatch;
-    }
-
-    private static String mapPlantUmlRelationType(String relationToken) {
-        return switch (relationToken) {
-            case "<|--", "--|>" -> "Generalization";
-            case "*--", "--*" -> "Composition";
-            case "o--", "--o" -> "Aggregation";
-            case "..>", "<..", ".." -> "Dependency";
-            default -> "Association";
-        };
-    }
-
-    private static String extractPlantUmlCardinality(String relationLine) {
-        if (relationLine == null || relationLine.isBlank()) {
-            return null;
-        }
-        Matcher matcher = Pattern.compile("\"([^\"]+)\"").matcher(relationLine);
-        List<String> values = new ArrayList<>();
-        while (matcher.find()) {
-            values.add(matcher.group(1).trim());
-        }
-        if (values.isEmpty()) {
-            return null;
-        }
-        return String.join(" / ", values);
-    }
 
     private static void validateMcpExecutionResult(String phaseName, String result, String... expectedJsonKeys) {
         if (result == null || result.trim().isEmpty()) {
@@ -2549,7 +1530,7 @@ public class LangchainService {
             throw new IllegalStateException(trimmed);
         }
 
-        if (MANUAL_INSTRUCTIONS_PATTERN.matcher(result).find()) {
+        if (McpFailurePatterns.MANUAL_INSTRUCTIONS_PATTERN.matcher(result).find()) {
             throw new IllegalStateException(
                     "The LLM returned manual instructions instead of executing MCP tools during phase '" + phaseName + "'");
         }
@@ -2576,85 +1557,7 @@ public class LangchainService {
         }
     }
 
-    /**
-     * Extrait le diagramme PlantUML depuis un output d'agent
-     */
-    private static String extractPlantUMLDiagram(String agentOutput, String diagramName) {
-        if (agentOutput == null || diagramName == null) return null;
-        
-        try {
-            // Chercher le bloc PlantUML spécifique
-            String startMarker = "@startuml " + diagramName;
-            String endMarker = "@enduml";
-            
-            int start = agentOutput.indexOf(startMarker);
-            if (start == -1) {
-                // Essayer sans nom spécifique
-                start = agentOutput.indexOf("@startuml");
-            }
-            
-            if (start != -1) {
-                int end = agentOutput.indexOf(endMarker, start);
-                if (end != -1) {
-                    String diagram = agentOutput.substring(start, end + endMarker.length());
-                    debug("🎯 Extracted PlantUML diagram: " + diagramName);
-                    return diagram;
-                }
-            }
-            
-            debug("⚠️ No PlantUML diagram found for: " + diagramName);
-            return null;
-            
-        } catch (Exception e) {
-            debug("❌ Error extracting PlantUML diagram: " + e.getMessage());
-            return null;
-        }
-    }
 
-    /**
-     * Ancienne méthode monolithique conservée pour compatibilité avec generateModelFromPlantUML
-     * (Version simplifiée du prompt géant d'origine - FRANCISÉE)
-     */
-    private static String createLegacyModelGenerationPrompt(String plantUMLContent, String requirementsDocuments, List<Requirement> parsedRequirements) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append("🇫🇷 Vous êtes un assistant de modélisation Modelio. Créez un modèle UML complet en français à partir du PlantUML.\n\n");
-        
-        if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
-            prompt.append("## Exigences Parsées Disponibles\n");
-            for (Requirement req : parsedRequirements) {
-                prompt.append(String.format("- **%s**: %s (Catégorie: %s, Priorité: %s)\n", 
-                    req.id, req.description, req.category, req.priority));
-            }
-            prompt.append("\n🚨 Créer ces exigences dans Modelio en utilisant les outils MCP.\n\n");
-        }
-        
-        prompt.append("## PlantUML à Traiter\n");
-        prompt.append("```plantuml\n");
-        prompt.append(plantUMLContent);
-        prompt.append("\n```\n\n");
-        
-        prompt.append("## SÉQUENCE D'EXÉCUTION\n");
-        prompt.append("1. Créer les packages (Exigences, Cas d'Usage, Modèle de Domaine)\n");
-        prompt.append("2. Créer les exigences en utilisant les outils MCP\n");
-        prompt.append("3. Créer les classes avec leurs attributs\n");
-        prompt.append("4. Créer les associations entre les classes\n");
-        prompt.append("5. Créer les cas d'usage et les acteurs\n\n");
-        
-        prompt.append("## RÈGLES CRITIQUES\n");
-        prompt.append("- Utiliser les outils MCP pour CHAQUE création d'élément\n");
-        prompt.append("- Créer d'abord les classes, puis les attributs, puis les associations\n");
-        prompt.append("- Utiliser les types : String, int, boolean, float (compatibles Modelio)\n");
-        prompt.append("- NE JAMAIS ignorer les associations - parser TOUTES les relations du PlantUML\n");
-        prompt.append("- TOUTES les descriptions et noms doivent être en français\n");
-        prompt.append("- 🚨 OBLIGATOIRE : chaque élément (classe, acteur, cas d'usage) qui répond à une exigence DOIT être relié\n");
-        prompt.append("  à celle-ci via l'outil MCP `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID élément>,\n");
-        prompt.append("  target_uuid=<UUID exigence>, module_name=\"ModelerModule\")\n\n");
-        
-        prompt.append("COMMENCEZ MAINTENANT : Créez le modèle complet en utilisant les outils MCP.");
-        
-        return prompt.toString();
-    }
     
     // -------------------------------------------------- Instance state (compatibility layer) --------------------------------------------------
 
@@ -2803,3 +1706,4 @@ public class LangchainService {
         return builder.buildAsyncClient();
     }
 }
+
