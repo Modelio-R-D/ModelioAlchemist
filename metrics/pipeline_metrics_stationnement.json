@@ -1,0 +1,57 @@
+{
+  "source_document" : "CCTP.pdf",
+  "timings_ms" : {
+    "extraction" : 2493,
+    "extractor_agent" : 49005,
+    "filtering" : 11352,
+    "classification" : 30229,
+    "validate_completeness" : 4,
+    "validate_context" : 5,
+    "domain_analysis" : 24002,
+    "plantuml" : 47024,
+    "create_requirements" : 47024,
+    "create_class_model" : 87793,
+    "total" : 251987
+  },
+  "filtering" : {
+    "total_items_analyzed" : 1,
+    "requirements_retained" : 8,
+    "items_rejected" : 1,
+    "retention_rate_pct" : 800.0
+  },
+  "classification_validation" : {
+    "extracted_count" : 0,
+    "classified_count" : 8,
+    "missing_requirements" : 0,
+    "extra_requirements" : 8,
+    "is_valid" : true
+  },
+  "context_validation" : {
+    "total_requirements" : 17,
+    "contextualized_requirements" : 17,
+    "contextRate_pct" : 100.0,
+    "category_distribution" : {
+      "fonctionnel" : 8,
+      "rssi" : 2,
+      "ecoconception" : 1,
+      "rse" : 1,
+      "technique" : 5
+    },
+    "missing_references" : 0
+  },
+  "source_location" : {
+    "from_llm" : 8,
+    "from_deterministic_fallback" : 0,
+    "still_missing" : 0
+  },
+  "mcp_requirements" : {
+    "attempted" : 8,
+    "created_successfully" : 8,
+    "failed" : 0
+  },
+  "mcp_satisfy_links" : {
+    "uml_elements_created" : 0,
+    "satisfy_relations_attempted" : 0,
+    "satisfy_relations_confirmed" : 0
+  }
+}

@@ -1083,7 +1083,7 @@ public class PipelineRunner {
             
             metrics.setMcpRequirementsMetrics(mcpAttempted, mcpCreatedSuccessfully, mcpFailed);
             
-            // Parse UML and satisfy metrics from trace files
+            // Parse UML and satisfy metrics from generated reports first, then trace files as fallback.
             Path outputPath = Path.of(outputDir);
             int umlElementsCreated = countUmlElementsCreated(classModelReport, outputPath);
             int satisfyRelationsAttempted = countSatisfyRelations(classModelReport, outputPath, true);
@@ -1101,7 +1101,7 @@ public class PipelineRunner {
      */
     private int countUmlElementsCreated(String classModelReport, Path outputDir) {
         try {
-            int reportCount = countUmlElementsCreatedFromReport(classModelReport);
+            int reportCount = countUmlElementsCreatedFromReports(classModelReport, outputDir);
             if (reportCount > 0) {
                 return reportCount;
             }
@@ -1168,7 +1168,7 @@ public class PipelineRunner {
     private int countSatisfyRelations(String classModelReport, Path outputDir, boolean countAttempts) {
         try {
             int traceCount = 0;
-            int reportConfirmed = countSatisfyRelationsFromReport(classModelReport);
+            int reportConfirmed = countSatisfyRelationsFromReports(classModelReport, outputDir);
              
             // Check all MCP trace files for satisfy relations
             Pattern satisfyPattern = Pattern.compile(
@@ -1253,12 +1253,34 @@ public class PipelineRunner {
         return count;
     }
 
+    private int countUmlElementsCreatedFromReports(String classModelReport, Path outputDir) {
+        int count = countUmlElementsCreatedFromReport(classModelReport);
+        for (String reportFileName : List.of(
+                "modelio_mcp_classmodel_report.txt",
+                "uml_model_3phase_report.txt",
+                "modelio_mcp_creation_summary.txt")) {
+            count = Math.max(count, countUmlElementsCreatedFromReport(readReportIfExists(outputDir.resolve(reportFileName))));
+        }
+        return count;
+    }
+
     private int countSatisfyRelationsFromReport(String classModelReport) {
         if (classModelReport == null || classModelReport.isBlank()) {
             return 0;
         }
         return countPatternOccurrences(classModelReport,
-                Pattern.compile("(?m)^\\s*-\\s+.*?satisfy→.*?(?:relation UUID|`[a-fA-F0-9-]{36}`)"));
+                Pattern.compile("(?m)^\\s*-\\s+.*?\\bsatisfy\\b.*?(?:relation UUID|`[a-fA-F0-9-]{36}`)"));
+    }
+
+    private int countSatisfyRelationsFromReports(String classModelReport, Path outputDir) {
+        int count = countSatisfyRelationsFromReport(classModelReport);
+        for (String reportFileName : List.of(
+                "modelio_mcp_classmodel_report.txt",
+                "uml_model_3phase_report.txt",
+                "modelio_mcp_creation_summary.txt")) {
+            count = Math.max(count, countSatisfyRelationsFromReport(readReportIfExists(outputDir.resolve(reportFileName))));
+        }
+        return count;
     }
 
     private int countBulletLinesInSection(String content, String startMarker, List<String> endMarkers) {
@@ -1302,6 +1324,17 @@ public class PipelineRunner {
             count++;
         }
         return count;
+    }
+
+    private String readReportIfExists(Path reportPath) {
+        try {
+            if (reportPath != null && Files.exists(reportPath)) {
+                return Files.readString(reportPath);
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not read report file '" + reportPath + "': " + e.getMessage());
+        }
+        return null;
     }
     
     /**
