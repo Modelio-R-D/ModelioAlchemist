@@ -81,6 +81,8 @@ class UmlPromptBuilder {
         prompt.append("## MISSION PHASE 2 : CLASSES & ASSOCIATIONS\n");
         prompt.append("🎯 Créer un modèle de domaine complet en français à partir du PlantUML avec toutes les relations.\n");
         prompt.append("🚨 Utiliser les outils MCP pour créer classes, attributs et associations.\n\n");
+        prompt.append("🚫 INTERDICTIONS ABSOLUES : ne pas appeler `analyst_queryItems` et ne jamais rechercher une exigence par nom, mot-clé ou texte libre.\n");
+        prompt.append("🔗 Les liens «Satisfait» sont OPTIONNELS : utilisez uniquement les UUID d'exigence explicitement fournis ci-dessous, sinon sautez le lien sans erreur.\n\n");
 
         prompt.append("## TRAÇABILITÉ - EXIGENCES CRÉÉES\n");
         if (requirementsResult != null && !requirementsResult.trim().isEmpty()) {
@@ -166,15 +168,13 @@ class UmlPromptBuilder {
         prompt.append("🔄 FALLBACK: Use String for complex types\n\n");
         prompt.append("## ASSOCIATION TYPES\n- --> = Association\n- --|> = Generalization\n- --o = Aggregation\n- --* = Composition\n\n");
 
-        prompt.append("## RÈGLE DE TRAÇABILITÉ OBLIGATOIRE («Satisfait»)\n");
-        prompt.append("🚨 Chaque élément de modélisation créé (classe, etc.) qui répond à une exigence DOIT être relié à celle-ci\n");
-        prompt.append("   par une relation de Dépendance stéréotypée «Satisfait» (stéréotype défini par le profil Modelio Analyst).\n");
-        prompt.append("   - Appel MCP exact à exécuter dès que l'élément et l'exigence existent (UUIDs réels requis) :\n");
-        prompt.append("     `analyst_createRelation` avec relation_type=\"satisfy\", source_uuid=<UUID de l'élément>,\n");
-        prompt.append("     target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\"\n");
-        prompt.append("   - Sens de la relation : source = élément de modélisation (satisfait), target = exigence (satisfaite).\n");
-        prompt.append("   - Un élément sans dépendance «Satisfait» réelle vers son/ses exigence(s) n'est PAS conforme.\n");
-        prompt.append("   - Ne pas se contenter de le mentionner dans le JSON : la relation doit exister dans le modèle Modelio.\n\n");
+        prompt.append("## RÈGLE DE TRAÇABILITÉ («Satisfait»)\n");
+        prompt.append("🔗 Si, et seulement si, un UUID d'exigence valide est fourni dans ce prompt, vous pouvez créer un lien «Satisfait».\n");
+        prompt.append("   - Appel MCP autorisé : `analyst_createRelation` avec relation_type=\"satisfy\", source_uuid=<UUID de l'élément>,\n");
+        prompt.append("     target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\".\n");
+        prompt.append("   - Sens de la relation : source = élément de modélisation, target = exigence.\n");
+        prompt.append("   - Si aucun UUID valide n'est disponible, n'essayez PAS de retrouver l'exigence par nom et continuez sans ce lien.\n");
+        prompt.append("   - L'absence de lien «Satisfait» ne doit jamais faire échouer la création des classes, attributs ou associations.\n\n");
 
         prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. START NOW: create packages, classes, attributes, then associations with MCP tools and return the as-built outputs only.");
         return prompt.toString();
@@ -318,6 +318,8 @@ class UmlPromptBuilder {
         prompt.append("## MISSION PHASE 3 : CAS D'USAGE & ACTEURS\n");
         prompt.append("🎯 Créer un modèle de cas d'usage complet en français avec acteurs et scénarios.\n");
         prompt.append("🚨 Utiliser les outils MCP pour créer acteurs, cas d'usage et leurs associations.\n\n");
+        prompt.append("🚫 INTERDICTIONS ABSOLUES : ne pas appeler `analyst_queryItems` et ne jamais rechercher une exigence par nom, catégorie ou mot-clé.\n");
+        prompt.append("🔗 Les liens «Satisfait» sont OPTIONNELS : utilisez uniquement un UUID d'exigence fourni explicitement dans ce prompt; sinon sautez le lien sans erreur.\n\n");
 
         if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
             prompt.append("## CONTEXTE FONCTIONNEL - APERÇU DES EXIGENCES\n");
@@ -331,7 +333,7 @@ class UmlPromptBuilder {
                             req.description.length() > 100 ? req.description.substring(0, 100) + "..." : req.description));
                 }
             }
-            prompt.append("\n🔗 LIEN : Créer des cas d'usage qui implémentent ces exigences fonctionnelles.\n\n");
+            prompt.append("\n🔗 LIEN : Créer des cas d'usage qui couvrent ces exigences fonctionnelles; les liens «Satisfait» restent optionnels.\n\n");
         }
 
         prompt.append("## CONTEXTE DES PHASES PRÉCÉDENTES\n### Exigences Créées (Phase 1) :\n");
@@ -376,11 +378,11 @@ class UmlPromptBuilder {
         prompt.append("3️⃣ **Créer les Cas d'Usage** : Utiliser les outils MCP\n");
         prompt.append("   - Extraire les fonctionnalités principales des exigences et classes\n");
         prompt.append("   - Créer les cas d'usage : 'Gérer les Utilisateurs', 'Traiter les Données', etc.\n");
-        prompt.append("   - Lier aux exigences d'implémentation quand c'est possible\n");
+        prompt.append("   - Lier aux exigences d'implémentation uniquement si un UUID d'exigence valide est déjà fourni dans ce prompt\n");
         prompt.append("   - Placer dans le package 'Cas d Usage'\n   - Rapporter l'UUID de chaque cas d'usage\n");
-        prompt.append("   - 🚨 OBLIGATOIRE : pour chaque cas d'usage lié à une exigence, matérialiser le lien «Satisfait» avec l'outil MCP\n");
-        prompt.append("     `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>,\n");
-        prompt.append("     module_name=\"ModelerModule\") en un seul appel.\n\n");
+        prompt.append("   - OPTIONNEL : si un UUID d'exigence valide est disponible, matérialiser le lien «Satisfait» avec `analyst_createRelation`\n");
+        prompt.append("     (relation_type=\"satisfy\", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\").\n");
+        prompt.append("     Si aucun UUID valide n'est disponible, ne cherchez pas l'exigence par nom et continuez sans erreur.\n\n");
         prompt.append("4️⃣ **Créer les Associations Acteur-Cas d'Usage** : Utiliser les outils MCP\n");
         prompt.append("   - Connecter chaque acteur aux cas d'usage pertinents\n");
         prompt.append("   - Utiliser les types d'association appropriés\n");
@@ -421,9 +423,8 @@ class UmlPromptBuilder {
         prompt.append("🔗 Lier les cas d'usage aux exigences qui définissent leurs fonctionnalités\n");
         prompt.append("🔗 Référencer les classes du modèle de domaine manipulées par les cas d'usage\n");
         prompt.append("🔗 Assurer une couverture complète des exigences fonctionnelles\n");
-        prompt.append("🚨 RAPPEL OBLIGATOIRE : chaque lien de traçabilité vers une exigence DOIT être matérialisé dans Modelio via l'outil MCP\n");
-        prompt.append("   `analyst_createRelation` (relation_type=\"satisfy\", source_uuid=<UUID de l'élément>, target_uuid=<UUID de l'exigence>,\n");
-        prompt.append("   module_name=\"ModelerModule\"). Un simple champ JSON 'linked_requirements' ne suffit pas.\n\n");
+        prompt.append("⚠️ RAPPEL : un lien de traçabilité vers une exigence ne peut être créé que si un UUID d'exigence valide est fourni dans ce prompt.\n");
+        prompt.append("   Ne jamais appeler `analyst_queryItems` ni rechercher une exigence par nom; si l'UUID manque, conservez la traçabilité uniquement dans le compte-rendu/JSON et continuez.\n\n");
 
         prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.");
         return prompt.toString();

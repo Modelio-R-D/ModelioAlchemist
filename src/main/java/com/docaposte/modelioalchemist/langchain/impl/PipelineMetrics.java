@@ -2,8 +2,11 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * Tracks and manages comprehensive pipeline execution metrics.
@@ -12,7 +15,7 @@ import java.util.Map;
 public class PipelineMetrics {
     
     private String sourceDocument;
-    private final Map<String, Long> timings = new HashMap<>();
+    private final Map<String, Long> timings = new LinkedHashMap<>();
     private FilteringMetrics filteringMetrics;
     private ClassificationValidationMetrics classificationValidationMetrics;
     private ContextValidationMetrics contextValidationMetrics;
@@ -30,6 +33,53 @@ public class PipelineMetrics {
     public void recordStageTiming(String stageName, long startTime) {
         long duration = System.currentTimeMillis() - startTime;
         timings.put(stageName, duration);
+    }
+
+    public Map<String, Long> getTimings() {
+        return Collections.unmodifiableMap(timings);
+    }
+
+    public String buildTimingSummary() {
+        return buildTimingSummary(System.currentTimeMillis());
+    }
+
+    public String buildTimingSummary(long now) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("📊 Pipeline timing summary\n");
+        for (Map.Entry<String, Long> entry : timings.entrySet()) {
+            summary.append("   - ")
+                .append(formatStageName(entry.getKey()))
+                .append(": ")
+                .append(formatDuration(entry.getValue()))
+                .append(" (")
+                .append(entry.getValue())
+                .append(" ms)\n");
+        }
+        if (pipelineStartTime > 0) {
+            long totalTime = now - pipelineStartTime;
+            summary.append("   - total: ")
+                .append(formatDuration(totalTime))
+                .append(" (")
+                .append(totalTime)
+                .append(" ms)\n");
+        }
+        return summary.toString().trim();
+    }
+
+    private String formatStageName(String stageName) {
+        return stageName.replace('_', ' ');
+    }
+
+    private String formatDuration(long durationMs) {
+        if (durationMs < 1000) {
+            return durationMs + " ms";
+        }
+        long seconds = durationMs / 1000;
+        long millis = durationMs % 1000;
+        if (millis == 0) {
+            return seconds + " s";
+        }
+        return String.format(Locale.ROOT, "%d.%03d s", seconds, millis);
     }
     
     public void setSourceDocument(String sourceDocument) {

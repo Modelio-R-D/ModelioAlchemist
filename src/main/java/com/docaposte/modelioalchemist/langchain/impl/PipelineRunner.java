@@ -142,7 +142,9 @@ public class PipelineRunner {
             
             Texte à traiter (contient des marqueurs [PAGE n] à préserver dans vos annotations) :""";
         progress.onStep(++step, totalSteps, "progress.pipeline.extractorAgent");
+        long extractorAgentStartTime = System.currentTimeMillis();
         String extracted = llm.runPrompt(extractorPrompt, rawText, StageModelConfig.STAGE_EXTRACT);
+        metrics.recordStageTiming("extractor_agent", extractorAgentStartTime);
         Files.writeString(outDir.resolve("extracted_agent_text.txt"), extracted);
         System.out.println("✅ [Stage 2/15] Extractor agent output saved.");
 
@@ -378,8 +380,10 @@ public class PipelineRunner {
 
         // Validation de l'exhaustivité des exigences
         progress.onStep(++step, totalSteps, "progress.pipeline.validateCompleteness");
+        long validateCompletenessStartTime = System.currentTimeMillis();
         RequirementsValidator.ValidationResult validation = 
             RequirementsValidator.validateClassification(extracted, classifiedJson);
+        metrics.recordStageTiming("validate_completeness", validateCompletenessStartTime);
         
         String validationReport = RequirementsValidator.generateValidationReport(validation);
         Files.writeString(outDir.resolve("requirements_validation.txt"), validationReport);
@@ -396,8 +400,10 @@ public class PipelineRunner {
         
         // NOUVEAU : Validation de la contextualisation enrichie
         progress.onStep(++step, totalSteps, "progress.pipeline.validateContext");
+        long validateContextStartTime = System.currentTimeMillis();
         RequirementContextValidator.ContextValidationResult contextValidation = 
             RequirementContextValidator.validateContextualization(extracted, classifiedJson);
+        metrics.recordStageTiming("validate_context", validateContextStartTime);
         
         String contextValidationReport = RequirementContextValidator.generateContextValidationReport(contextValidation);
         Files.writeString(outDir.resolve("context_validation.txt"), contextValidationReport);
@@ -596,137 +602,23 @@ public class PipelineRunner {
         }
         
         // Générer le PlantUML directement à partir de TOUS les rapports d'agents.
-        // NOTE : on ne passe plus par une étape intermédiaire de "description du modèle en prose"
-        // (l'ancienne PHASE modelDescription). Cette description n'était qu'un relais de paraphrase
-        // entre les rapports structurés et le PlantUML : elle coûtait un aller-retour LLM complet sans
-        // ajouter de décision indépendante, et chaque paraphrase est une occasion de perdre ou déformer
-        // de l'information. Générer le PlantUML directement depuis les rapports réduit à la fois la
-        // latence et le risque de dérive/perte d'information.
+        // NOTE : on ne passe plus par une étape intermédiaire de "description du modèle en prose".
+        // Le PlantUML et la création des requirements Modelio sont indépendants, donc on les lance
+        // en parallèle pour réduire la latence globale.
         if (allAgentReports.length() > 0) {
-            System.out.println("🧩 [Stage 12/15] Generating PlantUML directly from all agent reports...");
-            progress.onStep(++step, totalSteps, "progress.pipeline.plantuml");
-            long umlSynthesisStartTime = System.currentTimeMillis();
+            System.out.println("🧩 [Stages 12-14/15] Generating PlantUML and Modelio requirements in parallel...");
+            progress.onParallelSteps(step + 1, totalSteps,
+                "progress.pipeline.plantuml",
+                "progress.pipeline.createRequirements");
 
-            // Prompt amélioré pour PlantUML unifié avec use cases et types corrects
-            String pumlPrompt = """
-                Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
-                Générez PLUSIEURS diagrammes UML COMPLETS : classes, use cases et séquences.
-                
-                STRUCTURE OBLIGATOIRE - Générez EXACTEMENT ce format :
-                
-                1. DIAGRAMME DE CLASSES (obligatoire) :
-                @startuml Classes
-                !theme plain
-                
-                package "Business" {
-                  class NomExact {
-                    +id: int
-                    +nom: String  
-                    +date: String
-                    +status: String
-                    +methode()
-                  }
-                }
-                
-                package "Technical" {
-                  class ServiceClass {
-                    +processData()
-                    +validateInput()
-                  }
-                }
-                
-                package "Securite" {
-                  class AuthService {
-                    +authenticate(): boolean
-                    +authorize(): boolean
-                  }
-                }
-                
-                ' RELATIONS OBLIGATOIRES avec cardinalités
-                Business.ClasseA "1" --> "0..*" Business.ClasseB : "gère"
-                Business.ClasseC *-- Business.ClasseD : "contient"
-                Technical.ServiceClass --> Business.ClasseA : "utilise"
-                @enduml
-                
-                2. DIAGRAMME DE USE CASES (obligatoire) :
-                @startuml UseCases
-                !theme plain
-                
-                actor "Utilisateur" as User
-                actor "Administrateur" as Admin
-                actor "Système Externe" as ExtSys
-                
-                rectangle "Système de Gestion" {
-                  usecase "Gérer candidatures" as UC1
-                  usecase "Suivre projets" as UC2
-                  usecase "Générer rapports" as UC3
-                  usecase "Administrer système" as UC4
-                  usecase "Authentifier utilisateur" as UC5
-                }
-                
-                User --> UC1 : "soumet"
-                User --> UC2 : "consulte"
-                Admin --> UC3 : "génère"
-                Admin --> UC4 : "configure"
-                UC1 --> UC5 : "<<include>>"
-                UC2 --> UC5 : "<<include>>"
-                @enduml
-                
-                RÈGLES STRICTES TYPES MODELIO :
-                - Utilisez UNIQUEMENT : String, int, boolean, float
-                - JAMAIS : Date, Integer, Boolean, LocalDate (incompatibles Modelio)
-                - Pour dates : utilisez String
-                - Pour nombres : utilisez int ou float
-                - Pour identifiants : utilisez int
-                
-                RÈGLES RELATIONS OBLIGATOIRES :
-                - Créez TOUJOURS des associations entre classes liées
-                - Utilisez les cardinalités (1, 0..1, 0..*, 1..*)
-                - Nommez les relations ("gère", "contient", "utilise")
-                - Modélisez l'héritage avec <|--
-                - Modélisez la composition avec *--
-                - Modélisez l'agrégation avec o--
-                
-                OBLIGATIONS USE CASES :
-                - Identifiez TOUS les acteurs du système
-                - Créez des use cases pour chaque fonctionnalité
-                - Utilisez <<include>> pour les dépendances
-                - Utilisez <<extend>> pour les cas optionnels
-                
-                IMPORTANT - LES RAPPORTS SUIVANTS SONT VOTRE SEULE SOURCE :
-                - Ils couvrent les domaines fonctionnel, technique, sécurité (RSSI), RSE et éco-conception
-                - Intégrez TOUTES les analyses (ne perdez aucune information, aucune classe/acteur/cas d'usage identifié)
-                - Conservez la traçabilité avec les références EX-XXX / REQ-XXX
-                - Organisez les classes en packages cohérents (métier, technique, sécurité, transverse)
-                - Soyez précis sur les noms (ils deviendront les noms des classes UML)
-                
-                Tous les rapports d'analyse à transformer directement en PlantUML :
-                """;
-            String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString(), StageModelConfig.STAGE_PLANTUML);
-            metrics.recordStageTiming("uml_synthesis", umlSynthesisStartTime);
-            Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
-            System.out.println("✅ [Stage 12/15] PlantUML generated from all agent reports.");
-
-            plantUMLContent = puml;
-        } else {
-            System.out.println("⏭️ [Stage 12/15] No agent reports available - skipping PlantUML generation.");
-        }
-
-        // Génération du modèle UML dans Modelio via MCP avec TOUS les rapports d'agents
-        if (!plantUMLContent.isEmpty()) {
-            System.out.println("🏗️ [Stages 13-14/15] Generating UML model in Modelio via MCP with all agent reports...");
-            long mcpCreationStartTime = System.currentTimeMillis();
+            ExecutorService modelCreationExecutor = Executors.newFixedThreadPool(2);
             try {
                 // Préparer les documents d'analyse pour le parsing des requirements
                 StringBuilder requirementsDocuments = new StringBuilder();
-                
-                // Inclure le texte extrait original qui contient toutes les exigences
                 requirementsDocuments.append("=== EXTRACTED REQUIREMENTS ===\n");
                 requirementsDocuments.append(extracted).append("\n\n");
-                
-                // Inclure TOUS les rapports d'agents (technique, rssi, fonctionnel, rse, ecoconception)
-                requirementsDocuments.append(allAgentReports.toString());
-                
+                requirementsDocuments.append(allAgentReports);
+
                 System.out.println("📋 Requirements documents assembled from ALL agents:");
                 System.out.println("   - Original extracted text");
                 System.out.println("   - Technical analysis report");
@@ -735,26 +627,171 @@ public class PipelineRunner {
                 System.out.println("   - RSE responsibility report");
                 System.out.println("   - Ecoconception sustainability report");
                 System.out.println("   Total content length: " + requirementsDocuments.length() + " characters");
-                
-                // 🎆 NOUVELLE ARCHITECTURE : Création séparée des exigences et des classes UML
-                
-                // 1) Créer les exigences dans Modelio à partir des exigences filtrées
-                System.out.println("🗺️ Step 1: Creating requirements in Modelio...");
-                progress.onStep(++step, totalSteps, "progress.pipeline.createRequirements");
-                String requirementsReport = mcp.createRequirementsInModelio(filteredJson, outDir.toString(), sourceDocumentName);
-                Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
-                if (requirementsReport == null || requirementsReport.trim().isEmpty() ||
-                    requirementsReport.startsWith("❌") ||
-                    requirementsReport.startsWith("MCP_EXECUTION_FAILED:") ||
-                    requirementsReport.startsWith("[error:")) {
-                    throw new IllegalStateException("Requirements creation did not execute successfully via MCP.\n" + requirementsReport);
+
+                final String requirementsJsonForModelio = filteredJson;
+                long plantumlStartTime = System.currentTimeMillis();
+                long createRequirementsStartTime = System.currentTimeMillis();
+
+                Future<String> plantUmlFuture = modelCreationExecutor.submit(() -> {
+                    System.out.println("🧩 [Stage 12/15] Generating PlantUML directly from all agent reports...");
+                    String pumlPrompt = """
+                        Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
+                        Générez PLUSIEURS diagrammes UML COMPLETS : classes, use cases et séquences.
+                        
+                        STRUCTURE OBLIGATOIRE - Générez EXACTEMENT ce format :
+                        
+                        1. DIAGRAMME DE CLASSES (obligatoire) :
+                        @startuml Classes
+                        !theme plain
+                        
+                        package "Business" {
+                          class NomExact {
+                            +id: int
+                            +nom: String  
+                            +date: String
+                            +status: String
+                            +methode()
+                          }
+                        }
+                        
+                        package "Technical" {
+                          class ServiceClass {
+                            +processData()
+                            +validateInput()
+                          }
+                        }
+                        
+                        package "Securite" {
+                          class AuthService {
+                            +authenticate(): boolean
+                            +authorize(): boolean
+                          }
+                        }
+                        
+                        ' RELATIONS OBLIGATOIRES avec cardinalités
+                        Business.ClasseA "1" --> "0..*" Business.ClasseB : "gère"
+                        Business.ClasseC *-- Business.ClasseD : "contient"
+                        Technical.ServiceClass --> Business.ClasseA : "utilise"
+                        @enduml
+                        
+                        2. DIAGRAMME DE USE CASES (obligatoire) :
+                        @startuml UseCases
+                        !theme plain
+                        
+                        actor "Utilisateur" as User
+                        actor "Administrateur" as Admin
+                        actor "Système Externe" as ExtSys
+                        
+                        rectangle "Système de Gestion" {
+                          usecase "Gérer candidatures" as UC1
+                          usecase "Suivre projets" as UC2
+                          usecase "Générer rapports" as UC3
+                          usecase "Administrer système" as UC4
+                          usecase "Authentifier utilisateur" as UC5
+                        }
+                        
+                        User --> UC1 : "soumet"
+                        User --> UC2 : "consulte"
+                        Admin --> UC3 : "génère"
+                        Admin --> UC4 : "configure"
+                        UC1 --> UC5 : "<<include>>"
+                        UC2 --> UC5 : "<<include>>"
+                        @enduml
+                        
+                        RÈGLES STRICTES TYPES MODELIO :
+                        - Utilisez UNIQUEMENT : String, int, boolean, float
+                        - JAMAIS : Date, Integer, Boolean, LocalDate (incompatibles Modelio)
+                        - Pour dates : utilisez String
+                        - Pour nombres : utilisez int ou float
+                        - Pour identifiants : utilisez int
+                        
+                        RÈGLES RELATIONS OBLIGATOIRES :
+                        - Créez TOUJOURS des associations entre classes liées
+                        - Utilisez les cardinalités (1, 0..1, 0..*, 1..*)
+                        - Nommez les relations ("gère", "contient", "utilise")
+                        - Modélisez l'héritage avec <|--
+                        - Modélisez la composition avec *--
+                        - Modélisez l'agrégation avec o--
+                        
+                        OBLIGATIONS USE CASES :
+                        - Identifiez TOUS les acteurs du système
+                        - Créez des use cases pour chaque fonctionnalité
+                        - Utilisez <<include>> pour les dépendances
+                        - Utilisez <<extend>> pour les cas optionnels
+                        
+                        IMPORTANT - LES RAPPORTS SUIVANTS SONT VOTRE SEULE SOURCE :
+                        - Ils couvrent les domaines fonctionnel, technique, sécurité (RSSI), RSE et éco-conception
+                        - Intégrez TOUTES les analyses (ne perdez aucune information, aucune classe/acteur/cas d'usage identifié)
+                        - Conservez la traçabilité avec les références EX-XXX / REQ-XXX
+                        - Organisez les classes en packages cohérents (métier, technique, sécurité, transverse)
+                        - Soyez précis sur les noms (ils deviendront les noms des classes UML)
+                        
+                        Tous les rapports d'analyse à transformer directement en PlantUML :
+                        """;
+                    String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString(), StageModelConfig.STAGE_PLANTUML);
+                    Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
+                    System.out.println("✅ [Stage 12/15] PlantUML generated from all agent reports.");
+                    return puml;
+                });
+
+                Future<String> requirementsFuture = modelCreationExecutor.submit(() -> {
+                    System.out.println("🗺️ [Stage 13/15] Creating requirements in Modelio...");
+                    String requirementsReport = mcp.createRequirementsInModelio(requirementsJsonForModelio, outDir.toString(), sourceDocumentName);
+                    Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
+                    if (requirementsReport == null || requirementsReport.trim().isEmpty() ||
+                        requirementsReport.startsWith("❌") ||
+                        requirementsReport.startsWith("MCP_EXECUTION_FAILED:") ||
+                        requirementsReport.startsWith("[error:")) {
+                        throw new IllegalStateException("Requirements creation did not execute successfully via MCP.\n" + requirementsReport);
+                    }
+                    System.out.println("✅ [Stage 13/15] Requirements created in Modelio.");
+                    return requirementsReport;
+                });
+
+                String puml = null;
+                String requirementsReport = null;
+                Throwable plantUmlFailure = null;
+                Throwable requirementsFailure = null;
+                try {
+                    puml = plantUmlFuture.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    plantUmlFailure = e;
+                } catch (java.util.concurrent.ExecutionException e) {
+                    plantUmlFailure = e.getCause() != null ? e.getCause() : e;
                 }
-                System.out.println("✅ [Stage 13/15] Requirements created in Modelio.");
-                
-                // 2) Créer le modèle de classes UML dans Modelio à partir du PlantUML généré
-                System.out.println("🏠 Step 2: Creating UML class model in Modelio from PlantUML...");
+
+                try {
+                    requirementsReport = requirementsFuture.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    requirementsFailure = e;
+                } catch (java.util.concurrent.ExecutionException e) {
+                    requirementsFailure = e.getCause() != null ? e.getCause() : e;
+                }
+
+                metrics.recordStageTiming("plantuml", plantumlStartTime);
+                metrics.recordStageTiming("create_requirements", createRequirementsStartTime);
+
+                if (plantUmlFailure != null || requirementsFailure != null) {
+                    Throwable failure = plantUmlFailure != null ? plantUmlFailure : requirementsFailure;
+                    if (plantUmlFailure != null && requirementsFailure != null && plantUmlFailure != requirementsFailure) {
+                        failure.addSuppressed(requirementsFailure);
+                    }
+                    if (failure instanceof Exception ex) {
+                        throw ex;
+                    }
+                    throw new RuntimeException(failure);
+                }
+
+                plantUMLContent = puml;
+                step += 2;
+
+                System.out.println("🏠 Step 3: Creating UML class model in Modelio from PlantUML...");
                 progress.onStep(++step, totalSteps, "progress.pipeline.createClassModel");
+                long createClassModelStartTime = System.currentTimeMillis();
                 String classModelReport = mcp.createUmlClassModel(plantUMLContent, requirementsReport, outDir.toString());
+                metrics.recordStageTiming("create_class_model", createClassModelStartTime);
                 Files.writeString(outDir.resolve("modelio_mcp_classmodel_report.txt"), classModelReport);
                 if (classModelReport == null || classModelReport.trim().isEmpty() ||
                     classModelReport.startsWith("❌") ||
@@ -763,32 +800,31 @@ public class PipelineRunner {
                     throw new IllegalStateException("Class model creation did not execute successfully via MCP.\n" + classModelReport);
                 }
                 System.out.println("✅ [Stage 14/15] UML class model created in Modelio from PlantUML.");
-                
-                // Résumé final
+
                 StringBuilder finalSummary = new StringBuilder();
                 finalSummary.append("=== MODELIO MCP CREATION SUMMARY ===\n\n");
                 finalSummary.append("1. MCP REQUIREMENTS CREATION:\n").append(requirementsReport).append("\n\n");
                 finalSummary.append("2. MCP UML CLASS MODEL CREATION:\n").append(classModelReport).append("\n\n");
                 finalSummary.append("=== END MCP SUMMARY ===\n");
-                
+
                 Files.writeString(outDir.resolve("modelio_mcp_creation_summary.txt"), finalSummary.toString());
                 System.out.println("📋 Final MCP summary saved to modelio_mcp_creation_summary.txt");
-                
-                // Parse MCP reports to extract metrics
+
                 parseMcpMetrics(requirementsReport, classModelReport, outDir.toString());
-                
             } catch (Exception e) {
                 String errorMsg = "MCP failed: " + e.getMessage();
                 System.err.println(errorMsg);
                 Files.writeString(outDir.resolve("modelio_mcp_error.txt"), errorMsg);
                 throw new IllegalStateException(errorMsg, e);
+            } finally {
+                modelCreationExecutor.shutdown();
             }
-            metrics.recordStageTiming("mcp_creation", mcpCreationStartTime);
         } else {
-            System.out.println("⏭️ [Stages 13-14/15] No PlantUML content available - skipping MCP generation.");
+            System.out.println("⏭️ [Stages 12-14/15] No agent reports available - skipping PlantUML/MCP generation.");
         }
 
         progress.onStep(++step, totalSteps, "progress.pipeline.finalizing");
+        long finalizingStartTime = System.currentTimeMillis();
         System.out.println("🎉 [Stage 15/15] Pipeline finished successfully.");
         
         // Write pipeline metrics to JSON
@@ -800,6 +836,8 @@ public class PipelineRunner {
         } catch (Exception e) {
             System.err.println("⚠️ Could not write pipeline metrics: " + e.getMessage());
         }
+        metrics.recordStageTiming("finalizing", finalizingStartTime);
+        System.out.println(metrics.buildTimingSummary());
     }
     
     /**
@@ -1047,9 +1085,9 @@ public class PipelineRunner {
             
             // Parse UML and satisfy metrics from trace files
             Path outputPath = Path.of(outputDir);
-            int umlElementsCreated = countUmlElementsCreated(outputPath);
-            int satisfyRelationsAttempted = countSatisfyRelations(outputPath, true);
-            int satisfyRelationsConfirmed = countSatisfyRelations(outputPath, false);
+            int umlElementsCreated = countUmlElementsCreated(classModelReport, outputPath);
+            int satisfyRelationsAttempted = countSatisfyRelations(classModelReport, outputPath, true);
+            int satisfyRelationsConfirmed = countSatisfyRelations(classModelReport, outputPath, false);
             
             metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
             
@@ -1059,14 +1097,19 @@ public class PipelineRunner {
     }
     
     /**
-     * Counts UML elements created by parsing trace files
+     * Counts UML elements created by parsing the MCP report first, then trace files as fallback.
      */
-    private int countUmlElementsCreated(Path outputDir) {
+    private int countUmlElementsCreated(String classModelReport, Path outputDir) {
         try {
+            int reportCount = countUmlElementsCreatedFromReport(classModelReport);
+            if (reportCount > 0) {
+                return reportCount;
+            }
+
             // Check for class model report which contains UML creation info
-            Path classModelReport = outputDir.resolve("modelio_mcp_classmodel_report.txt");
-            if (Files.exists(classModelReport)) {
-                String content = Files.readString(classModelReport);
+            Path classModelReportPath = outputDir.resolve("modelio_mcp_classmodel_report.txt");
+            if (Files.exists(classModelReportPath)) {
+                String content = Files.readString(classModelReportPath);
                 // Count analyst_createElement calls for UML elements (class, usecase, actor, etc.)
                 int count = 0;
                 Pattern pattern = Pattern.compile("analyst_createElement.*?type[\"']\\s*[:=]\\s*[\"']([^\"']+)", 
@@ -1118,14 +1161,15 @@ public class PipelineRunner {
     }
     
     /**
-     * Counts satisfy relations from trace files
+     * Counts satisfy relations from the MCP report first, then trace files as fallback.
      * @param outputDir output directory
      * @param countAttempts if true, count all attempted calls; if false, count confirmed successful relations
      */
-    private int countSatisfyRelations(Path outputDir, boolean countAttempts) {
+    private int countSatisfyRelations(String classModelReport, Path outputDir, boolean countAttempts) {
         try {
-            int count = 0;
-            
+            int traceCount = 0;
+            int reportConfirmed = countSatisfyRelationsFromReport(classModelReport);
+             
             // Check all MCP trace files for satisfy relations
             Pattern satisfyPattern = Pattern.compile(
                 "analyst_createRelation.*?relation_type[\"']\\s*[:=]\\s*[\"']satisfy[\"']",
@@ -1140,7 +1184,7 @@ public class PipelineRunner {
                 if (countAttempts) {
                     Matcher matcher = satisfyPattern.matcher(content);
                     while (matcher.find()) {
-                        count++;
+                        traceCount++;
                     }
                 } else {
                     // For confirmed, check if response doesn't contain errors
@@ -1150,7 +1194,7 @@ public class PipelineRunner {
                         int nextEnd = Math.min(matchStart + 2000, content.length());
                         String responseSection = content.substring(matchStart, nextEnd);
                         if (!errorPattern.matcher(responseSection).find()) {
-                            count++;
+                            traceCount++;
                         }
                     }
                 }
@@ -1163,7 +1207,7 @@ public class PipelineRunner {
                 if (countAttempts) {
                     Matcher matcher = satisfyPattern.matcher(content);
                     while (matcher.find()) {
-                        count++;
+                        traceCount++;
                     }
                 } else {
                     Matcher matcher = satisfyPattern.matcher(content);
@@ -1172,17 +1216,92 @@ public class PipelineRunner {
                         int nextEnd = Math.min(matchStart + 2000, content.length());
                         String responseSection = content.substring(matchStart, nextEnd);
                         if (!errorPattern.matcher(responseSection).find()) {
-                            count++;
+                            traceCount++;
                         }
                     }
                 }
             }
-            
-            return count;
+
+            if (countAttempts) {
+                return traceCount > 0 ? traceCount : reportConfirmed;
+            }
+            return reportConfirmed > 0 ? reportConfirmed : traceCount;
         } catch (Exception e) {
             System.err.println("⚠️ Could not count satisfy relations: " + e.getMessage());
         }
         return 0;
+    }
+
+    private int countUmlElementsCreatedFromReport(String classModelReport) {
+        if (classModelReport == null || classModelReport.isBlank()) {
+            return 0;
+        }
+
+        int count = 0;
+        count += countBulletLinesInSection(classModelReport,
+                "Éléments UML créés",
+                List.of("Relations «Satisfait»", "```json", "PHASE 3 -"));
+        count += countBulletLinesInSection(classModelReport,
+                "Acteurs déplacés sous le package",
+                List.of("Cas d’usage créés sous", "Cas d'usage créés sous", "```json", "Dépendances"));
+        count += countBulletLinesInSection(classModelReport,
+                "Cas d’usage créés sous",
+                List.of("Dépendances", "Diagramme UML créé", "```json"));
+        count += countBulletLinesInSection(classModelReport,
+                "Cas d'usage créés sous",
+                List.of("Dépendances", "Diagramme UML créé", "```json"));
+        return count;
+    }
+
+    private int countSatisfyRelationsFromReport(String classModelReport) {
+        if (classModelReport == null || classModelReport.isBlank()) {
+            return 0;
+        }
+        return countPatternOccurrences(classModelReport,
+                Pattern.compile("(?m)^\\s*-\\s+.*?satisfy→.*?(?:relation UUID|`[a-fA-F0-9-]{36}`)"));
+    }
+
+    private int countBulletLinesInSection(String content, String startMarker, List<String> endMarkers) {
+        int start = content.indexOf(startMarker);
+        if (start < 0) {
+            return 0;
+        }
+
+        int sectionStart = content.indexOf('\n', start);
+        if (sectionStart < 0) {
+            return 0;
+        }
+        sectionStart++;
+
+        int sectionEnd = content.length();
+        if (endMarkers != null) {
+            for (String endMarker : endMarkers) {
+                if (endMarker == null || endMarker.isBlank()) {
+                    continue;
+                }
+                int candidate = content.indexOf(endMarker, sectionStart);
+                if (candidate >= 0 && candidate < sectionEnd) {
+                    sectionEnd = candidate;
+                }
+            }
+        }
+
+        if (sectionEnd <= sectionStart) {
+            return 0;
+        }
+
+        return countPatternOccurrences(
+                content.substring(sectionStart, sectionEnd),
+                Pattern.compile("(?m)^\\s*-\\s+"));
+    }
+
+    private int countPatternOccurrences(String content, Pattern pattern) {
+        Matcher matcher = pattern.matcher(content);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
     }
     
     /**

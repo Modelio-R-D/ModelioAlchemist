@@ -7,7 +7,7 @@ Accelerate UML modeling in Modelio 6.1.1 by letting LangChain4j + Azure OpenAI i
 - **Three-phase UML synthesis** – `LangchainService` orchestrates requirement creation, class modeling, and use-case generation through pooled `UmlModelingAssistant` instances so complex models stay consistent.
 - **TMA specialization** – `TmaPipelineRunner` focuses on Tierce Maintenance Applicative dossiers, structuring SLA/competency requirements and pushing them straight into Modelio without PlantUML detours.
 - **MCP-native execution** – `ModelioMcpAgent` uses the Model Context Protocol over SSE to call the same tools exposed by the Modelio MCP Server module, ensuring every element is created via official APIs.
-- **Validation & diagnostics** – `RequirementsValidator` and `RequirementContextValidator` quantify coverage so you know when the LLM pipeline lost context, while rich logs/live reports land in the project-specific output folder.
+- **Validation & diagnostics** – `RequirementsValidator` and `RequirementContextValidator` quantify coverage so you know when the LLM pipeline lost context, while rich logs/live reports land in the project-specific output folder and the console ends with a per-stage timing summary plus the total pipeline time.
 
 ## How It Works
 1. **Trigger a command in Modelio** – `GenerateFromPdfCommand` or `GenerateExigencesForTMA` (see module GUI) asks you to pick a PDF and computes a project-scoped `modelioalchemist-output` (or `tma-analysis-output`) directory.

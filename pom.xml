@@ -137,6 +137,8 @@
         <configuration>
           <archive>
             <manifest>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
               <mainClass>com.docaposte.modelioalchemist.langchain.impl.Main</mainClass>
             </manifest>
           </archive>

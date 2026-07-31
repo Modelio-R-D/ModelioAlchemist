@@ -8,6 +8,7 @@ import com.docaposte.modelioalchemist.langchain.impl.LangchainService;
 import com.docaposte.modelioalchemist.langchain.impl.ModelioMcpAgent;
 import com.docaposte.modelioalchemist.langchain.impl.PdfExtractor;
 import com.docaposte.modelioalchemist.langchain.impl.PipelineProgressListener;
+import com.docaposte.modelioalchemist.langchain.impl.PipelineMetrics;
 
 /**
  * Pipeline spécialisé pour l'analyse des cahiers des charges TMA (Tierce Maintenance Applicative).
@@ -46,6 +47,8 @@ public class TmaPipelineRunner {
         if (progress == null) {
             progress = PipelineProgressListener.NONE;
         }
+        PipelineMetrics metrics = new PipelineMetrics();
+        metrics.setPipelineStartTime(System.currentTimeMillis());
         debug("🚀 Starting TMA requirements analysis pipeline");
         debug("📄 PDF: " + pdfPath);
         debug("📁 Output: " + outputDirectory);
@@ -68,6 +71,7 @@ public class TmaPipelineRunner {
         
         try {            // Étape 1: Extraction du texte du PDF - MÊME MÉTHODE que PipelineRunner
             progress.onStep(++step, totalSteps, "progress.tma.extractText");
+            long extractTextStartTime = System.currentTimeMillis();
             debug("📖 Step 1: Extracting raw text from PDF (same as main pipeline)...");
             String rawText;
             try {
@@ -82,11 +86,14 @@ public class TmaPipelineRunner {
                 debug(errorMsg);
                 Files.writeString(outDir.resolve("pdf_extraction_error.txt"), errorMsg + "\n\nStack trace:\n" + getStackTrace(e));
                 throw new RuntimeException("Failed to extract text from PDF", e);
+            } finally {
+                metrics.recordStageTiming("extract_text", extractTextStartTime);
             }
             
             // Étape 2: Agent extracteur pour nettoyer le texte (même pattern que main pipeline)
             debug("🧹 Step 2: Cleaning extracted text with extractor agent...");
             progress.onStep(++step, totalSteps, "progress.tma.cleanText");
+            long cleanTextStartTime = System.currentTimeMillis();
             String extractorPrompt = """
                 Vous êtes un expert en extraction de documents techniques TMA (Tierce Maintenance Applicative). 
                 Votre mission est d'extraire TOUTES les informations importantes du document, en particulier :
@@ -121,11 +128,14 @@ public class TmaPipelineRunner {
                 extractedText = rawText; // Fallback to raw text
                 Files.writeString(outDir.resolve("text_cleaning_error.txt"), errorMsg + "\n\nStack trace:\n" + getStackTrace(e));
                 Files.writeString(outDir.resolve("extracted_cleaned_text.txt"), extractedText);
+            } finally {
+                metrics.recordStageTiming("clean_text", cleanTextStartTime);
             }
             
             // Étape 3: Analyse spécialisée TMA avec le prompt expert
             debug("🔍 Step 3: TMA expert analysis...");
             progress.onStep(++step, totalSteps, "progress.tma.expertAnalysis");
+            long expertAnalysisStartTime = System.currentTimeMillis();
             TmaRequirementsExtractor extractor = new TmaRequirementsExtractor();
             String tmaAnalysis;
             try {
@@ -140,11 +150,14 @@ public class TmaPipelineRunner {
                 debug(errorMsg);
                 Files.writeString(outDir.resolve("tma_analysis_error.txt"), errorMsg + "\n\nStack trace:\n" + getStackTrace(e));
                 throw new RuntimeException("Failed to analyze TMA requirements", e);
+            } finally {
+                metrics.recordStageTiming("expert_analysis", expertAnalysisStartTime);
             }
             
             // Étape 4: Structuration des exigences
             debug("📋 Step 4: Structuring TMA requirements...");
             progress.onStep(++step, totalSteps, "progress.tma.structureRequirements");
+            long structureRequirementsStartTime = System.currentTimeMillis();
             String structuredRequirements;
             try {
                 structuredRequirements = extractor.structureRequirements(tmaAnalysis, llm);
@@ -158,11 +171,14 @@ public class TmaPipelineRunner {
                 debug(errorMsg);
                 Files.writeString(outDir.resolve("structuring_error.txt"), errorMsg + "\n\nStack trace:\n" + getStackTrace(e));
                 throw new RuntimeException("Failed to structure TMA requirements", e);
+            } finally {
+                metrics.recordStageTiming("structure_requirements", structureRequirementsStartTime);
             }
             
             // Étape 5: Création des requirements dans Modelio via MCP
             debug("🏗️  Step 5: Creating requirements in Modelio...");
             progress.onStep(++step, totalSteps, "progress.tma.createRequirements");
+            long createRequirementsStartTime = System.currentTimeMillis();
             try {
                 // Validation avant envoi à Modelio
                 if (structuredRequirements.trim().isEmpty()) {
@@ -198,10 +214,15 @@ public class TmaPipelineRunner {
                 debug(errorMsg);
                 Files.writeString(outDir.resolve("modelio_tma_error.txt"), errorMsg + "\n\nStack trace:\n" + getStackTrace(e));
                 throw new RuntimeException("Failed to create TMA requirements in Modelio", e);
+            } finally {
+                metrics.recordStageTiming("create_requirements", createRequirementsStartTime);
             }
             
             debug("🎉 TMA pipeline completed successfully!");
+            long finalizingStartTime = System.currentTimeMillis();
             progress.onStep(++step, totalSteps, "progress.tma.finalizing");
+            metrics.recordStageTiming("finalizing", finalizingStartTime);
+            System.out.println(metrics.buildTimingSummary());
             
         } catch (Exception e) {
             debug("❌ TMA pipeline failed: " + e.getMessage());

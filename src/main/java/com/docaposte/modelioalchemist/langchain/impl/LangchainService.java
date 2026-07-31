@@ -841,6 +841,7 @@ public class LangchainService {
                         classesPrompt,
                         outputDirectory);
                 classesResult = ensureStructuredDomainModelResult(classesResult);
+                classesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("domain_model_phase", classesResult);
                 validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
                 finalReport.append("PHASE 2 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
                  
@@ -879,6 +880,7 @@ public class LangchainService {
                 useCasesResult = McpRetryHandler.executeAssistantWithMcpTrace(pa3, "use_cases_phase", useCasesPrompt, outputDirectory);
                 useCasesResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(pa3, "use_cases_phase", useCasesPrompt, outputDirectory, useCasesResult, 2);
                 useCasesResult = ensureStructuredUseCasesResult(useCasesResult);
+                useCasesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("use_cases_phase", useCasesResult);
                 validateMcpExecutionResult("use_cases_phase", useCasesResult, "use_cases_created");
                 finalReport.append("PHASE 3 - USE CASES & ACTORS:\n").append(useCasesResult).append("\n\n");
                 
@@ -1143,6 +1145,7 @@ public class LangchainService {
             classesResult = McpRetryHandler.retryOnMissingModelingRequest(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpRetryHandler.retryOnProjectOverviewOnly(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
+            classesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("domain_model_phase", classesResult);
             return classesResult;
         }
 
@@ -1526,6 +1529,10 @@ public class LangchainService {
         }
 
         String trimmed = result.trim();
+        if (trimmed.contains("Satisfait traceability link skipped")) {
+            debug("⚠️ Phase '" + phaseName + "' accepted with optional Satisfait traceability skipped.");
+            return;
+        }
         if (trimmed.startsWith("MCP_EXECUTION_FAILED:") || trimmed.startsWith("❌") || trimmed.startsWith("[error:")) {
             throw new IllegalStateException(trimmed);
         }
@@ -1706,4 +1713,3 @@ public class LangchainService {
         return builder.buildAsyncClient();
     }
 }
-

@@ -49,7 +49,10 @@ class McpFailurePatterns {
             "|impossible\\s+de\\s+cr[eé]er[^.]{0,60}lien[^.]{0,60}Satisfait" +
             "|UUID\\s+cible\\s+non\\s+r[eé]solu" +
             "|aucune\\s+exigence[^.]{0,80}(?:cible|Satisfait)" +
-            "|aucune\\s+exigence[^.]{0,120}(?:fournie|trouv[eé]e)" +
+            "|aucune\\s+exigence[^.]{0,160}(?:fournie|trouv[eé]e|n['’]?existe|indisponible|introuvable)" +
+            "|aucune\\s+exigence\\s+Analyst[^.]{0,160}(?:Requirement|requ[eê]te\\s+`?analyst_queryItems`?)" +
+            "|analyst_queryItems[^.]{0,80}(?:0\\s+r[eé]sultat|aucun\\s+r[eé]sultat)" +
+            "|d[eé]pendances?[^.]{0,80}Satisfait[^.]{0,80}(?:obligatoires|impossible)" +
             "|No\\s+diagram\\s+found\\s+with\\s+UUID" +
             "|aucun\\s+diagramme\\s+trouv[eé].*UUID" +
             "|diagram.*not\\s+found" +
