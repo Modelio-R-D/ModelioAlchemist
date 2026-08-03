@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -69,7 +71,9 @@ public class LangchainService {
     private static final Duration MCP_PING_TIMEOUT = Duration.ofSeconds(15);
     private static final int PHASE2_CHUNKING_CLASS_THRESHOLD = 45;
     private static final int PHASE2_CHUNKING_RELATION_THRESHOLD = 60;
-    private static final int PHASE2_CLASSES_CHUNK_SIZE = 20;
+    // 10 (not 20): each class needs 1 create + N addMember calls for its attributes/operations.
+    // Larger chunks exhaust the agent's tool-call budget before any attribute is added.
+    private static final int PHASE2_CLASSES_CHUNK_SIZE = 10;
     private static final int PHASE2_ASSOCIATIONS_CHUNK_SIZE = 25;
     /** Max requirement UUIDs injected into a single chunk prompt to avoid context bloat. */
     
@@ -818,71 +822,32 @@ public class LangchainService {
                 debug("📊 Requirements JSON structure extracted successfully");
             }
             
-            // PHASE 2 : Création des Classes et Associations
-            debug("🏛️ PHASE 2: Creating Classes and Associations...");
             // Extract only requirement element UUIDs (exclude package/container UUIDs)
             List<String> requirementUUIDs = extractRequirementUUIDs(requirementsResult);
-            debug("📋 Extracted " + requirementUUIDs.size() + " requirement UUIDs from Phase 1 for Phase 2 linking");
-            String classesPrompt = UmlPromptBuilder.createClassesPrompt(analysisResults, requirementsResult, parsedRequirements, requirementUUIDs);
+            debug("📋 Extracted " + requirementUUIDs.size() + " requirement UUIDs from Phase 1 for downstream linking");
+
+            // PHASE 2 : Création des Use Cases et Actors
+            debug("👥 PHASE 2: Creating Use Cases and Actors...");
+            String useCasesPrompt = UmlPromptBuilder.createUseCasesPrompt(
+                    analysisResults,
+                    requirementsResult,
+                    null,
+                    parsedRequirements,
+                    requirementUUIDs);
             
             PooledUmlAssistant pa2 = borrowAssistant();
             if (pa2 == null) {
-                return "❌ Could not borrow assistant for classes creation";
-            }
-            
-            String classesResult;
-            try {
-                classesResult = executePhase2DomainModelWithChunking(
-                        pa2,
-                        analysisResults,
-                        requirementsResult,
-                        parsedRequirements,
-                        requirementUUIDs,
-                        classesPrompt,
-                        outputDirectory);
-                classesResult = ensureStructuredDomainModelResult(classesResult);
-                classesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("domain_model_phase", classesResult);
-                validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
-                finalReport.append("PHASE 2 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
-                 
-                // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES  
-                List<String> classesUUIDs = extractUUIDs(classesResult);
-                String domainModelJSON = extractJSONStructure(classesResult, "domain_model_created", "modele_domaine_cree");
-                String asBuildPlantUML = PlantUmlParser.extractPlantUMLDiagram(classesResult, "AS_BUILT_DOMAIN_MODEL");
-                
-                debug("✅ Classes and associations creation completed - UUIDs extracted: " + classesUUIDs.size());
-                if (domainModelJSON != null) {
-                    debug("📊 Domain model JSON structure extracted successfully");
-                }
-                if (asBuildPlantUML != null) {
-                    debug("🎯 As-built PlantUML diagram extracted successfully");
-                }
-                
-            } finally {
-                try {
-                    ASSISTANT_POOL.offer(pa2);
-                } catch (Exception e) {
-                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
-                }
-            }
-            
-            // PHASE 3 : Création des Use Cases et Actors
-            debug("👥 PHASE 3: Creating Use Cases and Actors...");
-            String useCasesPrompt = UmlPromptBuilder.createUseCasesPrompt(analysisResults, requirementsResult, classesResult, parsedRequirements, requirementUUIDs);
-            
-            PooledUmlAssistant pa3 = borrowAssistant();
-            if (pa3 == null) {
                 return "❌ Could not borrow assistant for use cases creation";
             }
             
             String useCasesResult;
             try {
-                useCasesResult = McpRetryHandler.executeAssistantWithMcpTrace(pa3, "use_cases_phase", useCasesPrompt, outputDirectory);
-                useCasesResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(pa3, "use_cases_phase", useCasesPrompt, outputDirectory, useCasesResult, 2);
+                useCasesResult = McpRetryHandler.executeAssistantWithMcpTrace(pa2, "use_cases_phase", useCasesPrompt, outputDirectory);
+                useCasesResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(pa2, "use_cases_phase", useCasesPrompt, outputDirectory, useCasesResult, 2);
                 useCasesResult = ensureStructuredUseCasesResult(useCasesResult);
                 useCasesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("use_cases_phase", useCasesResult);
                 validateMcpExecutionResult("use_cases_phase", useCasesResult, "use_cases_created");
-                finalReport.append("PHASE 3 - USE CASES & ACTORS:\n").append(useCasesResult).append("\n\n");
+                finalReport.append("PHASE 2 - USE CASES & ACTORS:\n").append(useCasesResult).append("\n\n");
                 
                 // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES
                 List<String> useCasesUUIDs = extractUUIDs(useCasesResult);
@@ -899,6 +864,56 @@ public class LangchainService {
                 
             } finally {
                 try {
+                    ASSISTANT_POOL.offer(pa2);
+                } catch (Exception e) {
+                    debug("Warning: Could not return assistant to pool: " + e.getMessage());
+                }
+            }
+
+            // PHASE 3 : Création des Classes et Associations
+            debug("🏛️ PHASE 3: Creating Classes and Associations...");
+            debug("📋 Reusing Phase 1 requirement UUIDs for Phase 3 linking");
+            // No requirementUUIDs: «Satisfait» links are forbidden in the domain-model phase.
+            String classesPrompt = UmlPromptBuilder.createClassesPrompt(
+                    analysisResults,
+                    requirementsResult,
+                    parsedRequirements);
+
+            PooledUmlAssistant pa3 = borrowAssistant();
+            if (pa3 == null) {
+                return "❌ Could not borrow assistant for classes creation";
+            }
+
+            String classesResult;
+            try {
+                classesResult = executePhase2DomainModelWithChunking(
+                        pa3,
+                        analysisResults,
+                        requirementsResult,
+                        parsedRequirements,
+                        requirementUUIDs,
+                        classesPrompt,
+                        outputDirectory);
+                classesResult = ensureStructuredDomainModelResult(classesResult);
+                classesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("domain_model_phase", classesResult);
+                validateMcpExecutionResult("domain_model_phase", classesResult, "domain_model_created", "modele_domaine_cree");
+                finalReport.append("PHASE 3 - CLASSES & ASSOCIATIONS:\n").append(classesResult).append("\n\n");
+
+                // 🔍 EXTRACTION AUTOMATIQUE DES STRUCTURES
+                List<String> classesUUIDs = extractUUIDs(classesResult);
+                String domainModelJSON = extractJSONStructure(classesResult, "domain_model_created", "modele_domaine_cree");
+                String asBuildPlantUML = PlantUmlParser.extractPlantUMLDiagram(classesResult, "AS_BUILT_DOMAIN_MODEL");
+
+                debug("✅ Classes and associations creation completed - UUIDs extracted: " + classesUUIDs.size());
+                if (domainModelJSON != null) {
+                    debug("📊 Domain model JSON structure extracted successfully");
+                }
+                if (asBuildPlantUML != null) {
+                    debug("🎯 As-built PlantUML diagram extracted successfully");
+                }
+
+            } finally {
+                try {
                     ASSISTANT_POOL.offer(pa3);
                 } catch (Exception e) {
                     debug("Warning: Could not return assistant to pool: " + e.getMessage());
@@ -908,8 +923,8 @@ public class LangchainService {
             // Résumé final
             finalReport.append("=== RÉSUMÉ FINAL ===\n");
             finalReport.append("✅ PHASE 1: Requirements créés\n");
-            finalReport.append("✅ PHASE 2: Classes et associations créées\n");
-            finalReport.append("✅ PHASE 3: Use cases et actors créés\n");
+            finalReport.append("✅ PHASE 2: Use cases et actors créés\n");
+            finalReport.append("✅ PHASE 3: Classes et associations créées\n");
             finalReport.append("🎯 Modèle UML complet généré avec succès!");
             
             // Sauvegarder le rapport complet
@@ -1127,6 +1142,121 @@ public class LangchainService {
 
     
 
+    /**
+     * Vérifie directement dans le modèle (appel MCP déterministe, sans LLM) quelles classes du lot
+     * sont réellement présentes. Un agent peut épuiser son budget d'appels d'outils avant d'avoir
+     * créé toutes les classes demandées : sans ce contrôle, l'omission reste silencieuse et fait
+     * échouer la phase d'associations bien plus loin.
+     *
+     * @return les noms attendus mais absents du modèle (jamais {@code null}).
+     */
+    private static List<String> findMissingClassesInModel(List<String> expectedClassNames) {
+        List<String> missing = new ArrayList<>();
+        if (expectedClassNames == null || expectedClassNames.isEmpty()) {
+            return missing;
+        }
+        for (String className : expectedClassNames) {
+            if (className == null || className.isBlank()) continue;
+            if (!classExistsInModel(className)) {
+                missing.add(className);
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Recherche une classe par nom exact via {@code uml_searchElements}. En cas d'erreur de
+     * vérification (MCP indisponible, réponse illisible) on répond {@code true} : le contrôle ne
+     * doit jamais bloquer un lot par lui-même, il ne sert qu'à détecter une omission avérée.
+     */
+    private static boolean classExistsInModel(String className) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode arguments = mapper.createObjectNode();
+            arguments.put("name_query", className);
+            arguments.put("type_filter", "class");
+
+            String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                    .id("verify-class-" + className)
+                    .name("uml_searchElements")
+                    .arguments(mapper.writeValueAsString(arguments))
+                    .build());
+
+            return responseContainsExactName(response, className);
+        } catch (Exception e) {
+            debug("⚠️ Vérification de la classe '" + className + "' impossible : " + e.getMessage());
+            return true;
+        }
+    }
+
+    /**
+     * {@code uml_searchElements} filtre par sous-chaîne : une recherche de « Recours » renvoie aussi
+     * « RecoursRAPO ». On exige donc une correspondance exacte sur un champ {@code name}.
+     */
+    private static boolean responseContainsExactName(String response, String expectedName) {
+        if (response == null || response.isBlank()) {
+            return false;
+        }
+        try {
+            return jsonContainsExactName(new ObjectMapper().readTree(response), expectedName);
+        } catch (Exception e) {
+            // Réponse non JSON : repli sur le nom entre guillemets, qui reste une égalité stricte.
+            return response.contains("\"" + expectedName + "\"");
+        }
+    }
+
+    private static boolean jsonContainsExactName(JsonNode node, String expectedName) {
+        if (node == null) {
+            return false;
+        }
+        if (node.isObject()) {
+            JsonNode nameNode = node.get("name");
+            if (nameNode != null && nameNode.isTextual() && expectedName.equalsIgnoreCase(nameNode.asText())) {
+                return true;
+            }
+        }
+        for (JsonNode child : node) {
+            if (jsonContainsExactName(child, expectedName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Indique si une ligne de relation PlantUML référence l'un des noms de classes donnés. */
+    private static boolean relationReferencesAnyOf(String relationLine, Set<String> classNames) {
+        if (relationLine == null || classNames == null || classNames.isEmpty()) {
+            return false;
+        }
+        for (String name : classNames) {
+            if (name == null || name.isBlank()) continue;
+            if (Pattern.compile("\\b" + Pattern.quote(name) + "\\b").matcher(relationLine).find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Exécute un lot (chunk) de la phase domaine avec la chaîne complète de reprises sur incident.
+     * Partagé par les lots de classes et d'associations, dont le traitement d'erreur est identique.
+     */
+    private static String runChunkPhaseWithRetries(
+            PooledUmlAssistant assistant,
+            String phaseName,
+            String prompt,
+            String outputDirectory) throws IOException {
+        String result = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(assistant, phaseName, prompt, outputDirectory, 2);
+        result = McpRetryHandler.retryOnMissingRequirementTargetUuid(assistant, phaseName, prompt, outputDirectory, result, 2);
+        result = McpRetryHandler.retryOnMissingModelingRequest(assistant, phaseName, prompt, outputDirectory, result, 2);
+        result = McpRetryHandler.retryOnProjectOverviewOnly(assistant, phaseName, prompt, outputDirectory, result, 2);
+        result = McpRetryHandler.retryOnMemberUuidNotFound(assistant, phaseName, prompt, outputDirectory, result, 2);
+        result = McpRetryHandler.retryOnDuplicateClassesAmbiguous(assistant, phaseName, prompt, outputDirectory, result, 2);
+        result = McpFailurePatterns.acceptSatisfaitOnlyFailure(phaseName, result);
+        validateMcpExecutionResult(phaseName, result);
+        return result;
+    }
+
     private static String executePhase2DomainModelWithChunking(
             PooledUmlAssistant assistant,
             String analysisResults,
@@ -1157,6 +1287,11 @@ public class LangchainService {
         List<String> collectedUuids = new ArrayList<>();
 
         List<List<String>> classChunks = PlantUmlParser.splitIntoChunks(parts.classBlocks, PHASE2_CLASSES_CHUNK_SIZE);
+        List<List<String>> classNameChunks = PlantUmlParser.splitIntoChunks(parts.classNames, PHASE2_CLASSES_CHUNK_SIZE);
+        // Classes réellement présentes dans le modèle après exécution : c'est cette liste — et non
+        // les noms issus du PlantUML — qui alimente les phases suivantes.
+        List<String> createdClassNames = new ArrayList<>();
+        List<String> unresolvedClassNames = new ArrayList<>();
         for (int i = 0; i < classChunks.size(); i++) {
             PooledUmlAssistant chunkAssistant = newAssistant();
             String phaseName = "domain_model_phase_classes_chunk_" + (i + 1);
@@ -1167,49 +1302,129 @@ public class LangchainService {
                     classChunks.get(i),
                     i + 1,
                     classChunks.size());
-            String chunkResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(chunkAssistant, phaseName, prompt, outputDirectory, 2);
-            chunkResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnMissingModelingRequest(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnProjectOverviewOnly(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnMemberUuidNotFound(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpFailurePatterns.acceptSatisfaitOnlyFailure(phaseName, chunkResult);
-            validateMcpExecutionResult(phaseName, chunkResult);
+            String chunkResult = runChunkPhaseWithRetries(chunkAssistant, phaseName, prompt, outputDirectory);
             chunkReports.add("### " + phaseName + System.lineSeparator() + chunkResult.trim());
             chunkPhaseNames.add(phaseName);
             collectedUuids.addAll(extractUUIDs(chunkResult));
+
+            // Contrôle déterministe : l'agent a-t-il vraiment créé les classes du lot ? Il peut
+            // épuiser son budget d'outils sur les attributs et s'arrêter avant la dernière classe.
+            List<String> expectedNames = i < classNameChunks.size() ? classNameChunks.get(i) : List.of();
+            List<String> missing = findMissingClassesInModel(expectedNames);
+            if (!missing.isEmpty()) {
+                debug("⚠️ " + phaseName + " : " + missing.size() + "/" + expectedNames.size()
+                        + " classes absentes du modèle (" + String.join(", ", missing) + ") — relance ciblée.");
+                List<String> missingBlocks = new ArrayList<>();
+                for (String name : missing) {
+                    int idx = parts.classNames.indexOf(name);
+                    if (idx >= 0 && idx < parts.classBlocks.size()) {
+                        missingBlocks.add(parts.classBlocks.get(idx));
+                    }
+                }
+                if (!missingBlocks.isEmpty()) {
+                    String recoveryPhase = phaseName + "_recover_missing_classes";
+                    String recoveryPrompt = UmlPromptBuilder.createClassesChunkPrompt(
+                            requirementsResult,
+                            parsedRequirements,
+                            requirementUUIDs,
+                            missingBlocks,
+                            i + 1,
+                            classChunks.size());
+                    try {
+                        String recoveryResult = runChunkPhaseWithRetries(
+                                newAssistant(), recoveryPhase, recoveryPrompt, outputDirectory);
+                        chunkReports.add("### " + recoveryPhase + System.lineSeparator() + recoveryResult.trim());
+                        chunkPhaseNames.add(recoveryPhase);
+                        collectedUuids.addAll(extractUUIDs(recoveryResult));
+                    } catch (Exception e) {
+                        debug("⚠️ " + recoveryPhase + " a échoué : " + e.getMessage());
+                    }
+                    missing = findMissingClassesInModel(expectedNames);
+                }
+            }
+
+            for (String name : expectedNames) {
+                if (missing.contains(name)) {
+                    unresolvedClassNames.add(name);
+                } else {
+                    createdClassNames.add(name);
+                }
+            }
+            if (!missing.isEmpty()) {
+                debug("❌ " + phaseName + " : classes toujours absentes après relance ("
+                        + String.join(", ", missing) + "). Les relations qui les référencent seront ignorées.");
+            }
         }
 
-        List<List<String>> relationChunks = PlantUmlParser.splitIntoChunks(parts.relationLines, PHASE2_ASSOCIATIONS_CHUNK_SIZE);
+        // Les relations vers une classe absente échoueraient : on les écarte explicitement plutôt
+        // que de laisser la phase d'associations planter sur une classe introuvable.
+        List<String> relationLinesToCreate = parts.relationLines;
+        if (!unresolvedClassNames.isEmpty()) {
+            Set<String> unresolved = new LinkedHashSet<>(unresolvedClassNames);
+            List<String> kept = new ArrayList<>();
+            for (String line : parts.relationLines) {
+                if (!relationReferencesAnyOf(line, unresolved)) {
+                    kept.add(line);
+                }
+            }
+            debug("⚠️ " + (parts.relationLines.size() - kept.size()) + "/" + parts.relationLines.size()
+                    + " relations ignorées car elles référencent des classes non créées.");
+            relationLinesToCreate = kept;
+        }
+
+        List<List<String>> relationChunks = PlantUmlParser.splitIntoChunks(relationLinesToCreate, PHASE2_ASSOCIATIONS_CHUNK_SIZE);
         for (int i = 0; i < relationChunks.size(); i++) {
             PooledUmlAssistant chunkAssistant = newAssistant();
             String phaseName = "domain_model_phase_associations_chunk_" + (i + 1);
             String prompt = UmlPromptBuilder.createAssociationsChunkPrompt(
                     requirementsResult,
                     requirementUUIDs,
-                    parts.classNames,
+                    createdClassNames,
                     relationChunks.get(i),
                     i + 1,
                     relationChunks.size());
-            String chunkResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(chunkAssistant, phaseName, prompt, outputDirectory, 2);
-            chunkResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnMissingModelingRequest(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnProjectOverviewOnly(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnMemberUuidNotFound(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(chunkAssistant, phaseName, prompt, outputDirectory, chunkResult, 2);
-            chunkResult = McpFailurePatterns.acceptSatisfaitOnlyFailure(phaseName, chunkResult);
-            validateMcpExecutionResult(phaseName, chunkResult);
+            String chunkResult = runChunkPhaseWithRetries(chunkAssistant, phaseName, prompt, outputDirectory);
             chunkReports.add("### " + phaseName + System.lineSeparator() + chunkResult.trim());
             chunkPhaseNames.add(phaseName);
             collectedUuids.addAll(extractUUIDs(chunkResult));
         }
 
-        String asBuiltPlantUml = PlantUmlParser.buildAsBuiltDomainPlantUml(parts.classBlocks, parts.relationLines);
+        // Phase 3C: the class diagram itself. Failures here are non-fatal — the model is already built.
+        try {
+            PooledUmlAssistant diagramAssistant = newAssistant();
+            String diagramPhase = "domain_model_phase_class_diagram";
+            String diagramPrompt = UmlPromptBuilder.createClassDiagramPrompt(createdClassNames);
+            String diagramResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(
+                    diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, 2);
+            diagramResult = McpRetryHandler.retryOnProjectOverviewOnly(
+                    diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, diagramResult, 2);
+            chunkReports.add("### " + diagramPhase + System.lineSeparator() + diagramResult.trim());
+            chunkPhaseNames.add(diagramPhase);
+        } catch (Exception e) {
+            debug("⚠️ Class diagram phase failed (non-fatal): " + e.getMessage());
+        }
+
+        // L'as-built ne doit décrire que ce qui existe réellement dans le modèle.
+        List<String> createdClassBlocks = new ArrayList<>();
+        for (String name : createdClassNames) {
+            int idx = parts.classNames.indexOf(name);
+            if (idx >= 0 && idx < parts.classBlocks.size()) {
+                createdClassBlocks.add(parts.classBlocks.get(idx));
+            }
+        }
+        String asBuiltPlantUml = PlantUmlParser.buildAsBuiltDomainPlantUml(createdClassBlocks, relationLinesToCreate);
         StringBuilder aggregated = new StringBuilder();
         aggregated.append("=== DOMAIN MODEL CHUNKED EXECUTION ===").append(System.lineSeparator());
         aggregated.append("Chunk strategy applied because model volume exceeded single-pass safety limits.").append(System.lineSeparator());
-        aggregated.append("Classes: ").append(parts.classBlocks.size())
-                .append(", Relations: ").append(parts.relationLines.size()).append(System.lineSeparator()).append(System.lineSeparator());
+        aggregated.append("Classes: ").append(createdClassBlocks.size()).append("/").append(parts.classBlocks.size())
+                .append(", Relations: ").append(relationLinesToCreate.size()).append("/").append(parts.relationLines.size())
+                .append(System.lineSeparator());
+        if (!unresolvedClassNames.isEmpty()) {
+            aggregated.append("⚠️ Classes non créées malgré relance (").append(unresolvedClassNames.size()).append(") : ")
+                    .append(String.join(", ", unresolvedClassNames)).append(System.lineSeparator())
+                    .append("Les relations les référençant ont été ignorées.").append(System.lineSeparator());
+        }
+        aggregated.append(System.lineSeparator());
         aggregated.append(String.join(System.lineSeparator() + System.lineSeparator(), chunkReports)).append(System.lineSeparator());
 
         List<String> deduplicatedUuids = PlantUmlParser.deduplicatePreservingOrder(collectedUuids);

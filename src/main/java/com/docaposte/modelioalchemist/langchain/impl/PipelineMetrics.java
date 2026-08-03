@@ -35,6 +35,15 @@ public class PipelineMetrics {
         timings.put(stageName, duration);
     }
 
+    /**
+     * Enregistre une durée déjà mesurée. Utile pour les étapes exécutées en parallèle, dont la durée
+     * propre doit être chronométrée dans leur propre thread puis reportée ici depuis le thread principal
+     * ({@code timings} n'est pas thread-safe).
+     */
+    public void recordStageDuration(String stageName, long durationMs) {
+        timings.put(stageName, durationMs);
+    }
+
     public Map<String, Long> getTimings() {
         return Collections.unmodifiableMap(timings);
     }
@@ -119,6 +128,8 @@ public class PipelineMetrics {
         ObjectNode root = mapper.createObjectNode();
         
         root.put("source_document", sourceDocument);
+        root.put("build_timestamp", BuildInfo.buildTimestamp());
+        root.put("build_location", BuildInfo.sourceLocation());
         
         // Timings
         ObjectNode timingsNode = mapper.createObjectNode();

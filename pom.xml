@@ -28,6 +28,8 @@
     <!-- properties -->
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Horodatage injecté dans le MANIFEST, affiché au démarrage du pipeline (Maven l'exprime en UTC). -->
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss 'UTC'</maven.build.timestamp.format>
     </properties>
 
     <dependencies>
@@ -86,12 +88,26 @@
             <version>3.15.800</version>
         </dependency>
 
+        <!-- Tests unitaires de la logique pure (validation, découpage PlantUML) : pas de MCP ni d'appel LLM. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
   </dependencies>
 
   <!-- Build -->
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
     <plugins>
+      <!-- Exécute les tests unitaires JUnit 5. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
       <!-- Use JDK 17 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -141,6 +157,10 @@
               <classpathPrefix>lib/</classpathPrefix>
               <mainClass>com.docaposte.modelioalchemist.langchain.impl.Main</mainClass>
             </manifest>
+            <manifestEntries>
+              <Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
+              <Implementation-Version>${project.version}</Implementation-Version>
+            </manifestEntries>
           </archive>
         </configuration>
       </plugin>

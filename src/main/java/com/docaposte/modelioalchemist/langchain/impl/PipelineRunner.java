@@ -44,7 +44,36 @@ public class PipelineRunner {
         run(pdfPath, outputDirPath, PipelineProgressListener.NONE);
     }
 
+    /**
+     * Enveloppe garantissant que les métriques sont écrites même quand le pipeline échoue :
+     * c'est précisément lors d'un échec qu'elles sont les plus utiles au diagnostic.
+     */
     public void run(String pdfPath, String outputDirPath, PipelineProgressListener progress) throws Exception {
+        try {
+            runPipeline(pdfPath, outputDirPath, progress);
+        } finally {
+            writeMetricsJson(outputDirPath);
+        }
+    }
+
+    /**
+     * Sérialise les métriques collectées. Ne propage jamais d'exception : l'écriture des métriques
+     * ne doit pas masquer l'erreur d'origine du pipeline.
+     */
+    private void writeMetricsJson(String outputDirPath) {
+        if (metrics == null || outputDirPath == null) {
+            return;
+        }
+        try {
+            Path metricsPath = Path.of(outputDirPath).resolve("pipeline_metrics.json");
+            Files.writeString(metricsPath, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(metrics.toJson()));
+            System.out.println("📊 Pipeline metrics written to pipeline_metrics.json");
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not write pipeline metrics: " + e.getMessage());
+        }
+    }
+
+    private void runPipeline(String pdfPath, String outputDirPath, PipelineProgressListener progress) throws Exception {
         if (progress == null) {
             progress = PipelineProgressListener.NONE;
         }
@@ -55,6 +84,7 @@ public class PipelineRunner {
         metrics.setPipelineStartTime(pipelineStartTime);
         
         System.out.println("🚀 [Pipeline] Starting pipeline for: " + pdfPath);
+        System.out.println("🏗️ [Pipeline] Build timestamp: " + BuildInfo.describe());
         System.out.println("📁 [Pipeline] Output directory: " + outputDirPath);
         String sourceDocumentName = Path.of(pdfPath).getFileName().toString();
         metrics.setSourceDocument(sourceDocumentName);
@@ -378,11 +408,14 @@ public class PipelineRunner {
         Files.writeString(outDir.resolve("classified.json"), classifiedJson);
         System.out.println("✅ [Stage 4/15] Classifier output saved.");
 
-        // Validation de l'exhaustivité des exigences
+        // Validation de l'exhaustivité des exigences.
+        // La référence est `filteredJson` : c'est l'étape de filtrage qui attribue les identifiants
+        // EX-XXX. Le texte de l'agent d'extraction n'en contient aucun, la comparaison y était donc
+        // vide des deux côtés et la validation réussissait sans rien vérifier.
         progress.onStep(++step, totalSteps, "progress.pipeline.validateCompleteness");
         long validateCompletenessStartTime = System.currentTimeMillis();
-        RequirementsValidator.ValidationResult validation = 
-            RequirementsValidator.validateClassification(extracted, classifiedJson);
+        RequirementsValidator.ValidationResult validation =
+            RequirementsValidator.validateClassification(filteredJson, classifiedJson);
         metrics.recordStageTiming("validate_completeness", validateCompletenessStartTime);
         
         String validationReport = RequirementsValidator.generateValidationReport(validation);
@@ -629,10 +662,14 @@ public class PipelineRunner {
                 System.out.println("   Total content length: " + requirementsDocuments.length() + " characters");
 
                 final String requirementsJsonForModelio = filteredJson;
-                long plantumlStartTime = System.currentTimeMillis();
-                long createRequirementsStartTime = System.currentTimeMillis();
+                // Ces deux étapes tournent en parallèle : chacune se chronomètre dans son propre
+                // thread, sinon toutes deux mesureraient la durée du bloc entier et seraient
+                // identiques (et le total par étape dépasserait le total du pipeline).
+                final java.util.concurrent.atomic.AtomicLong plantumlDurationMs = new java.util.concurrent.atomic.AtomicLong();
+                final java.util.concurrent.atomic.AtomicLong createRequirementsDurationMs = new java.util.concurrent.atomic.AtomicLong();
 
                 Future<String> plantUmlFuture = modelCreationExecutor.submit(() -> {
+                    long stageStart = System.currentTimeMillis();
                     System.out.println("🧩 [Stage 12/15] Generating PlantUML directly from all agent reports...");
                     String pumlPrompt = """
                         Vous êtes un expert PlantUML spécialisé dans les architectures système complètes.
@@ -731,10 +768,12 @@ public class PipelineRunner {
                     String puml = llm.runPrompt(pumlPrompt, allAgentReports.toString(), StageModelConfig.STAGE_PLANTUML);
                     Files.writeString(outDir.resolve("modele_donnees.puml"), puml);
                     System.out.println("✅ [Stage 12/15] PlantUML generated from all agent reports.");
+                    plantumlDurationMs.set(System.currentTimeMillis() - stageStart);
                     return puml;
                 });
 
                 Future<String> requirementsFuture = modelCreationExecutor.submit(() -> {
+                    long stageStart = System.currentTimeMillis();
                     System.out.println("🗺️ [Stage 13/15] Creating requirements in Modelio...");
                     String requirementsReport = mcp.createRequirementsInModelio(requirementsJsonForModelio, outDir.toString(), sourceDocumentName);
                     Files.writeString(outDir.resolve("modelio_mcp_requirements_report.txt"), requirementsReport);
@@ -745,6 +784,7 @@ public class PipelineRunner {
                         throw new IllegalStateException("Requirements creation did not execute successfully via MCP.\n" + requirementsReport);
                     }
                     System.out.println("✅ [Stage 13/15] Requirements created in Modelio.");
+                    createRequirementsDurationMs.set(System.currentTimeMillis() - stageStart);
                     return requirementsReport;
                 });
 
@@ -770,8 +810,8 @@ public class PipelineRunner {
                     requirementsFailure = e.getCause() != null ? e.getCause() : e;
                 }
 
-                metrics.recordStageTiming("plantuml", plantumlStartTime);
-                metrics.recordStageTiming("create_requirements", createRequirementsStartTime);
+                metrics.recordStageDuration("plantuml", plantumlDurationMs.get());
+                metrics.recordStageDuration("create_requirements", createRequirementsDurationMs.get());
 
                 if (plantUmlFailure != null || requirementsFailure != null) {
                     Throwable failure = plantUmlFailure != null ? plantUmlFailure : requirementsFailure;
@@ -826,16 +866,9 @@ public class PipelineRunner {
         progress.onStep(++step, totalSteps, "progress.pipeline.finalizing");
         long finalizingStartTime = System.currentTimeMillis();
         System.out.println("🎉 [Stage 15/15] Pipeline finished successfully.");
-        
-        // Write pipeline metrics to JSON
-        try {
-            Path metricsPath = outDir.resolve("pipeline_metrics.json");
-            String metricsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(metrics.toJson());
-            Files.writeString(metricsPath, metricsJson);
-            System.out.println("📊 Pipeline metrics written to pipeline_metrics.json");
-        } catch (Exception e) {
-            System.err.println("⚠️ Could not write pipeline metrics: " + e.getMessage());
-        }
+
+        // La durée de finalisation doit être enregistrée avant la sérialisation (faite dans le
+        // finally de run()), sans quoi elle n'apparaîtrait jamais dans le JSON.
         metrics.recordStageTiming("finalizing", finalizingStartTime);
         System.out.println(metrics.buildTimingSummary());
     }

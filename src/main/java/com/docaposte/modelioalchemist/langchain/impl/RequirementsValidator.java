@@ -28,13 +28,20 @@ public class RequirementsValidator {
             
             Set<String> extraReqs = new HashSet<>(classifiedReqs);
             extraReqs.removeAll(extractedReqs);
-            
+
+            // Une extraction vide rend missingReqs vide par construction : sans ce garde-fou la
+            // validation « réussit » alors qu'aucune comparaison n'a réellement eu lieu.
+            boolean comparisonWasPossible = !extractedReqs.isEmpty() || classifiedReqs.isEmpty();
+
             return new ValidationResult(
                 extractedReqs.size(),
                 classifiedReqs.size(),
                 missingReqs,
                 extraReqs,
-                missingReqs.isEmpty()
+                missingReqs.isEmpty() && comparisonWasPossible,
+                comparisonWasPossible ? null
+                    : "Aucun identifiant EX-XXX trouvé dans le texte source alors que "
+                      + classifiedReqs.size() + " exigence(s) sont classifiées : comparaison impossible."
             );
             
         } catch (Exception e) {

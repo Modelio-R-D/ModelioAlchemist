@@ -21,7 +21,7 @@ import java.util.Map;
  *   <li>{@link #STAGE_CLASSIFY} — Stage 4: classifier
  *   <li>{@link #STAGE_DOMAIN}   — Stages 7-11: parallel domain analysis
  *   <li>{@link #STAGE_PLANTUML} — Stage 12: PlantUML generation
- *   <li>{@link #STAGE_MCP}      — Stages 13-14: MCP agentic (requirements + UML class model)
+ *   <li>{@link #STAGE_MCP}      — Stages 13-14: MCP agentic (requirements + use cases + UML class model)
  * </ul>
  */
 public final class StageModelConfig {

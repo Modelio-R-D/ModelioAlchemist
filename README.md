@@ -4,7 +4,7 @@ Accelerate UML modeling in Modelio 6.1.1 by letting LangChain4j + Azure OpenAI i
 
 ## Key Capabilities
 - **Document-to-model automation** – `PipelineRunner` parses PDF tenders with PDFBox, filters/classifies requirements with multi-stage prompts, and hands PlantUML + context to the MCP tooling pipeline.
-- **Three-phase UML synthesis** – `LangchainService` orchestrates requirement creation, class modeling, and use-case generation through pooled `UmlModelingAssistant` instances so complex models stay consistent.
+- **Three-phase UML synthesis** – `LangchainService` orchestrates requirement creation, use-case generation, and class modeling through pooled `UmlModelingAssistant` instances so complex models stay consistent.
 - **TMA specialization** – `TmaPipelineRunner` focuses on Tierce Maintenance Applicative dossiers, structuring SLA/competency requirements and pushing them straight into Modelio without PlantUML detours.
 - **MCP-native execution** – `ModelioMcpAgent` uses the Model Context Protocol over SSE to call the same tools exposed by the Modelio MCP Server module, ensuring every element is created via official APIs.
 - **Validation & diagnostics** – `RequirementsValidator` and `RequirementContextValidator` quantify coverage so you know when the LLM pipeline lost context, while rich logs/live reports land in the project-specific output folder and the console ends with a per-stage timing summary plus the total pipeline time.
@@ -16,7 +16,7 @@ Accelerate UML modeling in Modelio 6.1.1 by letting LangChain4j + Azure OpenAI i
 	- Requirement extraction + filtering + domain classification (`PipelineRunner`).
 	- Validation (`RequirementsValidator`, `RequirementContextValidator`).
 	- Domain/UML synthesis (multi-phase prompts in `LangchainService`).
-3. **Model creation** – `ModelioMcpAgent` calls the MCP tools to create packages, requirements, classes, associations, actors, and use cases directly inside the open Modelio project.
+3. **Model creation** – `ModelioMcpAgent` calls the MCP tools to create requirements first, then actors/use cases, then classes/associations directly inside the open Modelio project.
 4. **Artifacts** – Every stage stores trace files (JSON, text, PlantUML, reports) under the computed output folder for reproducibility.
 
 ## Repository Tour
