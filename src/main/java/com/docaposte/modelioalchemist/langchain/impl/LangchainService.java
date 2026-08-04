@@ -344,12 +344,17 @@ public class LangchainService {
 
             // PHASE 2 : Création des Use Cases et Actors
             debug("👥 PHASE 2: Creating Use Cases and Actors...");
+            // Résolution déterministe (sans LLM) d'un unique package "Cas d'Usage" : sans elle, le
+            // LLM improvisait le nom du package à chaque appel ('Cas d Usage', 'Cas d'utilisation'...),
+            // créant plusieurs packages distincts pour le même contenu logique.
+            String useCasesPackageUuid = McpAssistantPool.findOrCreatePackage("Cas d'Usage", McpAssistantPool.getProjectRootUuid());
             String useCasesPrompt = UmlPromptBuilder.createUseCasesPrompt(
                     analysisResults,
                     requirementsResult,
                     null,
                     parsedRequirements,
-                    requirementUUIDs);
+                    requirementUUIDs,
+                    useCasesPackageUuid);
 
             PooledUmlAssistant pa2 = McpAssistantPool.borrowAssistant();
             if (pa2 == null) {
@@ -390,10 +395,15 @@ public class LangchainService {
             debug("🏛️ PHASE 3: Creating Classes and Associations...");
             debug("📋 Reusing Phase 1 requirement UUIDs for Phase 3 linking");
             // No requirementUUIDs: «Satisfait» links are forbidden in the domain-model phase.
+            // Résolution déterministe (sans LLM) d'un unique package "Modèle de Domaine" : sans elle,
+            // le LLM en créait un nouveau à chaque appel (ou par lot, en mode chunké), dupliquant tout
+            // le modèle de domaine sous plusieurs packages racine distincts.
+            String domainPackageUuid = McpAssistantPool.findOrCreatePackage("Modèle de Domaine", McpAssistantPool.getProjectRootUuid());
             String classesPrompt = UmlPromptBuilder.createClassesPrompt(
                     analysisResults,
                     requirementsResult,
-                    parsedRequirements);
+                    parsedRequirements,
+                    domainPackageUuid);
 
             PooledUmlAssistant pa3 = McpAssistantPool.borrowAssistant();
             if (pa3 == null) {
@@ -409,6 +419,7 @@ public class LangchainService {
                         parsedRequirements,
                         requirementUUIDs,
                         classesPrompt,
+                        domainPackageUuid,
                         outputDirectory);
                 classesResult = AgentResultProcessor.ensureStructuredDomainModelResult(classesResult);
                 classesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("domain_model_phase", classesResult);

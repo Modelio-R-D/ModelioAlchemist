@@ -23,7 +23,12 @@ final class DomainModelChunker {
 
     private DomainModelChunker() {}
 
-    private static final int PHASE2_CHUNKING_CLASS_THRESHOLD = 45;
+    // Abaissé de 45 à 25 : un agent unique gérant classes + attributs + associations + diagramme en
+    // un seul passage s'est montré non fiable dès ~34 classes (échecs intermittents rapportant
+    // "aucun outil MCP exécuté" alors que des associations avaient bien été créées plus tôt dans la
+    // même conversation) — le chemin chunké, avec ses contrôles déterministes par lot, est robuste
+    // à cette taille et le surcoût (quelques appels LLM de plus) est négligeable face à la fiabilité.
+    private static final int PHASE2_CHUNKING_CLASS_THRESHOLD = 25;
     private static final int PHASE2_CHUNKING_RELATION_THRESHOLD = 60;
     // 10 (not 20): each class needs 1 create + N addMember calls for its attributes/operations.
     // Larger chunks exhaust the agent's tool-call budget before any attribute is added.
@@ -112,62 +117,29 @@ final class DomainModelChunker {
     }
 
     /**
-     * Récupère l'UUID du package racine du projet via {@code project_overview} (appel MCP
-     * déterministe, sans LLM). Nécessaire pour ancrer un unique package "Modèle de Domaine"
-     * partagé par tous les lots de la phase 2, au lieu de laisser chaque lot en créer un.
+     * Crée le diagramme de classes déterministiquement, à partir des classes réellement présentes
+     * dans le modèle. Extrait de la seule branche "chunked" à l'origine : le mode non-chunké
+     * (petits documents, < {@link #PHASE2_CHUNKING_CLASS_THRESHOLD} classes) renvoyait son résultat
+     * sans jamais créer de diagramme, même quand le prompt LLM le demandait — un agent unique gérant
+     * classes + attributs + associations + diagramme en un seul passage épuise son budget d'appels
+     * d'outils avant cette dernière étape, sans qu'aucun contrôle déterministe ne le détecte.
+     * Échoue silencieusement (retourne {@code null}) : un diagramme manquant n'invalide pas un
+     * modèle déjà créé.
      */
-    private static String getProjectRootUuid() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        String response = McpAssistantPool.sharedMcpClient().executeTool(ToolExecutionRequest.builder()
-                .id("project-root-lookup-" + System.nanoTime())
-                .name("project_overview")
-                .arguments(mapper.writeValueAsString(mapper.createObjectNode()))
-                .build());
-        String uuid = extractFieldUuid(response, "uuid");
-        if (uuid == null) {
-            throw new IllegalStateException("Unable to determine project root package UUID from project_overview. Response: "
-                    + (response == null ? "null" : response.substring(0, Math.min(400, response.length()))));
-        }
-        return uuid;
-    }
-
-    /**
-     * Garantit un unique package "Modèle de Domaine" sous la racine du projet, via l'outil
-     * idempotent {@code uml_findOrCreatePackage}. Élimine la duplication observée quand chaque
-     * lot appelait {@code uml_createElement} à l'aveugle pour ce package : deux lots différents
-     * créaient chacun leur propre "Modèle de Domaine" sous la même racine.
-     */
-    private static String findOrCreateDomainPackage(String parentUuid) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode arguments = mapper.createObjectNode();
-        arguments.put("name", "Modèle de Domaine");
-        arguments.put("parent_uuid", parentUuid);
-        String response = McpAssistantPool.sharedMcpClient().executeTool(ToolExecutionRequest.builder()
-                .id("domain-package-lookup-" + System.nanoTime())
-                .name("uml_findOrCreatePackage")
-                .arguments(mapper.writeValueAsString(arguments))
-                .build());
-        String uuid = extractFieldUuid(response, "uuid");
-        if (uuid == null) {
-            throw new IllegalStateException("Unable to find or create the 'Modèle de Domaine' package. Response: "
-                    + (response == null ? "null" : response.substring(0, Math.min(400, response.length()))));
-        }
-        return uuid;
-    }
-
-    /**
-     * Extrait la valeur d'un champ JSON précis nommé {@code fieldName} (ex. "uuid") plutôt que le
-     * premier UUID trouvé dans le texte : la réponse de {@code uml_findOrCreatePackage} contient
-     * aussi "parent_uuid", qui apparaît avant "uuid" et serait capturé à tort par une regex générique.
-     */
-    private static String extractFieldUuid(String response, String fieldName) {
-        if (response == null) {
+    private static String attemptClassDiagramCreation(List<String> createdClassNames, String outputDirectory) {
+        try {
+            PooledUmlAssistant diagramAssistant = McpAssistantPool.newAssistant();
+            String diagramPhase = "domain_model_phase_class_diagram";
+            String diagramPrompt = UmlPromptBuilder.createClassDiagramPrompt(createdClassNames);
+            String diagramResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(
+                    diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, 2);
+            diagramResult = McpRetryHandler.retryOnProjectOverviewOnly(
+                    diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, diagramResult, 2);
+            return "### " + diagramPhase + System.lineSeparator() + diagramResult.trim();
+        } catch (Exception e) {
+            McpAssistantPool.debug("⚠️ Class diagram phase failed (non-fatal): " + e.getMessage());
             return null;
         }
-        Pattern fieldPattern = Pattern.compile(
-                "\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\"");
-        var matcher = fieldPattern.matcher(response);
-        return matcher.find() ? matcher.group(1) : null;
     }
 
     /** Indique si une ligne de relation PlantUML référence l'un des noms de classes donnés. */
@@ -211,6 +183,7 @@ final class DomainModelChunker {
             List<Requirement> parsedRequirements,
             List<String> requirementUUIDs,
             String defaultPrompt,
+            String domainPackageUuid,
             String outputDirectory) throws IOException {
         String plantUml = PlantUmlParser.preparePlantUmlForPrompt(analysisResults);
         PlantUmlParser.DomainPlantUmlParts parts = PlantUmlParser.extractDomainPlantUmlParts(plantUml);
@@ -223,20 +196,31 @@ final class DomainModelChunker {
             classesResult = McpRetryHandler.retryOnProjectOverviewOnly(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpRetryHandler.retryOnDuplicateClassesAmbiguous(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpFailurePatterns.acceptSatisfaitOnlyFailure("domain_model_phase", classesResult);
+
+            // Contrôle déterministe : l'agent unique gère classes + attributs + associations +
+            // diagramme en un seul passage et peut épuiser son budget d'appels d'outils avant la
+            // dernière étape (le diagramme) sans que rien ne le signale. On (re)tente donc toujours
+            // la création du diagramme explicitement ; le prompt lui-même est idempotent (réutilise
+            // un diagramme existant au lieu d'en créer un second si l'agent principal a déjà réussi).
+            List<String> missing = findMissingClassesInModel(parts.classNames);
+            List<String> createdClassNames = new ArrayList<>(parts.classNames);
+            createdClassNames.removeAll(missing);
+            String diagramReport = attemptClassDiagramCreation(createdClassNames, outputDirectory);
+            if (diagramReport != null) {
+                classesResult = classesResult + System.lineSeparator() + System.lineSeparator() + diagramReport;
+            }
             return classesResult;
         }
 
         McpAssistantPool.debug("📦 domain_model_phase switched to chunked mode: "
                 + parts.classBlocks.size() + " classes, " + parts.relationLines.size() + " relations.");
 
-        // Résolution déterministe (sans LLM) d'un unique package "Modèle de Domaine" partagé par
-        // tous les lots : chaque lot tourne avec un agent frais (newAssistant()) sans mémoire des
-        // autres, donc sans cette étape, plusieurs lots créaient chacun leur propre package racine
-        // via uml_createElement, dupliquant tout le modèle de domaine sous deux packages distincts.
-        String projectRootUuid = getProjectRootUuid();
-        String domainPackageUuid = findOrCreateDomainPackage(projectRootUuid);
+        // "Modèle de Domaine" est résolu une seule fois par l'appelant (voir LangchainService) et
+        // transmis ici : chaque lot tourne avec un agent frais (newAssistant()) sans mémoire des
+        // autres, donc sans un UUID partagé imposé, plusieurs lots créaient chacun leur propre
+        // package racine via uml_createElement, dupliquant tout le modèle de domaine.
         McpAssistantPool.debug("📦 Package 'Modèle de Domaine' ancré sur uuid=" + domainPackageUuid
-                + " (racine projet=" + projectRootUuid + ") — partagé par tous les lots de classes.");
+                + " — partagé par tous les lots de classes.");
 
         List<String> chunkReports = new ArrayList<>();
         List<String> chunkPhaseNames = new ArrayList<>();
@@ -348,18 +332,10 @@ final class DomainModelChunker {
         }
 
         // Phase 3C: the class diagram itself. Failures here are non-fatal — the model is already built.
-        try {
-            PooledUmlAssistant diagramAssistant = McpAssistantPool.newAssistant();
-            String diagramPhase = "domain_model_phase_class_diagram";
-            String diagramPrompt = UmlPromptBuilder.createClassDiagramPrompt(createdClassNames);
-            String diagramResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(
-                    diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, 2);
-            diagramResult = McpRetryHandler.retryOnProjectOverviewOnly(
-                    diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, diagramResult, 2);
-            chunkReports.add("### " + diagramPhase + System.lineSeparator() + diagramResult.trim());
-            chunkPhaseNames.add(diagramPhase);
-        } catch (Exception e) {
-            McpAssistantPool.debug("⚠️ Class diagram phase failed (non-fatal): " + e.getMessage());
+        String diagramReport = attemptClassDiagramCreation(createdClassNames, outputDirectory);
+        if (diagramReport != null) {
+            chunkReports.add(diagramReport);
+            chunkPhaseNames.add("domain_model_phase_class_diagram");
         }
 
         // L'as-built ne doit décrire que ce qui existe réellement dans le modèle.

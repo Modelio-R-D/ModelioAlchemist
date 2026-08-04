@@ -75,7 +75,8 @@ class UmlPromptBuilder {
 
     // ------------------------------------------------------------------ Phase 3A: classes (full)
 
-    static String createClassesPrompt(String analysisResults, String requirementsResult, List<Requirement> parsedRequirements) {
+    static String createClassesPrompt(String analysisResults, String requirementsResult, List<Requirement> parsedRequirements,
+            String domainPackageUuid) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("🇫🇷 Vous êtes un modélisateur de domaine Modelio. Votre mission : créer TOUTES les classes et associations en français.\n\n");
         prompt.append("## MISSION PHASE 3 : CLASSES & ASSOCIATIONS\n");
@@ -113,27 +114,27 @@ class UmlPromptBuilder {
         prompt.append("\n```\n\n");
 
         prompt.append("## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)\n");
-        prompt.append("1️⃣ **Créer les Packages** : Utiliser les outils MCP\n");
-        prompt.append("   - Créer le package 'Modèle de Domaine' pour toutes les classes\n");
-        prompt.append("   - Rapporter l'UUID du package\n\n");
-        prompt.append("2️⃣ **Créer les Classes** : Utiliser les outils MCP UNE PAR UNE\n");
+        prompt.append("1️⃣ **Package 'Modèle de Domaine' DÉJÀ CRÉÉ** — UUID EXACT À RÉUTILISER : ").append(domainPackageUuid).append("\n");
+        prompt.append("   🚫 NE JAMAIS appeler `uml_createElement` pour créer ce package — il existe déjà avec cet UUID.\n");
+        prompt.append("   Si un sous-package est nécessaire (ex. Business/Technical/Securite), utiliser IMPÉRATIVEMENT `uml_findOrCreateElement`\n");
+        prompt.append("   (name=<nom>, parent_uuid=").append(domainPackageUuid).append(") — jamais `uml_createElement` pour un package.\n\n");
+        prompt.append("2️⃣ **Créer les Classes** : UN SEUL appel `uml_createClassWithMembers` PAR CLASSE\n");
         prompt.append("   - Parser TOUTES les classes du PlantUML\n");
         prompt.append("   - Conserver les noms exacts du PlantUML\n");
-        prompt.append("   - Créer dans le package 'Modèle de Domaine'\n");
+        prompt.append("   - Chaque classe : `uml_createClassWithMembers` (name, parent_uuid=").append(domainPackageUuid).append(" ou un sous-package obtenu via `uml_findOrCreateElement`,\n");
+        prompt.append("     attributes=[{name, type, visibility:\"public\"}, ...], operations=[{name, visibility:\"public\"}, ...]) — TOUS les attributs et opérations de cette classe DANS LE MÊME appel,\n");
+        prompt.append("     PAS de `uml_createElement` + `uml_addMember` séparés. Types autorisés : String, int, boolean, float. INTERDITS : Date, Integer, Boolean.\n");
+        prompt.append("   - Si `duplicate_class_name` est renvoyé, réutiliser l'`existing_uuid` fourni au lieu de recréer la classe\n");
         prompt.append("   - Rapporter l'UUID de chaque classe\n");
         prompt.append("   - Ne créer AUCUN lien «Satisfait» : la traçabilité vers les exigences est réservée aux cas d'usage.\n\n");
-        prompt.append("3️⃣ **Ajouter les Attributs** : Utiliser les outils MCP POUR CHAQUE CLASSE\n");
-        prompt.append("   - Ajouter TOUS les attributs du PlantUML\n");
-        prompt.append("   - Utiliser les types : String, int, boolean, float (compatibles Modelio)\n");
-        prompt.append("   - NE JAMAIS utiliser : Date, Integer, Boolean\n");
-        prompt.append("   - Attendre la confirmation de création de classe avant d'ajouter les attributs\n\n");
-        prompt.append("4️⃣ **Créer les Associations** : Utiliser les outils MCP POUR CHAQUE RELATION\n");
-        prompt.append("   - Parser CHAQUE relation : -->, --|>, --o, --*, <|--\n");
+        prompt.append("3️⃣ **Créer les Associations** : UN SEUL appel `uml_createAssociationsBulk` pour TOUTES les relations de ce lot\n");
+        prompt.append("   - Parser CHAQUE relation du PlantUML : -->, --|>, --o, --*, <|--\n");
+        prompt.append("   - Construire le tableau `relations` complet (relation_type, source_uuid, target_uuid, name, source_role, target_role, source_multiplicity, target_multiplicity)\n");
+        prompt.append("     et l'envoyer en UN SEUL appel — PAS un `uml_createStaticRelation` par relation.\n");
         prompt.append("   - Créer les associations SEULEMENT après que toutes les classes existent\n");
-        prompt.append("   - Définir les cardinalités appropriées (1, 0..1, 1..*, 0..*)\n");
-        prompt.append("   - Nommer les relations de manière significative\n");
+        prompt.append("   - Un item du batch qui échoue (UUID introuvable) n'annule pas les autres — vérifier `failed[]` dans la réponse et le signaler sans bloquer.\n");
         prompt.append("   - 🚨 NE PAS IGNORER AUCUNE ASSOCIATION\n\n");
-        prompt.append("5️⃣ **Créer le Diagramme de Classes** : OBLIGATOIRE, en dernier\n");
+        prompt.append("4️⃣ **Créer le Diagramme de Classes** : OBLIGATOIRE, en dernier\n");
         prompt.append("   - `uml_createDiagram` : diagramme de classes nommé 'Modèle de Domaine' dans le package 'Modèle de Domaine'\n");
         prompt.append("   - Puis `uml_unmaskInDiagram` pour CHAQUE classe créée (UUID du diagramme + UUID de la classe)\n");
         prompt.append("   - Les associations entre classes affichées apparaissent automatiquement\n");
@@ -183,25 +184,23 @@ class UmlPromptBuilder {
         prompt.append("   🚫 NE JAMAIS appeler `uml_createElement` pour créer un package nommé 'Modèle de Domaine' — il existe déjà avec cet UUID.\n");
         prompt.append("   Placer directement les classes de ce lot sous cet UUID (parentUuid=").append(domainPackageUuid)
                 .append(") SAUF si elles appartiennent logiquement à un sous-package (ex. Business/Technical/Securite).\n");
-        prompt.append("   Si un sous-package est nécessaire, l'outil `uml_findOrCreatePackage` (name=<nom>, parent_uuid=")
+        prompt.append("   Si un sous-package est nécessaire, l'outil `uml_findOrCreateElement` (name=<nom>, parent_uuid=")
                 .append(domainPackageUuid).append(") DOIT être utilisé — jamais `uml_createElement` pour un package : \n");
         prompt.append("   il est idempotent (renvoie l'UUID existant si le sous-package a déjà été créé par un autre lot) et évite les packages dupliqués.\n");
-        prompt.append("🚨 RÈGLE N°1 — Chaque `uml_createElement` de classe DOIT être suivi immédiatement d'un `uml_addMember` par attribut ET par opération RÉELLEMENT listés dans le bloc PlantUML de cette classe.\n");
-        prompt.append("   Si le bloc PlantUML d'une classe ne liste AUCUN attribut (classe de service avec seulement des opérations, ex. AuthService), c'est normal : crée la classe et ajoute uniquement ses opérations, ne bloque JAMAIS pour cette raison.\n");
+        prompt.append("🚨 RÈGLE N°1 — Chaque classe DOIT être créée en UN SEUL appel `uml_createClassWithMembers`, avec TOUS ses attributs ET TOUTES ses opérations\n");
+        prompt.append("   RÉELLEMENT listés dans le bloc PlantUML de cette classe passés dans les tableaux `attributes`/`operations` de cet appel — jamais `uml_createElement` + `uml_addMember` un par un.\n");
+        prompt.append("   Si le bloc PlantUML d'une classe ne liste AUCUN attribut (classe de service avec seulement des opérations, ex. AuthService), c'est normal : passer `attributes: []` et remplir seulement `operations`, ne bloque JAMAIS pour cette raison.\n");
         prompt.append("   L'échec à éviter est d'omettre un attribut ou une opération QUI EST LISTÉ dans le PlantUML, pas l'absence d'attributs quand le PlantUML n'en liste aucun.\n");
         prompt.append("Interdictions absolues: ne pas exécuter `project_overview`, ne pas appeler `analyst_queryItems`, ne créer AUCUNE association/dépendance/généralisation dans ce lot\n");
         prompt.append("   (`uml_createStaticRelation`, `uml_createDependency`, `uml_createBehavioralRelation` sont INTERDITS ici — ils seront faits dans la phase 3B).\n");
-        prompt.append("⛔ NE PAS appeler `uml_getElementDetails` sur une classe que tu viens de créer: elle est vide par définition. Chaque appel inutile te fait perdre le budget nécessaire aux attributs.\n");
+        prompt.append("⛔ NE PAS appeler `uml_getElementDetails` sur une classe que tu viens de créer: elle est vide par définition. Chaque appel inutile te fait perdre le budget nécessaire.\n");
         prompt.append("Workflow obligatoire, classe par classe (terminer complètement une classe avant de passer à la suivante):\n");
-        prompt.append("  1) `search_model` (type=class) sur le nom exact. Si trouvée, réutilise son UUID et passe à l'étape 3.\n");
-        prompt.append("  2) Sinon `uml_createElement` pour créer la classe. Utilise uniquement l'UUID retourné.\n");
-        prompt.append("  3) Puis, SANS AUCUN appel intermédiaire, un `uml_addMember` pour CHAQUE attribut du bloc PlantUML de cette classe\n");
-        prompt.append("     (member_type=attribute, name=<nom>, type=<type>, visibility=public).\n");
-        prompt.append("  4) Puis un `uml_addMember` pour CHAQUE opération (member_type=operation, name=<nom>).\n");
-        prompt.append("     Si la classe existait déjà et que `uml_addMember` renvoie un doublon, ignore l'erreur et continue.\n");
+        prompt.append("  1) `search_model` (type=class) sur le nom exact. Si trouvée, réutilise son UUID directement — ne rappelle pas `uml_createClassWithMembers` pour cette classe.\n");
+        prompt.append("  2) Sinon, UN SEUL appel `uml_createClassWithMembers` (name=<nom exact>, parent_uuid=<UUID du package>,\n");
+        prompt.append("     attributes=[{name, type, visibility:\"public\"}, ...], operations=[{name, visibility:\"public\"}, ...]) avec TOUS les membres du bloc PlantUML de cette classe.\n");
+        prompt.append("     Si l'appel échoue avec `duplicate_class_name`, réutilise l'`existing_uuid` retourné — ne recrée pas la classe.\n");
         prompt.append("Types autorisés pour les attributs: String, int, boolean, float. INTERDITS: Date, Integer, Boolean, LocalDate (remplacer par String).\n");
-        prompt.append("IMPORTANT: les UUIDs utilisés pour `uml_addMember` doivent provenir UNIQUEMENT des réponses de `uml_createElement` ou `search_model` — jamais d'exigences.\n");
-        prompt.append("Budget: privilégie TOUJOURS les `uml_addMember` restants plutôt qu'une vérification supplémentaire. Compte-rendu final: nombre d'attributs réellement ajoutés par classe.\n");
+        prompt.append("Budget: un seul appel par classe libère largement le budget nécessaire pour couvrir tout le lot sans jamais s'arrêter à mi-chemin. Compte-rendu final: nombre d'attributs/opérations réellement ajoutés par classe.\n");
         prompt.append("Liens «Satisfait» (traçabilité): optionnels — à créer UNIQUEMENT si un UUID d'exigence valide est disponible dans le contexte ci-dessous. Ne jamais bloquer ni échouer si aucun UUID n'est disponible.\n");
         prompt.append("Si tu hésites, n'appelle pas `project_overview`: fais quand même les créations demandées.\n");
         prompt.append("Retour attendu: uniquement un compte-rendu as-built avec UUIDs réels.\n\n");
@@ -239,7 +238,11 @@ class UmlPromptBuilder {
         prompt.append("DEMANDE UTILISATEUR À EXÉCUTER MAINTENANT (PHASE 3B, lot ").append(chunkIndex).append("/").append(totalChunks).append(")\n");
         prompt.append("Objectif unique: créer dans Modelio les associations listées ci-dessous.\n");
         prompt.append("Interdictions absolues: ne pas exécuter `project_overview`, ne pas appeler `analyst_queryItems`, ne pas recréer les classes sauf nécessité absolue.\n");
-        prompt.append("Utiliser les classes déjà créées, puis créer les relations une par une.\n");
+        prompt.append("🚨 UN SEUL appel `uml_createAssociationsBulk` pour TOUT ce lot : résoudre d'abord l'UUID de chaque classe référencée\n");
+        prompt.append("   (via `search_model` type=class si nécessaire), puis construire le tableau `relations` complet\n");
+        prompt.append("   (relation_type, source_uuid, target_uuid, name, source_role, target_role, source_multiplicity, target_multiplicity) et l'envoyer en un seul appel.\n");
+        prompt.append("   PAS de `uml_createStaticRelation` par relation, et JAMAIS `uml_updateAssociationEnd` : multiplicités et rôles se passent directement dans le batch.\n");
+        prompt.append("   Un item du batch qui échoue (UUID introuvable) n'annule pas les autres — vérifier `failed[]` dans la réponse et le signaler sans bloquer.\n");
         prompt.append("Retour attendu: uniquement un compte-rendu as-built avec UUIDs réels.\n\n");
 
         if (requirementsResult != null && !requirementsResult.isBlank()) {
@@ -284,8 +287,9 @@ class UmlPromptBuilder {
         prompt.append("   ne créer AUCUNE classe, AUCUN attribut et AUCUNE association — tout existe déjà.\n\n");
         prompt.append("Séquence obligatoire:\n");
         prompt.append("  1) `uml_findPackage` (ou `search_model` type=package) pour retrouver l'UUID du package 'Modèle de Domaine'.\n");
-        prompt.append("  2) `uml_createDiagram` : diagramme de classes nommé 'Modèle de Domaine' avec ce package comme propriétaire.\n");
-        prompt.append("     Conserver l'UUID du diagramme retourné.\n");
+        prompt.append("  2) `list_diagrams` (type_filter=ClassDiagram) : si un diagramme nommé 'Modèle de Domaine' existe déjà, réutiliser son UUID\n");
+        prompt.append("     et passer directement à l'étape 3 — NE PAS en créer un second. Sinon, `uml_createDiagram` pour le créer\n");
+        prompt.append("     (diagramme de classes nommé 'Modèle de Domaine', avec ce package comme propriétaire) et conserver l'UUID retourné.\n");
         prompt.append("  3) Pour CHAQUE classe listée ci-dessous : `search_model` (type=class) pour obtenir son UUID,\n");
         prompt.append("     puis `uml_unmaskInDiagram` avec l'UUID du diagramme et l'UUID de la classe.\n");
         prompt.append("  4) Les associations entre classes affichées apparaissent automatiquement : ne pas les recréer.\n");
@@ -342,7 +346,7 @@ class UmlPromptBuilder {
     // ------------------------------------------------------------------ Phase 2: use cases
 
     static String createUseCasesPrompt(String analysisResults, String requirementsResult, String classesResult,
-            List<Requirement> parsedRequirements, List<String> requirementUUIDs) {
+            List<Requirement> parsedRequirements, List<String> requirementUUIDs, String useCasesPackageUuid) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("🇫🇷 Vous êtes un analyste de cas d'usage Modelio. Votre mission : créer TOUS les cas d'usage et acteurs en français.\n\n");
         prompt.append("## MISSION PHASE 2 : CAS D'USAGE & ACTEURS\n");
@@ -401,17 +405,19 @@ class UmlPromptBuilder {
         prompt.append("\n```\n\n");
 
         prompt.append("## SÉQUENCE D'EXÉCUTION (OBLIGATOIRE)\n");
-        prompt.append("1️⃣ **Créer le Package Cas d'Usage** : Utiliser les outils MCP\n");
-        prompt.append("   - Créer le package 'Cas d Usage'\n   - Rapporter l'UUID du package\n\n");
+        prompt.append("1️⃣ **Package Cas d'Usage DÉJÀ CRÉÉ** — UUID EXACT À RÉUTILISER : ").append(useCasesPackageUuid).append("\n");
+        prompt.append("   🚫 NE JAMAIS appeler `uml_createElement` pour créer un package 'Cas d'Usage' (ou toute variante orthographique) — il existe déjà avec cet UUID.\n");
+        prompt.append("   Si un sous-package est vraiment nécessaire, utiliser IMPÉRATIVEMENT `uml_findOrCreateElement` (name=<nom>, parent_uuid=")
+                .append(useCasesPackageUuid).append(") — jamais `uml_createElement` pour un package.\n\n");
         prompt.append("2️⃣ **Créer les Acteurs** : Utiliser les outils MCP\n");
         prompt.append("   - Identifier tous les types d'utilisateurs à partir des exigences et, si disponible, du modèle de domaine\n");
         prompt.append("   - Créer les acteurs : Utilisateur, Administrateur, Système Externe, etc.\n");
-        prompt.append("   - Placer dans le package 'Cas d Usage'\n   - Rapporter l'UUID de chaque acteur\n\n");
+        prompt.append("   - Placer sous parentUuid=").append(useCasesPackageUuid).append("\n   - Rapporter l'UUID de chaque acteur\n\n");
         prompt.append("3️⃣ **Créer les Cas d'Usage** : Utiliser les outils MCP\n");
         prompt.append("   - Extraire les fonctionnalités principales des exigences et du PlantUML de référence\n");
         prompt.append("   - Créer les cas d'usage : 'Gérer les Utilisateurs', 'Traiter les Données', etc.\n");
         prompt.append("   - Lier aux exigences d'implémentation uniquement si un UUID d'exigence valide est déjà fourni dans ce prompt\n");
-        prompt.append("   - Placer dans le package 'Cas d Usage'\n   - Rapporter l'UUID de chaque cas d'usage\n");
+        prompt.append("   - Placer sous parentUuid=").append(useCasesPackageUuid).append("\n   - Rapporter l'UUID de chaque cas d'usage\n");
         prompt.append("   - OPTIONNEL : si un UUID d'exigence valide est disponible, matérialiser le lien «Satisfait» avec `analyst_createRelation`\n");
         prompt.append("     (relation_type=\"satisfy\", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\").\n");
         prompt.append("     Si aucun UUID valide n'est disponible, ne cherchez pas l'exigence par nom et continuez sans erreur.\n\n");

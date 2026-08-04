@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
@@ -61,6 +65,67 @@ final class McpAssistantPool {
 
     static DefaultMcpClient sharedMcpClient() {
         return sharedMcpClient;
+    }
+
+    /**
+     * Récupère l'UUID du package racine du projet via {@code project_overview} (appel MCP
+     * déterministe, sans LLM). Utilisé pour ancrer un unique package partagé (ex. "Modèle de
+     * Domaine", "Cas d'Usage") au lieu de laisser chaque appel LLM en créer un nouveau.
+     */
+    static String getProjectRootUuid() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("project-root-lookup-" + System.nanoTime())
+                .name("project_overview")
+                .arguments(mapper.writeValueAsString(mapper.createObjectNode()))
+                .build());
+        String uuid = extractJsonFieldUuid(response, "uuid");
+        if (uuid == null) {
+            throw new IllegalStateException("Unable to determine project root package UUID from project_overview. Response: "
+                    + (response == null ? "null" : response.substring(0, Math.min(400, response.length()))));
+        }
+        return uuid;
+    }
+
+    /**
+     * Garantit un unique package avec ce nom exact sous {@code parentUuid}, via l'outil
+     * idempotent {@code uml_findOrCreateElement} (element_type par défaut : Standard.Package —
+     * même comportement que l'ancien {@code uml_findOrCreatePackage}, renommé/généralisé côté
+     * serveur). Élimine la duplication observée quand plusieurs appels LLM indépendants (lots de
+     * chunking, ou simplement des libellés différents comme "Cas d Usage" vs "Cas d'Usage")
+     * créaient chacun leur propre package via {@code uml_createElement}.
+     */
+    static String findOrCreatePackage(String name, String parentUuid) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode arguments = mapper.createObjectNode();
+        arguments.put("name", name);
+        arguments.put("parent_uuid", parentUuid);
+        String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("find-or-create-package-" + System.nanoTime())
+                .name("uml_findOrCreateElement")
+                .arguments(mapper.writeValueAsString(arguments))
+                .build());
+        String uuid = extractJsonFieldUuid(response, "uuid");
+        if (uuid == null) {
+            throw new IllegalStateException("Unable to find or create package '" + name + "'. Response: "
+                    + (response == null ? "null" : response.substring(0, Math.min(400, response.length()))));
+        }
+        return uuid;
+    }
+
+    /**
+     * Extrait la valeur d'un champ JSON précis nommé {@code fieldName} (ex. "uuid") plutôt que le
+     * premier UUID trouvé dans le texte : la réponse de {@code uml_findOrCreatePackage} contient
+     * aussi "parent_uuid", qui apparaît avant "uuid" et serait capturé à tort par une regex générique.
+     */
+    private static String extractJsonFieldUuid(String response, String fieldName) {
+        if (response == null) {
+            return null;
+        }
+        Pattern fieldPattern = Pattern.compile(
+                "\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\"");
+        var matcher = fieldPattern.matcher(response);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     static List<McpResource> cachedResources() {

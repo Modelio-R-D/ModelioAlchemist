@@ -1,49 +1,60 @@
 {
   "source_document" : "CCTP.pdf",
-  "build_timestamp" : "2026-08-03 17:56:15 UTC",
+  "build_timestamp" : "2026-08-04 14:10:13 UTC",
   "build_location" : "C:\\Users\\jcadavid\\git\\ModelioAlchemist\\target\\modelioalchemist-0.1.0.jar",
   "timings_ms" : {
-    "extraction" : 2268,
-    "extractor_agent" : 39466,
-    "filtering" : 20720,
-    "classification" : 36997,
-    "validate_completeness" : 1,
-    "validate_context" : 7,
-    "domain_analysis" : 24169,
-    "plantuml" : 77107,
-    "create_requirements" : 2129,
-    "create_class_model" : 114880,
-    "total" : 315828
+    "extraction" : 2443,
+    "extractor_agent" : 87268,
+    "filtering" : 16021,
+    "classification" : 47180,
+    "validate_completeness" : 4,
+    "validate_context" : 15,
+    "domain_analysis" : 22341,
+    "plantuml" : 81314,
+    "create_requirements" : 1594,
+    "create_class_model" : 332077,
+    "finalizing" : 0,
+    "total" : 588843
   },
   "filtering" : {
-    "total_items_analyzed" : 28,
-    "requirements_retained" : 27,
-    "items_rejected" : 1,
-    "retention_rate_pct" : 96.42857142857143
+    "total_items_analyzed" : 22,
+    "requirements_retained" : 20,
+    "items_rejected" : 2,
+    "retention_rate_pct" : 90.9090909090909
   },
   "classification_validation" : {
-    "extracted_count" : 28,
-    "classified_count" : 25,
-    "missing_requirements" : 3,
+    "extracted_count" : 22,
+    "classified_count" : 20,
+    "missing_requirements" : 2,
     "extra_requirements" : 0,
     "is_valid" : false
   },
   "context_validation" : {
-    "total_requirements" : 27,
-    "contextualized_requirements" : 27,
+    "total_requirements" : 26,
+    "contextualized_requirements" : 26,
     "contextRate_pct" : 100.0,
     "category_distribution" : {
-      "fonctionnel" : 8,
+      "fonctionnel" : 11,
       "rssi" : 2,
-      "ecoconception" : 0,
-      "rse" : 4,
-      "technique" : 13
+      "ecoconception" : 2,
+      "rse" : 0,
+      "technique" : 11
     },
     "missing_references" : 0
   },
   "source_location" : {
-    "from_llm" : 27,
+    "from_llm" : 20,
     "from_deterministic_fallback" : 0,
     "still_missing" : 0
+  },
+  "mcp_requirements" : {
+    "attempted" : 20,
+    "created_successfully" : 20,
+    "failed" : 0
+  },
+  "mcp_satisfy_links" : {
+    "uml_elements_created" : 0,
+    "satisfy_relations_attempted" : 0,
+    "satisfy_relations_confirmed" : 0
   }
 }
