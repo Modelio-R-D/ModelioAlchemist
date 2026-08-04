@@ -52,7 +52,7 @@ public class PipelineRunner {
         try {
             runPipeline(pdfPath, outputDirPath, progress);
         } finally {
-            writeMetricsJson(outputDirPath);
+            writeMetricsJson(outputDirPath, pdfPath);
         }
     }
 
@@ -60,16 +60,55 @@ public class PipelineRunner {
      * Sérialise les métriques collectées. Ne propage jamais d'exception : l'écriture des métriques
      * ne doit pas masquer l'erreur d'origine du pipeline.
      */
-    private void writeMetricsJson(String outputDirPath) {
+    private void writeMetricsJson(String outputDirPath, String pdfPath) {
         if (metrics == null || outputDirPath == null) {
             return;
         }
         try {
-            Path metricsPath = Path.of(outputDirPath).resolve("pipeline_metrics.json");
+            String metricsFileName = "pipeline_metrics_" + metricsSlugFor(pdfPath) + ".json";
+            Path metricsDir = Path.of("metrics");
+            Files.createDirectories(metricsDir);
+            Path metricsPath = metricsDir.resolve(metricsFileName);
             Files.writeString(metricsPath, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(metrics.toJson()));
-            System.out.println("📊 Pipeline metrics written to pipeline_metrics.json");
+            System.out.println("📊 Pipeline metrics written to " + metricsPath);
         } catch (Exception e) {
             System.err.println("⚠️ Could not write pipeline metrics: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Beaucoup de cahiers des charges partagent le même nom de fichier (ex. "CCTP.pdf") : on inclut
+     * aussi le nom du dossier parent pour que le fichier de métriques reste identifiable sans l'ouvrir.
+     */
+    private static String metricsSlugFor(String pdfPath) {
+        Path path = Path.of(pdfPath);
+        String stem = path.getFileName().toString().replaceFirst("\\.[^.]+$", "");
+        Path parent = path.getParent();
+        String parentName = parent != null ? parent.getFileName().toString() : null;
+        String slug = (parentName != null && !parentName.isBlank()) ? parentName + "_" + stem : stem;
+        return slug.replaceAll("[^A-Za-z0-9._-]+", "_");
+    }
+
+    /**
+     * Chaque run repart d'un dossier de sortie vide : les fichiers de debug d'un run précédent
+     * (traces MCP, prompts, rapports) ne doivent jamais se mélanger avec ceux du run courant.
+     */
+    private static void deleteDirectoryContents(Path dir) throws java.io.IOException {
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> paths = Files.walk(dir)) {
+            paths.sorted(java.util.Comparator.reverseOrder())
+                    .filter(p -> !p.equals(dir))
+                    .forEach(p -> {
+                        try {
+                            Files.delete(p);
+                        } catch (java.io.IOException e) {
+                            throw new java.io.UncheckedIOException(e);
+                        }
+                    });
+        } catch (java.io.UncheckedIOException e) {
+            throw e.getCause();
         }
     }
 
@@ -101,6 +140,7 @@ public class PipelineRunner {
         String rawText = PdfExtractor.extractText(pdfPath);
         metrics.recordStageTiming("extraction", extractStartTime);
         Path outDir = Path.of(outputDirPath);
+        deleteDirectoryContents(outDir);
         Files.createDirectories(outDir);
         Files.writeString(outDir.resolve("extracted_text.txt"), rawText);
         System.out.println("✅ [Stage 1/15] PDF text extracted and saved.");
@@ -683,25 +723,21 @@ public class PipelineRunner {
                         
                         package "Business" {
                           class NomExact {
-                            +id: int
-                            +nom: String  
-                            +date: String
-                            +status: String
-                            +methode()
+                            +attributSpecifiqueA: String
+                            +attributSpecifiqueB: int
+                            +methodeSpecifique()
                           }
                         }
                         
                         package "Technical" {
-                          class ServiceClass {
-                            +processData()
-                            +validateInput()
+                          class NomServiceExact {
+                            +operationSpecifiqueDuService()
                           }
                         }
-                        
+
                         package "Securite" {
-                          class AuthService {
-                            +authenticate(): boolean
-                            +authorize(): boolean
+                          class NomServiceSecuriteExact {
+                            +operationSpecifiqueDeSecurite(): boolean
                           }
                         }
                         
@@ -735,6 +771,14 @@ public class PipelineRunner {
                         UC2 --> UC5 : "<<include>>"
                         @enduml
                         
+                        🚫 INTERDIT : les blocs ci-dessus (`NomExact`, `NomServiceExact`, `attributSpecifiqueA/B`,
+                        `operationSpecifiqueDuService`, etc.) sont des exemples de SYNTAXE uniquement, pas des modèles à recopier.
+                        Chaque classe DOIT avoir ses propres attributs et opérations, déduits de son rôle métier réel dans les
+                        rapports fournis (ex. une classe "Dossier" a des attributs de dossier, une classe "Utilisateur" a des
+                        attributs d'utilisateur — jamais le même jeu d'attributs ou d'opérations recopié tel quel sur plusieurs
+                        classes). Si deux classes différentes se retrouvent avec des attributs ou opérations identiques, c'est un
+                        signe d'erreur : reprenez les rapports pour identifier ce qui est propre à chacune.
+
                         RÈGLES STRICTES TYPES MODELIO :
                         - Utilisez UNIQUEMENT : String, int, boolean, float
                         - JAMAIS : Date, Integer, Boolean, LocalDate (incompatibles Modelio)

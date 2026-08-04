@@ -56,6 +56,11 @@ class McpFailurePatterns {
             "|No\\s+diagram\\s+found\\s+with\\s+UUID" +
             "|aucun\\s+diagramme\\s+trouv[eé].*UUID" +
             "|diagram.*not\\s+found" +
+            // L'élément (cas d'usage, classe, acteur...) et l'exigence existent déjà tous les deux ;
+            // seule la FORME du lien de traçabilité diverge (UML Dependency brute au lieu du lien
+            // Analyst "satisfy" attendu). C'est un résidu d'un run précédent, pas un échec structurel :
+            // les règles de traçabilité traitent déjà ce lien comme optionnel partout ailleurs.
+            "|existe\\s+d[eé]j[aà][^.]{0,300}au\\s+lieu\\s+d['’]une\\s+relation\\s+Analyst[^.]{0,60}satisfy" +
             ").*$");
 
     static final Pattern MISSING_MODELING_REQUEST_PATTERN = Pattern.compile(

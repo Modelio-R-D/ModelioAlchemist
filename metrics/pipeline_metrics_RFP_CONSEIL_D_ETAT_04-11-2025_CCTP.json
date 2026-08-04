@@ -1,0 +1,49 @@
+{
+  "source_document" : "CCTP.pdf",
+  "build_timestamp" : "2026-08-03 17:56:15 UTC",
+  "build_location" : "C:\\Users\\jcadavid\\git\\ModelioAlchemist\\target\\modelioalchemist-0.1.0.jar",
+  "timings_ms" : {
+    "extraction" : 2268,
+    "extractor_agent" : 39466,
+    "filtering" : 20720,
+    "classification" : 36997,
+    "validate_completeness" : 1,
+    "validate_context" : 7,
+    "domain_analysis" : 24169,
+    "plantuml" : 77107,
+    "create_requirements" : 2129,
+    "create_class_model" : 114880,
+    "total" : 315828
+  },
+  "filtering" : {
+    "total_items_analyzed" : 28,
+    "requirements_retained" : 27,
+    "items_rejected" : 1,
+    "retention_rate_pct" : 96.42857142857143
+  },
+  "classification_validation" : {
+    "extracted_count" : 28,
+    "classified_count" : 25,
+    "missing_requirements" : 3,
+    "extra_requirements" : 0,
+    "is_valid" : false
+  },
+  "context_validation" : {
+    "total_requirements" : 27,
+    "contextualized_requirements" : 27,
+    "contextRate_pct" : 100.0,
+    "category_distribution" : {
+      "fonctionnel" : 8,
+      "rssi" : 2,
+      "ecoconception" : 0,
+      "rse" : 4,
+      "technique" : 13
+    },
+    "missing_references" : 0
+  },
+  "source_location" : {
+    "from_llm" : 27,
+    "from_deterministic_fallback" : 0,
+    "still_missing" : 0
+  }
+}

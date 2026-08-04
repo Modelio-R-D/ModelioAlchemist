@@ -174,11 +174,21 @@ class UmlPromptBuilder {
             List<String> requirementUUIDs,
             List<String> classBlocks,
             int chunkIndex,
-            int totalChunks) {
+            int totalChunks,
+            String domainPackageUuid) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("DEMANDE UTILISATEUR À EXÉCUTER MAINTENANT (PHASE 3A, lot ").append(chunkIndex).append("/").append(totalChunks).append(")\n");
         prompt.append("Objectif unique: créer dans Modelio les classes listées ci-dessous AVEC TOUS LEURS ATTRIBUTS ET OPÉRATIONS.\n");
-        prompt.append("🚨 RÈGLE N°1 — UNE CLASSE SANS ATTRIBUTS EST UN ÉCHEC. Chaque `uml_createElement` de classe DOIT être suivi immédiatement d'un `uml_addMember` par attribut et par opération listés dans le PlantUML.\n");
+        prompt.append("📦 Package racine du modèle de domaine DÉJÀ CRÉÉ, UUID EXACT À RÉUTILISER : ").append(domainPackageUuid).append("\n");
+        prompt.append("   🚫 NE JAMAIS appeler `uml_createElement` pour créer un package nommé 'Modèle de Domaine' — il existe déjà avec cet UUID.\n");
+        prompt.append("   Placer directement les classes de ce lot sous cet UUID (parentUuid=").append(domainPackageUuid)
+                .append(") SAUF si elles appartiennent logiquement à un sous-package (ex. Business/Technical/Securite).\n");
+        prompt.append("   Si un sous-package est nécessaire, l'outil `uml_findOrCreatePackage` (name=<nom>, parent_uuid=")
+                .append(domainPackageUuid).append(") DOIT être utilisé — jamais `uml_createElement` pour un package : \n");
+        prompt.append("   il est idempotent (renvoie l'UUID existant si le sous-package a déjà été créé par un autre lot) et évite les packages dupliqués.\n");
+        prompt.append("🚨 RÈGLE N°1 — Chaque `uml_createElement` de classe DOIT être suivi immédiatement d'un `uml_addMember` par attribut ET par opération RÉELLEMENT listés dans le bloc PlantUML de cette classe.\n");
+        prompt.append("   Si le bloc PlantUML d'une classe ne liste AUCUN attribut (classe de service avec seulement des opérations, ex. AuthService), c'est normal : crée la classe et ajoute uniquement ses opérations, ne bloque JAMAIS pour cette raison.\n");
+        prompt.append("   L'échec à éviter est d'omettre un attribut ou une opération QUI EST LISTÉ dans le PlantUML, pas l'absence d'attributs quand le PlantUML n'en liste aucun.\n");
         prompt.append("Interdictions absolues: ne pas exécuter `project_overview`, ne pas appeler `analyst_queryItems`, ne créer AUCUNE association/dépendance/généralisation dans ce lot\n");
         prompt.append("   (`uml_createStaticRelation`, `uml_createDependency`, `uml_createBehavioralRelation` sont INTERDITS ici — ils seront faits dans la phase 3B).\n");
         prompt.append("⛔ NE PAS appeler `uml_getElementDetails` sur une classe que tu viens de créer: elle est vide par définition. Chaque appel inutile te fait perdre le budget nécessaire aux attributs.\n");
