@@ -1,0 +1,19 @@
+DEMANDE UTILISATEUR À EXÉCUTER MAINTENANT (PHASE 2C : DIAGRAMME DE CAS D'USAGE)
+Objectif unique: créer UN diagramme de cas d'usage et y afficher les acteurs et cas d'usage du package ci-dessous.
+Interdictions absolues: ne pas exécuter `project_overview`, ne pas appeler `analyst_queryItems`,
+   ne créer AUCUN acteur, AUCUN cas d'usage et AUCUNE association — tout existe déjà.
+
+Package Cas d'Usage, UUID EXACT : f5973af4-ddcc-458d-a1e5-53198f1b6967
+
+Séquence obligatoire:
+  1) `list_diagrams` (type_filter=UseCaseDiagram, SANS name_filter) : parcourir TOUS les résultats.
+     Si l'un d'eux a pour propriétaire (owner) le package UUID ci-dessus, réutiliser SON UUID — QUEL QUE SOIT SON NOM —
+     et passer directement à l'étape 2 — NE PAS en créer un second. Sinon SEULEMENT, `uml_createDiagram` pour le créer
+     (diagramme de cas d'usage nommé 'Cas d'Usage', avec le package ci-dessus comme propriétaire) et conserver l'UUID retourné.
+  2) UN SEUL appel `uml_unmaskInDiagram` (diagram_uuid=<UUID du diagramme>, action="unmask_all") — PAS un appel par acteur/cas d'usage.
+     Cette action affiche automatiquement TOUS les acteurs et cas d'usage enfants du package (composition), et découvre/affiche
+     automatiquement les associations entre eux. Un diagramme non vide en dépend entièrement : des appels un par un qui
+     s'interrompent en cours de route laissent le diagramme vide ou partiel.
+  3) Les associations acteur-cas d'usage affichées apparaissent automatiquement via l'étape 2 : ne pas les recréer.
+Retour attendu: UUID du diagramme et liste des acteurs/cas d'usage effectivement affichés.
+

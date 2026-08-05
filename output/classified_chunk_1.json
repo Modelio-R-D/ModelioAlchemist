@@ -1,0 +1,241 @@
+{
+  "technique": [
+    {
+      "requirement_id": "REQ-001",
+      "original_ref": "Contexte général / Exigences fonctionnelles métier",
+      "description": "La solution doit être mise à disposition en mode SaaS sous la forme d’une plateforme informatique complète et intégrée pour la gestion des actions PIA/France2030 et PIC, afin d’accompagner la transformation numérique des processus internes et externes de la CDC et de son écosystème.",
+      "technical_domain": "architecture",
+      "business_context": "Plateforme cible SaaS unifiée pour porter l’ensemble des parcours (candidature, instruction, contractualisation, suivi, animation) des dispositifs PIA/France2030 et PIC, avec intégration transverse au SI CDC."
+    },
+    {
+      "requirement_id": "REQ-006",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La solution doit être Responsive Web Design, adaptée à tous types de supports, respecter la charte graphique CDC et pouvoir être personnalisée aux couleurs de la Banque des Territoires en marque blanche.",
+      "technical_domain": "architecture",
+      "business_context": "Accès multi-support pour toutes les parties prenantes (internes CDC et externes) avec contraintes d’identité visuelle (charte CDC) et déclinaisons marque blanche (Banque des Territoires)."
+    },
+    {
+      "requirement_id": "REQ-007",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit permettre via API des flux de données sécurisés descendants et ascendants avec les outils existants du SI CDC et du mandant.",
+      "technical_domain": "integration",
+      "business_context": "Interopérabilité bidirectionnelle avec le SI CDC (référentiels, outils métiers, GED/communication/BI potentiels) et le SI du mandant pour éviter ressaisies et assurer la continuité de bout en bout des données projets."
+    },
+    {
+      "requirement_id": "REQ-020",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La solution doit permettre la reprise de l’historique des projets lauréats actifs ne nécessitant plus de processus d’instruction et des données des projets non retenus, pour un volume indicatif de 2 500 à 3 000 dossiers et sur le périmètre des AAP PIA3 et PIA4/France2030.",
+      "technical_domain": "infrastructure",
+      "business_context": "Migration/reprise d’antériorité pour garantir la continuité de suivi et de reporting des portefeuilles PIA3/PIA4, incluant la conservation des traces et pièces associées aux dossiers."
+    },
+    {
+      "requirement_id": "REQ-021",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "En fin de marché, la Caisse des Dépôts doit récupérer l’ensemble des données et documents stockés sur la plateforme selon le principe de réversibilité, dans un format compatible et exploitable par les systèmes d’information de la CDC, avec un plan de réversibilité complet.",
+      "technical_domain": "infrastructure",
+      "business_context": "Réversibilité contractuelle garantissant la sortie maîtrisée (données, documents, exports) vers le SI CDC et la continuité d’exploitation/archivage en fin de prestation."
+    },
+    {
+      "requirement_id": "REQ-022",
+      "original_ref": "Exigences techniques et architecture",
+      "description": "La solution doit être hébergée en mode SaaS par le Titulaire et ses sous-traitants dans un ou plusieurs centres informatiques situés dans l’Espace Économique Européen, et les infrastructures techniques ne peuvent pas être hébergées dans les locaux de l’Acheteur.",
+      "technical_domain": "infrastructure",
+      "business_context": "Contraintes d’hébergement SaaS externe à la CDC, avec localisation EEE pour répondre aux exigences de souveraineté et d’encadrement juridique des traitements."
+    },
+    {
+      "requirement_id": "REQ-023",
+      "original_ref": "Exigences techniques et architecture",
+      "description": "Le Titulaire doit proposer impérativement un hébergement natif des données dans un cloud souverain certifié SecNumcloud.",
+      "technical_domain": "infrastructure",
+      "business_context": "Hébergement qualifié (SecNumCloud) pour garantir un niveau d’assurance élevé sur l’infrastructure supportant les données projets sensibles et personnelles."
+    }
+  ],
+  "rssi": [
+    {
+      "requirement_id": "REQ-004",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La solution doit gérer des accès personnalisés en lecture/écriture selon le rôle et permettre une gestion différenciée et paramétrable des droits d’accès.",
+      "technical_domain": "architecture",
+      "business_context": "Cloisonnement des informations (candidatures, évaluations, décisions, documents contractuels, suivi financier) entre profils multiples (candidats, jurys, comités, SGPI, ministères, agences, services déconcentrés, équipes CDC)."
+    },
+    {
+      "requirement_id": "REQ-007",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit permettre via API des flux de données sécurisés descendants et ascendants avec les outils existants du SI CDC et du mandant.",
+      "technical_domain": "integration",
+      "business_context": "Sécurisation des échanges inter-applicatifs (authentification/autorisation, confidentialité, intégrité) lors des synchronisations SI (référentiels et données projets)."
+    },
+    {
+      "requirement_id": "REQ-023",
+      "original_ref": "Exigences techniques et architecture",
+      "description": "Le Titulaire doit proposer impérativement un hébergement natif des données dans un cloud souverain certifié SecNumcloud.",
+      "technical_domain": "infrastructure",
+      "business_context": "Exigence de sécurité structurante (qualification SecNumCloud) pour maîtriser les risques d’hébergement et se conformer aux politiques SSI attendues par la CDC."
+    },
+    {
+      "requirement_id": "REQ-024",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "La plateforme doit respecter la réglementation relative à la protection des données personnelles et les opérations de collecte, manipulation, stockage, maintenance et arrêt éventuel doivent être conformes aux exigences de la législation française et européenne.",
+      "technical_domain": "infrastructure",
+      "business_context": "Conformité RGPD sur l’ensemble du cycle de vie des données (candidatures, évaluations, contractualisation, suivi, animation), y compris fin de traitement et suppression/archivage."
+    },
+    {
+      "requirement_id": "REQ-025",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "La plateforme doit garantir la confidentialité selon les stades du projet et assurer, une fois authentifié, un haut niveau de confidentialité.",
+      "technical_domain": "architecture",
+      "business_context": "Gestion de la confidentialité par phase (candidature, instruction, décisions, contractualisation, suivi) pour protéger les informations sensibles des porteurs, des experts et des instances décisionnelles."
+    }
+  ],
+  "fonctionnel": [
+    {
+      "requirement_id": "REQ-001",
+      "original_ref": "Contexte général / Exigences fonctionnelles métier",
+      "description": "La solution doit être mise à disposition en mode SaaS sous la forme d’une plateforme informatique complète et intégrée pour la gestion des actions PIA/France2030 et PIC, afin d’accompagner la transformation numérique des processus internes et externes de la CDC et de son écosystème.",
+      "technical_domain": "architecture",
+      "business_context": "Solution transverse couvrant l’intégralité des processus métiers PIA/France2030 & PIC et l’ensemble des acteurs (CDC + écosystème) via un point d’entrée unique."
+    },
+    {
+      "requirement_id": "REQ-002",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit permettre le processus de sélection puis l’accompagnement des projets subventionnés PIA/France2030 et PIC, depuis la phase de candidature jusqu’à la phase d’animation des projets lauréats.",
+      "technical_domain": "architecture",
+      "business_context": "Couverture end-to-end du cycle de vie projet subventionné : dépôt, instruction, décision, contractualisation, suivi, animation des communautés de lauréats."
+    },
+    {
+      "requirement_id": "REQ-003",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit accueillir les parties prenantes de l’écosystème avec des accès différenciés pour les candidats, partenaires de consortium, équipes projet, experts, membres des comités, SGPI, ministères, agences de l’État, services déconcentrés et équipes internes de la CDC.",
+      "technical_domain": "architecture",
+      "business_context": "Multi-tenant métier / multi-profils : orchestrer des parcours et écrans adaptés selon les rôles (soumission, évaluation, décision, suivi, pilotage)."
+    },
+    {
+      "requirement_id": "REQ-005",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit réduire au strict minimum les interventions manuelles des équipes et favoriser l’expérience utilisateur pour les collaborateurs et les porteurs de projets.",
+      "technical_domain": "architecture",
+      "business_context": "Automatisation des tâches (notifications, contrôles de complétude, consolidation, génération de documents) afin d’augmenter la productivité des gestionnaires CDC et l’adoption côté porteurs."
+    },
+    {
+      "requirement_id": "REQ-008",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit couvrir la gestion des AAP/AMI, incluant la préfiguration, l’inscription, le formulaire personnalisable, les FAQ, la gestion des délais, les alertes, le suivi des statuts et les notifications d’éligibilité/recevabilité.",
+      "technical_domain": "architecture",
+      "business_context": "Module de candidature AAP/AMI paramétrable (dispositif par dispositif) pour gérer le tunnel candidat et le pilotage des échéances et statuts."
+    },
+    {
+      "requirement_id": "REQ-009",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit gérer les jurys, la répartition des candidats avec compatibilités, les grilles d’évaluation paramétrables et le pilotage des indemnités à verser aux jurys.",
+      "technical_domain": "architecture",
+      "business_context": "Organisation de l’évaluation : affectation selon règles de compatibilité/conflits, collecte et consolidation des notes, et gestion administrative des indemnités."
+    },
+    {
+      "requirement_id": "REQ-010",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit consolider les grilles d’analyse pour les instances décisionnelles, intégrer les modifications des comitologies compétentes, élaborer les relevés de décision et générer les notifications, conventions types et avenants.",
+      "technical_domain": "architecture",
+      "business_context": "Support des instances (comitologies) et de la contractualisation : produire les livrables décisionnels et contractuels (conventions/avenants) à partir des données d’instruction."
+    },
+    {
+      "requirement_id": "REQ-011",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit proposer un module de reporting et de pilotage avec tableaux de bord paramétrables, datavisualisation, cartographies, listings de projets et extraction de fichiers prédéfinis.",
+      "technical_domain": "performance",
+      "business_context": "Pilotage portefeuille PIA/PIC : suivi opérationnel et stratégique via KPI, vues cartographiques et exports standardisés pour les parties prenantes (CDC/SGPI/ministères)."
+    },
+    {
+      "requirement_id": "REQ-012",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit intégrer un espace annuaire avec référentiel contacts/intervenants, fiches profil candidat, fiches projet et informations sur les membres du consortium, avec interfaçage avec Data.gouv.",
+      "technical_domain": "integration",
+      "business_context": "Référentiel des acteurs et projets, alimenté/complété via interfaçage Data.gouv pour fiabiliser les données et limiter la ressaisie."
+    },
+    {
+      "requirement_id": "REQ-013",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit permettre le suivi des rapports d’activité qualitatifs et financiers, la gestion documentaire, le contrôle de complétude des pièces justificatives, le contrôle des ratios/indicateurs et la formalisation de l’analyse dans le service fait avant versement.",
+      "technical_domain": "architecture",
+      "business_context": "Suivi post-décision et sécurisation des paiements : collecte des rapports, contrôles (pièces/ratios), formalisation du « service fait » préalable aux versements."
+    },
+    {
+      "requirement_id": "REQ-014",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit intégrer les résultats d’audit dans la fiche de suivi du projet et permettre le suivi des demandes de modifications avec gestion des statuts et des dates.",
+      "technical_domain": "architecture",
+      "business_context": "Traçabilité de la vie du projet : capitalisation des audits et gestion des changements (demandes, statuts, jalons) dans le dossier de suivi."
+    },
+    {
+      "requirement_id": "REQ-015",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit fournir un espace de communication comprenant messagerie, mails transactionnels, FAQ lauréats, notifications, planification de réunions Teams, fil d’actualités et organisation d’événements.",
+      "technical_domain": "integration",
+      "business_context": "Animation des communautés de lauréats et communication opérationnelle, avec intégration attendue à Teams pour la planification des réunions."
+    },
+    {
+      "requirement_id": "REQ-016",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit fournir un espace documentaire avec liste des documents disponibles, droits d’accès différenciés, liens documentaires et webinaires.",
+      "technical_domain": "architecture",
+      "business_context": "Mise à disposition de ressources (documents, liens, webinaires) aux lauréats et parties prenantes, avec segmentation des accès selon profils et dispositifs."
+    },
+    {
+      "requirement_id": "REQ-017",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme doit permettre la préfiguration des KPI, leur sélection par dispositif, la visualisation des KPI avec définitions et aides au remplissage, la saisie des données au format prédéfini, leur consolidation et extraction, ainsi que le contrôle de qualité des données et le suivi des calendriers de relèves.",
+      "technical_domain": "architecture",
+      "business_context": "Collecte et évaluation extra-financière : référentiel KPI, campagnes de collecte, contrôles qualité, consolidation multi-dispositifs et exports pour pilotage/évaluation d’impact."
+    },
+    {
+      "requirement_id": "REQ-019",
+      "original_ref": "Exigences fonctionnelles métier",
+      "description": "La plateforme peut être rendue accessible en version mobile en cours d’exécution, cette fonctionnalité faisant l’objet d’un bon de commande spécifique.",
+      "technical_domain": "architecture",
+      "business_context": "Option d’extension de service (mobilité) pour améliorer l’accès des utilisateurs externes/internes selon les besoins en cours de marché."
+    }
+  ],
+  "rse": [],
+  "ecoconception": [],
+  "cross_category_links": [
+    {
+      "source": "REQ-003",
+      "target": "REQ-004",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-004",
+      "target": "REQ-025",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-007",
+      "target": "REQ-022",
+      "relationship": "constraint"
+    },
+    {
+      "source": "REQ-022",
+      "target": "REQ-023",
+      "relationship": "constraint"
+    },
+    {
+      "source": "REQ-023",
+      "target": "REQ-024",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-024",
+      "target": "REQ-021",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-020",
+      "target": "REQ-011",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-015",
+      "target": "REQ-007",
+      "relationship": "dependency"
+    }
+  ]
+}

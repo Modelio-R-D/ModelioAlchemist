@@ -1,384 +1,258 @@
 {
   "requirements_created" : [ {
-    "id" : "EXG-001",
-    "uuid" : "da57eca3-3b00-4f41-805f-462ab76c41bf",
-    "description" : "Le projet doit mettre en place une plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco, couvrant deux lots distincts : un LOT 1 pour interagir, collaborer et faciliter les échanges liés à la procédure avec les tiers de justice, et un LOT 2 pour la gestion de l’inscription de privilège auprès des greffes.",
+    "id" : "EXG-FON-001",
+    "uuid" : "0e103f46-a769-4989-9962-c9df1840edb7",
+    "description" : "La solution doit être mise à disposition en mode SaaS sous la forme d’une plateforme informatique complète et intégrée pour la gestion des actions PIA/France2030 et PIC, afin d’accompagner la transformation numérique des գործընթաց internes et externes de la CDC et de son écosystème.",
     "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-001 | location=page 1, titre - Plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco ; page 8, article 4 - Objet de l’accord-cadre | context=Périmètre global du projet | quote=mise en place d’une « Plateforme d’interactions avec les tiers de justice pour l’Agirc-Arrco » couvrant 2 lots distincts : LOT 1 ... et LOT 2 ..."
+    "origin" : "document=20245175 - CCTP.pdf | ref=Contexte général / Exigences fonctionnelles métier | location=page 1 ; page 5, sections 2.1 et 2.2 | context=Plateforme cible et périmètre global | quote=mise à disposition en mode SaaS d’une solution numérique ... sous la forme d’une plateforme informatique complète et intégrée pour la gestion des actions PIA/France2030, PIC"
   }, {
-    "id" : "EXG-002",
-    "uuid" : "d69b4292-3bc4-4985-9d7d-9a11316f7be0",
-    "description" : "La solution doit s’inscrire dans le contexte de dématérialisation et d’accélération de la digitalisation des processus du régime Agirc-Arrco et des instances judiciaires, dans le cadre du nouveau SI-RC de la Fédération Agirc-Arrco.",
-    "category" : "Contexte / SI",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-002 | location=page 6, article 3 - Contexte du projet | context=Alignement avec le SI cible | quote=le projet s’inscrit dans un contexte de dématérialisation et d’accélération de la digitalisation des processus du régime Agirc-Arrco et des instances judiciaires"
-  }, {
-    "id" : "EXG-003",
-    "uuid" : "bbb29c31-d18c-4b74-9bf6-8f0dbb2c6d09",
-    "description" : "En février 2026, les briques locales GRECCO doivent être décommissionnées et remplacées par la brique centrale GCE, qui constituera le nouvel outil de gestion du compte, du recouvrement amiable et contentieux.",
-    "category" : "Contraintes projet",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-004 | location=page 7, article 3 - Contexte du projet | context=Cible SI-RC | quote=en février 2026, les briques locales GRECCO doivent être décommissionnées et remplacées par la brique centrale GCE"
-  }, {
-    "id" : "EXG-004",
-    "uuid" : "c913c85f-c7e5-4a7a-a87c-7a0f77edefb5",
-    "description" : "La version de démarrage de GCE contiendra le socle Compte / Recouvrement amiable sans la brique Recouvrement Contentieux, avec une mise en production de la brique contentieux GCE au 30/06/2026.",
-    "category" : "Contraintes projet",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-005 | location=page 7, article 3 - Contexte du projet | context=Roadmap SI-RC | quote=la version de démarrage contiendra le socle Compte / Recouvrement amiable sans la brique Recouvrement Contentieux ; mise en production de la brique contentieux GCE au 30/06/2026"
-  }, {
-    "id" : "EXG-005",
-    "uuid" : "c8d5c3c4-f55b-4b56-8a95-b6132a178baf",
-    "description" : "Les deux lots sont indépendants, chacun faisant l’objet d’un contrat différent avec possibilité de deux prestataires différents ; les plateformes n’ont pas à échanger entre elles, mais des interfaçages pourront être discutés en phase de négociation.",
-    "category" : "Organisation / Intégration",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-009 | location=page 9, article 8 - Description des besoins fonctionnels | context=Structuration contractuelle | quote=Les 2 lots sont indépendants, chacun faisant l’objet d’un contrat différent avec possibilité de 2 prestataires différents"
-  }, {
-    "id" : "EXG-006",
-    "uuid" : "ecf371dd-4bf8-4234-9b50-ac0cfcd91275",
-    "description" : "Le LOT 1 doit gérer un annuaire des tiers de justice utilisateurs de la plateforme, composé des commissaires de justice et avocats partenaires ; cet annuaire n’est pas mis à jour automatiquement et quotidiennement à partir des bases nationales des professions.",
-    "category" : "Données / Fonctionnel",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-010 | location=page 4, addendum - Base contact des Tiers de justice partenaires des IRC ; page 10, article 8.1 - LOT 1 | context=Référentiel des tiers de justice | quote=la solution doit gérer un annuaire des Tiers de justice utilisateurs de la plateforme, composé des commissaires de justice et avocats partenaires"
-  }, {
-    "id" : "EXG-007",
-    "uuid" : "afbe4ac8-f5de-45b4-9fce-a8109a34615b",
-    "description" : "Le LOT 2 doit gérer un annuaire des tribunaux, avec des modalités similaires au LOT 1, les données étant communiquées au SI-RC dans la mesure du possible.",
-    "category" : "Données / Intégration",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-011 | location=page 22, article 8.2 - LOT 2 | context=Référentiel des tribunaux | quote=la solution doit gérer un annuaire des tribunaux"
-  }, {
-    "id" : "EXG-008",
-    "uuid" : "dd5eefd8-e869-4ec5-9483-bc864742f5eb",
-    "description" : "Le LOT 1 doit couvrir tous les échanges impliquant un tiers de justice et offrir au gestionnaire contentieux des IRC un accès intelligent et approprié aux dossiers pour le suivi.",
+    "id" : "EXG-FON-002",
+    "uuid" : "7964bea9-238a-4754-94a9-516902d5aa38",
+    "description" : "La plateforme doit permettre le processus de sélection puis l’accompagnement des projets subventionnés PIA/France2030 et PIC, depuis la phase de candidature jusqu’à la phase d’animation des projets lauréats.",
     "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-013 | location=page 11, exigence EF1-01 | context=Gestion des dossiers contentieux | quote=la plateforme doit couvrir tous les échanges impliquant un tiers de justice ... et offrir au gestionnaire contentieux des IRC un accès intelligent et approprié aux dossiers pour le suivi"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 5, section 2.2 ; page 5, section 2.1 | context=Pilotage du cycle de vie des projets | quote=la plateforme doit permettre le processus de sélection puis l’accompagnement des projets subventionnés PIA/France2030, PIC"
   }, {
-    "id" : "EXG-009",
-    "uuid" : "04c114c0-373a-4b64-af48-59e5555d78a2",
-    "description" : "La solution doit permettre le traitement de bout en bout des échanges et du suivi des procédures impliquant commissaires de justice, avocats et autres tiers ; chaque IRC choisit librement son réseau de commissaires de justice et d’avocats, peut compléter ou modifier les informations concernant les tiers, et l’attribution du dossier au professionnel choisi se fait via la plateforme après ouverture du dossier par GCE.",
+    "id" : "EXG-FON-003",
+    "uuid" : "f14fa721-4fb7-47f0-9f9a-90f388b4e781",
+    "description" : "La plateforme doit accueillir les parties prenantes de l’écosystème avec des accès différenciés pour les candidats, partenaires de consortium, équipes projet, experts, membres des comités, SGPI, ministères, agences de l’État, services déconcentrés et équipes internes de la CDC.",
     "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-014 | location=page 11, exigence EF1-02 | context=Attribution et gestion des tiers | quote=la solution doit permettre le traitement de bout en bout des échanges et du suivi des procédures impliquant commissaires de justice, avocats, …"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 6, tableau des droits/profils | context=Gestion multi-profils utilisateurs | quote=la plateforme doit accueillir les parties prenantes de l’écosystème, avec accès différenciés"
   }, {
-    "id" : "EXG-010",
-    "uuid" : "7d2bb1b0-dc9f-4f7f-a781-f1b6468ca3c0",
-    "description" : "La plateforme doit favoriser la gestion des dossiers par les IRC et leur attribution aux professionnels adéquats selon des règles précises, avec automatisations pré-enregistrées possibles par IRC selon réseau partenaire, spécialités et localisations.",
-    "category" : "Règles métier",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-016 | location=page 11, exigence EF1-03 | context=Affectation des dossiers | quote=la plateforme doit favoriser la gestion des dossiers par les IRC ... selon des règles précises, avec automatisations pré-enregistrées possibles"
-  }, {
-    "id" : "EXG-011",
-    "uuid" : "fc0683dd-a600-466f-a19e-27a1035e3d3a",
-    "description" : "La solution doit permettre l’attribution d’un dossier à plusieurs tiers successifs selon les procédures, par exemple assignation en paiement d’abord à un commissaire de justice puis à un avocat.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-017 | location=page 12, exigence EF1-03 | context=Chaînage des intervenants | quote=permettre l’attribution d’un dossier à plusieurs tiers successifs selon les procédures"
-  }, {
-    "id" : "EXG-012",
-    "uuid" : "b3ba5a57-e5e3-4370-abce-bd70be9c7124",
-    "description" : "La plateforme doit offrir une flexibilité sur l’ouverture ou non à des tiers supplémentaires et permettre un transfert de tiers à la demande de l’IRC, y compris le transfert de tous les dossiers associés à un commissaire vers un autre commissaire.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-018 | location=page 12, exigence EF1-04 | context=Gestion souple des tiers | quote=la plateforme doit offrir une flexibilité sur l’ouverture ou non à des tiers supplémentaires"
-  }, {
-    "id" : "EXG-013",
-    "uuid" : "890dba67-7378-4478-bb8f-2e53eed3999f",
-    "description" : "La solution doit proposer un outil souple et instinctif pour les gestionnaires IRC avec interfaçage SI-RC permettant l’affichage des montants à recouvrer, de l’état de la procédure, du montant transféré aux tiers de justice et de tous autres mouvements associés au dossier ; elle doit aussi permettre le transfert quotidien des documents du dossier de la plateforme vers le SI-RC lorsqu’ils sont nécessaires à la bonne exécution des procédures.",
-    "category" : "Intégration / Fonctionnel",
+    "id" : "EXG-RSS-001",
+    "uuid" : "6b3ebfdb-8db1-4144-82bf-30ca1ec56cef",
+    "description" : "La solution doit gérer des accès personnalisés en lecture/écriture selon le rôle et permettre une gestion différenciée et paramétrable des droits d’accès.",
+    "category" : "Sécurité",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-019 | location=page 12, exigence EF1-05 | context=Vue dossier et synchronisation SI-RC | quote=la solution doit proposer un outil souple et instinctif pour les gestionnaires IRC avec interfaçage SI-RC permettant l’affichage des montants à recouvrer"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 10, paragraphe sur les accès personnalisés ; page 7, exigence sur l’octroi des droits d’accès | context=Gestion des habilitations | quote=accès personnalisés en lecture/écriture selon le rôle ... la gestion des droits d’accès doit être différenciée et paramétrable"
   }, {
-    "id" : "EXG-014",
-    "uuid" : "a5bbd09b-7832-4171-ac8d-5db602c7dd65",
-    "description" : "La solution doit fournir des fonctionnalités de recherche avancée, consultation des dossiers et dépôt de documents, avec une barre de recherche permettant la recherche par dossier, nom d’entreprise, SIRET ou SIREN.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-020 | location=page 12, exigence EF1-06 | context=Recherche et consultation | quote=fonctionnalités de recherche avancée, consultation des dossiers et dépôt de documents"
-  }, {
-    "id" : "EXG-015",
-    "uuid" : "9efdc5ea-cf84-4b76-9f06-d8ba30510498",
-    "description" : "La plateforme doit gérer l’Euro avec deux décimales.",
-    "category" : "Règles de gestion",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-021 | location=page 12, exigence EF1-07 | context=Gestion monétaire | quote=gestion de l’Euro avec 2 décimales"
-  }, {
-    "id" : "EXG-016",
-    "uuid" : "bd5a0ee3-2899-4f7a-ab62-d60d4b019da1",
-    "description" : "La solution doit proposer un tableau de bord avec alimentation automatique des KPI clés, incluant le suivi du montant recouvré, du nombre de dossiers par état, du nombre de dossiers par avancement, par motif et par collaborateur, ainsi que le suivi de facturation des tiers.",
-    "category" : "Pilotage / Reporting",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-022 | location=page 12-13, exigence EF1-08 | context=Tableau de bord KPI | quote=tableau de bord avec alimentation automatique des KPI clés"
-  }, {
-    "id" : "EXG-017",
-    "uuid" : "481ec51e-80ae-415a-8ea0-c43fad198841",
-    "description" : "Les KPI de facturation doivent comprendre l’état d’avancement non-facturé, facturé ou payé, une granularité par dossier ou par consolidation de factures d’un réseau sur une période, et une typologie distinguant frais d’actes et frais d’honoraires.",
-    "category" : "Pilotage / Facturation",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-023 | location=page 13, exigence EF1-08 | context=KPI de facturation | quote=les KPI de facturation comprennent l’état d’avancement non-facturé / facturé / payé"
-  }, {
-    "id" : "EXG-018",
-    "uuid" : "8837cd2c-877d-492a-9807-0d94056f3a99",
-    "description" : "Les KPI doivent être propres à chaque IRC et visibles uniquement par les membres des IRC ; les tiers de justice et autres IRC n’y ont pas accès.",
-    "category" : "Sécurité / Pilotage",
+    "id" : "EXG-TEC-001",
+    "uuid" : "856f7e26-1103-44f5-9f96-ee01031755d9",
+    "description" : "La plateforme doit réduire au strict minimum les interventions manuelles des équipes et favoriser l’expérience utilisateur pour les collaborateurs et les porteurs de projets.",
+    "category" : "Qualité/UX",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-024 | location=page 13, exigence EF1-08 | context=Confidentialité des indicateurs | quote=ces KPI sont propres à chaque IRC et ne sont visibles que par les membres des IRC"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 6-7, puces d’objectifs et de caractéristiques de la Plateforme | context=Automatisation et ergonomie | quote=réduire au strict minimum les interventions manuelles ... favoriser l’expérience utilisateur"
   }, {
-    "id" : "EXG-019",
-    "uuid" : "8fbfd412-d158-42a2-a3ee-3af421272926",
-    "description" : "La solution doit gérer les délais avec contrôles automatiques, notifications, alertes de tâches et alimentation intelligente d’un tableau de suivi par gestionnaire et par dossier, avec un paramétrage propre à chaque IRC.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-025 | location=page 13, exigence EF1-09 | context=Gestion des délais | quote=gestion des délais avec contrôles automatiques, notifications, alertes de tâches"
-  }, {
-    "id" : "EXG-020",
-    "uuid" : "54b7d948-f9ed-47f0-a717-149946cacd8c",
-    "description" : "La solution doit favoriser une collaboration active et directe avec commentaires archivables, messagerie dynamique, alertes de réception de nouveaux messages, recherche et filtrage des messages, et proposition dynamique de message pour validation ou interaction récurrente.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-026 | location=page 13, exigence EF1-10 | context=Collaboration et messagerie | quote=la plateforme doit favoriser une collaboration active et directe avec commentaires archivables, messagerie dynamique"
-  }, {
-    "id" : "EXG-021",
-    "uuid" : "6470e554-a61e-4dfe-9f82-ee8a5da23977",
-    "description" : "La solution doit permettre un paramétrage de règles pour envoyer des messages à des tiers, ces règles étant précisées en phase de cadrage.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-027 | location=page 13, exigence EF1-11 | context=Automatisation des messages | quote=paramétrage de règles pour envoyer des messages à des tiers"
-  }, {
-    "id" : "EXG-022",
-    "uuid" : "da87b17f-9139-4cbe-9da0-37ef1cb28292",
-    "description" : "Le service doit fournir un accusé de réception simple et une notification de nouveau message reçu sans AR à valeur légale, prérequis pour l’UO1.",
-    "category" : "Fonctionnel / Sécurité",
+    "id" : "EXG-TEC-002",
+    "uuid" : "f1afd95d-fbf2-467a-acd0-bf3e0b80f8fd",
+    "description" : "La solution doit être Responsive Web Design, adaptée à tous types de supports, respecter la charte graphique CDC et pouvoir être personnalisée aux couleurs de la Banque des Territoires en marque blanche.",
+    "category" : "Technique/UX",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-028 | location=page 13, exigence EF1-12 | context=Gestion des accusés de réception | quote=service d’accusé de réception simple, notification de nouveau message reçu sans AR à valeur légale, exigé comme prérequis pour l’UO1"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 6-7, puces d’objectifs et de caractéristiques de la Plateforme | context=Accessibilité multi-support et identité visuelle | quote=Responsive Web Design ... respectant la charte graphique CDC ... personnalisée aux couleurs de la Banque des Territoires en marque blanche"
   }, {
-    "id" : "EXG-023",
-    "uuid" : "dbdaeae4-e589-4b6a-9b67-7a843fa734d0",
-    "description" : "La solution doit assurer un suivi de facturation souple et intelligent, avec rappel aux tiers pour inscrire leurs frais rapidement après chaque acte ou à la clôture, écran de restitution des frais avec filtrage par IRC et export facilement transférable, et distinction entre factures d’actes et factures d’honoraires.",
-    "category" : "Facturation",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-029 | location=page 13-14, exigence EF1-13 | context=Suivi des frais et factures | quote=suivi de facturation souple et intelligent"
-  }, {
-    "id" : "EXG-024",
-    "uuid" : "482c123e-db9a-4565-8988-61d6acfea3d9",
-    "description" : "Les factures doivent être associées à chaque dossier ouvert et visibles uniquement par les IRC ayant droit ; elles doivent être accessibles, catégorisées, et la facturation peut être déclenchée au fil de l’eau ou en fin de dossier selon le type de procédure et le tiers intervenant.",
-    "category" : "Facturation / Sécurité",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-030 | location=page 14, exigence EF1-13 | context=Factures par dossier | quote=factures associées à chaque dossier ouvert et visibles uniquement par les IRC ayant droit"
-  }, {
-    "id" : "EXG-025",
-    "uuid" : "3d186d97-6b3e-4ac5-ac70-4f4e73fe250b",
-    "description" : "La plateforme doit intégrer des règles coconstruites en cadrage concernant le processus de validation, les règles de montant, les libellés des virements, les contrôles automatiques au-delà de certains seuils, le contrôle manuel avec possibilité de réfuter le montant et de renvoyer au tiers, ainsi que l’export simplifié des factures.",
-    "category" : "Règles métier / Facturation",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-031 | location=page 14, exigence EF1-13 | context=Validation des factures | quote=règles coconstruites en cadrage concernant processus de validation, règles de montant, libellés des virements"
-  }, {
-    "id" : "EXG-026",
-    "uuid" : "b662eedc-8e9c-4f92-a01c-f4a1baa72dd6",
-    "description" : "La plateforme ne suit pas les paiements ; elle suit la partie facturation, le contrôle, le pilotage et l’archivage des pièces justificatives des actes facturés, avec facturation finale pour les commissaires de justice et au fil de l’eau pour les avocats.",
-    "category" : "Règles métier",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-032 | location=page 14, exigence EF1-13 | context=Champ fonctionnel de la facturation | quote=la plateforme ne suit pas les paiements, elle suit la partie facturation, contrôle, pilotage, archivage des pièces justificatives"
-  }, {
-    "id" : "EXG-027",
-    "uuid" : "a1b73cfd-9383-4fe2-8aad-f8195d3de8c3",
-    "description" : "La plateforme doit offrir une flexibilité de workflow pour gérer des cas particuliers, par exemple la transmission de pièces justificatives à d’autres tiers ou la clôture d’une procédure tout au long du workflow.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-033 | location=page 14, exigence EF1-14 | context=Gestion des exceptions | quote=flexibilité de workflow requise pour gérer des cas particuliers"
-  }, {
-    "id" : "EXG-028",
-    "uuid" : "ac296860-a718-4e9e-8bac-89d519cda476",
-    "description" : "Les seuils propres à chaque IRC doivent être paramétrables et cadrés lors du déploiement.",
-    "category" : "Paramétrage",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-034 | location=page 14, exigence EF1-15 | context=Seuils par IRC | quote=les seuils propres à chaque IRC doivent être paramétrables"
-  }, {
-    "id" : "EXG-029",
-    "uuid" : "8fbbe95b-74e2-4085-862a-779001f22faa",
-    "description" : "Toute action manuelle réalisée dans la plateforme devant entraîner une mise à jour du compte dans GCE ou déclencher d’autres actions dans GCE doit faire l’objet d’un flux de la plateforme vers GCE.",
+    "id" : "EXG-TEC-003",
+    "uuid" : "5fd57412-4cd0-4fee-a8ad-6aa8ea34abd8",
+    "description" : "La plateforme doit permettre via API des flux de données sécurisés descendants et ascendants avec les outils existants du SI CDC et du mandant.",
     "category" : "Intégration",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-035 | location=page 14, exigence EF1-16 | context=Synchronisation avec GCE | quote=toute action manuelle réalisée dans la plateforme ... doit faire l’objet d’un flux de la plateforme vers GCE"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 7, puce sur les API ; page 9, schéma des adhérences SI / API | context=Interopérabilité SI | quote=permettre via API des flux de données sécurisés descendants et ascendants"
   }, {
-    "id" : "EXG-030",
-    "uuid" : "19be893f-5cc4-42ac-ac0d-72e999eec81e",
-    "description" : "Pour les procédures individuelles, la plateforme doit recevoir les pièces justificatives à l’origine de l’ouverture du dossier, gérer la transmission de pièces à l’avocat et au commissaire de justice, enregistrer les mises à jour de procédure, relancer les intervenants, recevoir les informations de procédure, clôturer le dossier, suivre les encaissements et préparer la note rectificative pour les CCSF.",
+    "id" : "EXG-FON-004",
+    "uuid" : "3f815257-e9e4-4204-a0b5-a06fc35387c5",
+    "description" : "La plateforme doit couvrir la gestion des AAP/AMI, incluant la préfiguration, l’inscription, le formulaire personnalisable, les FAQ, la gestion des délais, les alertes, le suivi des statuts et les notifications d’éligibilité/recevabilité.",
     "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-036 | location=page 15, article 8.1, tableau procédures individuelles | context=Procédures individuelles | quote=réception des pièces justificatives à l’origine de l’ouverture du dossier via la plateforme ... clôture de la procédure ... préparation de la note rectificative"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section « 1- Module de gestion d’AAP (Appel à Projets) / AMI… » | context=Module 1 - Gestion des AAP/AMI | quote=page de préfiguration/configuration des AAP/AMI, page d’inscription candidats, formulaire personnalisable ... notifications aux candidats"
   }, {
-    "id" : "EXG-031",
-    "uuid" : "cdd45ff3-fba6-491a-a07d-19ccfd154926",
-    "description" : "Pour l’injonction de payer, le gestionnaire IRC peut imprimer et envoyer la requête et ses pièces directement au tribunal par La Poste pour initier le dossier avant de passer la main au commissaire de justice ; la plateforme doit gérer les deux cas de figure, avec ou sans commissaire de justice.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-037 | location=page 16-17, exigence EF1-17 | context=Injonction de payer | quote=la plateforme doit gérer deux cas de figure, avec ou sans commissaire de justice"
-  }, {
-    "id" : "EXG-032",
-    "uuid" : "cf89437c-12ee-4e4e-8ad8-92f77d7e3e8f",
-    "description" : "Le LOT 1 UO2 doit pouvoir automatiser l’envoi des injonctions de payer directement aux greffes des tribunaux de commerce, couvrant 85% des cas, avec conservation des systèmes actuels pour les 15% restants non dématérialisables ou non automatisables.",
-    "category" : "Fonctionnel / Contraintes projet",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-038 | location=page 18, exigence EF1-18 | context=UO2 injonction de payer | quote=automatiser l’envoi des injonctions de payer directement aux greffes des tribunaux de commerce, couvrant 85% des cas"
-  }, {
-    "id" : "EXG-033",
-    "uuid" : "e9a031e7-e8d8-4d6c-a41c-e5d3a93fd38a",
-    "description" : "Le système UO2 doit reposer sur un webservice de type Infogreffe ou équivalent pour envoyer directement les demandes d’injonction de payer aux greffes avec pièces justificatives, éléments de créances et commissaire de justice désigné pour le retour du tribunal, conformément à la procédure légale ; le titulaire doit concevoir et développer les écrans de saisie et de validation, et prendre en charge la souscription et la gestion de la relation avec le fournisseur du webservice.",
-    "category" : "Intégration / Fonctionnel",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-039 | location=page 18, exigence EF1-18 | context=Webservice greffes | quote=le système repose sur un webservice de type Infogreffe ou équivalent"
-  }, {
-    "id" : "EXG-034",
-    "uuid" : "f98da8c5-7e59-44b7-aa3e-148d8450eada",
-    "description" : "Le dossier UO2 doit être généré et visualisable via la plateforme, qui doit informer le gestionnaire en cas de rejet ou d’impossibilité d’utiliser la dématérialisation automatique pour le tribunal concerné.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-040 | location=page 18, exigence EF1-18 | context=Gestion des rejets UO2 | quote=le dossier est généré et visualisable via la plateforme"
-  }, {
-    "id" : "EXG-035",
-    "uuid" : "e033eb5a-3ba3-4790-b8b7-6f54fb9cc071",
-    "description" : "Le suivi des frais de tribunaux doit être prévu pour consolider les frais et assurer une trace comptable ; aucun paiement n’est à prévoir via la plateforme directement.",
-    "category" : "Facturation / Comptabilité",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-041 | location=page 18, exigence EF1-18 | context=Frais de tribunaux UO2 | quote=le suivi des frais de tribunaux doit être prévu pour consolider les frais et assurer une trace comptable"
-  }, {
-    "id" : "EXG-036",
-    "uuid" : "ef70e6e8-5a15-41fb-86a8-1925b603c124",
-    "description" : "Le prestataire doit gérer toutes les articulations entre gestion IRC, commissaire de justice, avocats et SI-RC ; l’envoi à l’avocat doit être facultatif pour les IRC qui ne procèdent pas avec des avocats.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-042 | location=page 19, exigence EF1-19 | context=Assignation en paiement | quote=le prestataire doit gérer toutes les articulations entre gestion IRC, commissaire de justice, avocats et SI-RC"
-  }, {
-    "id" : "EXG-037",
-    "uuid" : "de715a89-39b9-420c-a89a-03624b45cf89",
-    "description" : "La 3ième relance amiable ne fait pas partie du contentieux mais peut, selon les IRC, être transmise à des commissaires de justice ; chaque IRC décide dans GCE de son processus, soit gestion dans le SI-RC sans impact sur la plateforme, soit transmission via la plateforme à un réseau de commissaires de justice partenaires.",
-    "category" : "Fonctionnel / Règles métier",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-044 | location=page 20-21, exigence EF1-21 | context=3ème relance amiable | quote=la 3ième relance ne fait pas partie du contentieux mais peut, selon les IRC, être transmise à des commissaires de justice"
-  }, {
-    "id" : "EXG-038",
-    "uuid" : "e696d819-838f-4070-ab33-1133143a06fd",
-    "description" : "Le processus de 3ème relance comprend le ciblage des comptes à relance 3, la transmission du périmètre à la plateforme, l’attribution de l’action à un tiers de justice selon des règles de gestion, le suivi et la mise à jour du dossier avec gestion des délais de paiement, renégociation, dénonciation, échanges entre tiers et entreprise, ainsi que le suivi des frais et de la facturation.",
-    "category" : "Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-045 | location=page 21, exigence EF1-21 | context=Workflow de relance amiable | quote=le processus comprend le ciblage des comptes à relance 3, la transmission du périmètre à la plateforme"
-  }, {
-    "id" : "EXG-039",
-    "uuid" : "3fa94199-1498-4768-b337-181a3ae254f8",
-    "description" : "La plateforme doit recevoir les informations de demande d’IP de GCE de manière récurrente au minimum hebdomadaire en masse selon des critères prédéfinis, et ponctuellement en petits volumes ; les modifications issues d’actions manuelles doivent repartir vers GCE ; les documents du dossier doivent être transférés quotidiennement vers le SI-RC.",
-    "category" : "Intégration",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-046 | location=page 24, exigence EF2-01 | context=Flux LOT 2 | quote=la plateforme doit recevoir les informations de demande d’IP de GCE, de manière récurrente au minimum hebdomadaire"
-  }, {
-    "id" : "EXG-040",
-    "uuid" : "2485d47e-5542-42a6-9e6d-3f845128305d",
-    "description" : "La sélection du tribunal adéquat doit être réalisée automatiquement selon des critères définis et les informations reçues du SI-RC, à partir d’un annuaire des tribunaux et de règles légales de sélection.",
-    "category" : "Règles métier / Intégration",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-047 | location=page 24, exigence EF2-02 | context=Affectation du tribunal | quote=la sélection du tribunal adéquat doit être réalisée automatiquement selon des critères définis"
-  }, {
-    "id" : "EXG-041",
-    "uuid" : "87cd8c6c-093d-4003-9f89-993d36398db9",
-    "description" : "Les informations au tribunal doivent être envoyées via flux dématérialisé avec bordereaux ; si le tribunal ne permet pas la dématérialisation, l’envoi papier ou email doit être réalisé par le titulaire du LOT 2.",
-    "category" : "Intégration / Fonctionnel",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-048 | location=page 24, exigence EF2-03 | context=Envoi aux tribunaux | quote=les informations au tribunal doivent être envoyées via flux dématérialisé avec bordereaux"
-  }, {
-    "id" : "EXG-042",
-    "uuid" : "9dd8bd6a-da84-4ad8-9b5e-1c4320ae503c",
-    "description" : "Le retour du tribunal doit être transmis par voie dématérialisée dès réception, sur une base quotidienne, avec date, référence de l’IP, statut, motif de rejet éventuel et tribunal adressé.",
-    "category" : "Intégration / Reporting",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-049 | location=page 24, exigence EF2-04 | context=Retours tribunaux LOT 2 | quote=le retour du tribunal doit être transmis par voie dématérialisée dès réception, sur une base quotidienne"
-  }, {
-    "id" : "EXG-043",
-    "uuid" : "cf3f6f4e-717c-4347-9ab4-6bd7377acc10",
-    "description" : "Le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet, prendre en compte la correction et renvoyer l’IP corrigée.",
+    "id" : "EXG-FON-005",
+    "uuid" : "68bfcc75-d170-4041-99bc-cebcb383473f",
+    "description" : "La plateforme doit gérer les jurys, la répartition des candidats avec compatibilités, les grilles d’évaluation paramétrables et le pilotage des indemnités à verser aux jurys.",
     "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-050 | location=page 24-25, exigence EF2-05 | context=Gestion des rejets LOT 2 | quote=le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section Module 1 | context=Module 1 - Gestion des jurys | quote=répartition des candidats avec gestion des compatibilités, système paramétrable de notation / grille d’évaluation ... pilotage des indemnités à verser aux jurys"
   }, {
-    "id" : "EXG-044",
-    "uuid" : "5350d37b-a55f-4032-87c3-316c9bfaa15f",
-    "description" : "Les corrections face aux différents motifs de rejet doivent être prises en charge et le flux régénéré si l’anomalie relève du périmètre du prestataire, y compris les rejets techniques liés à des déphasages de flux ou à un mauvais calcul de compétence du tribunal si cette compétence est à sa charge.",
-    "category" : "Intégration / Qualité",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-051 | location=page 25, exigence EF2-06 | context=Reprise après rejet | quote=les corrections face aux différents motifs de rejet doivent être prises en charge et le flux régénéré"
+    "id" : "EXG-FON-006",
+    "uuid" : "8ad5ff13-c0e2-42a6-9de3-cf31479977c8",
+    "description" : "La plateforme doit consolider les grilles d’analyse pour les instances décisionnelles, intégrer les modifications des comitologies compétentes, élaborer les relevés de décision et générer les notifications, conventions types et avenants.",
+    "category" : "Fonctionnel",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section « Processus de sélection » | context=Module 1 - Processus de sélection et contractualisation | quote=consolidation des grilles d’analyse ... élaboration du relevé de décision ... génération de convention type ... génération d’avenants de conventions"
   }, {
-    "id" : "EXG-045",
-    "uuid" : "e434e13b-9655-482c-81bf-8e52e60f3eab",
-    "description" : "Pour la radiation, le même principe que pour l’IP s’applique, avec réception hebdomadaire des demandes de radiation totale ou partielle selon des critères prédéfinis, déclenchement quotidien d’une mise à jour du SI-RC pour toute action manuelle, et transfert quotidien des documents du dossier vers le SI-RC.",
-    "category" : "Intégration",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-052 | location=page 25, exigence EF2-07 | context=Flux radiations LOT 2 | quote=même principe que l’IP, avec réception hebdomadaire des demandes de radiation totale ou partielle"
+    "id" : "EXG-FON-007",
+    "uuid" : "bd250cd8-7564-47e4-82f9-357648dc5085",
+    "description" : "La plateforme doit proposer un module de reporting et de pilotage avec tableaux de bord paramétrables, datavisualisation, cartographies, listings de projets et extraction de fichiers prédéfinis.",
+    "category" : "Fonctionnel",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section « 2- Module de reporting… » | context=Module 2 - Reporting et pilotage | quote=tableaux de bord paramétrables ... datavisualisation/cartographies ... extraction de fichiers prédéfinis"
   }, {
-    "id" : "EXG-046",
-    "uuid" : "8ed6ccc4-f673-4afe-801f-6342ec19034c",
-    "description" : "Les informations au tribunal pour la radiation doivent être envoyées via flux dématérialisé avec bordereaux ; si la dématérialisation n’est pas possible, l’envoi papier ou email doit être réalisé par le titulaire du LOT 2.",
-    "category" : "Intégration / Fonctionnel",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-053 | location=page 25, exigence EF2-08 | context=Envoi radiations | quote=les informations au tribunal doivent être envoyées via flux dématérialisé avec bordereaux"
-  }, {
-    "id" : "EXG-047",
-    "uuid" : "f3d2697d-6059-4a22-8b80-f49938da0ded",
-    "description" : "Le retour du tribunal au SI-RC pour la radiation doit être dématérialisé, quotidien, et comporter la date, la référence de la radiation, le statut et le motif de rejet éventuel.",
-    "category" : "Intégration / Reporting",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-054 | location=page 25, exigence EF2-09 | context=Retours radiations | quote=le retour du tribunal au SI-RC est dématérialisé, quotidien"
-  }, {
-    "id" : "EXG-048",
-    "uuid" : "d87920c1-12cf-43f9-9115-437cd45638a7",
-    "description" : "Le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet, prendre en compte la correction et renvoyer la radiation corrigée.",
+    "id" : "EXG-FON-008",
+    "uuid" : "2d59c850-4bcd-4ce4-8144-2e3296562fcb",
+    "description" : "La plateforme doit intégrer un espace annuaire avec référentiel contacts/intervenants, fiches profil candidat, fiches projet et informations sur les membres du consortium, avec interfaçage avec Data.gouv.",
     "category" : "Fonctionnel",
     "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-055 | location=page 25, exigence EF2-10 | context=Correction des radiations | quote=le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section Module 2 | context=Module 2 - Annuaire et référentiels | quote=espace annuaire : liste de personnes ... fiche profil candidat ... interfacée avec Data.gouv ... fiche projet ... informations membres du consortium"
   }, {
-    "id" : "EXG-049",
-    "uuid" : "e46d41e6-26f7-403f-af0b-28729671942c",
-    "description" : "Les corrections face aux rejets de radiation doivent être prises en charge et le flux régénéré si l’anomalie relève du périmètre du prestataire.",
-    "category" : "Intégration / Qualité",
-    "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-056 | location=page 25, exigence EF2-11 | context=Reprise radiation | quote=les corrections face aux rejets doivent être prises en charge et le flux régénéré"
-  }, {
-    "id" : "EXG-050",
-    "uuid" : "3d2ee0fb-38dd-477a-9c64-b45db08fb690",
-    "description" : "La plateforme doit transmettre une facturation précise distinguant les frais avancés aux tribunaux et les frais de service séparés, une partie des frais avancés aux tribunaux étant imputée aux entreprises.",
-    "category" : "Facturation",
+    "id" : "EXG-FON-009",
+    "uuid" : "6af1b1cd-78d9-45e5-9a17-8ad5d1a25e13",
+    "description" : "La plateforme doit permettre le suivi des rapports d’activité qualitatifs et financiers, la gestion documentaire, le contrôle de complétude des pièces justificatives, le contrôle des ratios/indicateurs et la formalisation de l’analyse dans le service fait avant versement.",
+    "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-057 | location=page 23, article 8.2 - LOT 2 ; page 26, exigence EF2-12 | context=Facturation LOT 2 | quote=la plateforme doit transmettre une facturation précise distinguant les frais avancés aux tribunaux et les frais de service séparés"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section Module 2 | context=Module 2 - Suivi des rapports d’activité | quote=réception et analyse des rapports d’activité qualitatifs et financiers ... contrôles de complétude ... formalisation de l’analyse dans le service fait avant versement"
   }, {
-    "id" : "EXG-051",
-    "uuid" : "11b83c1a-faf6-4dde-a6bc-36d51a0ae270",
-    "description" : "Le gestionnaire IRC doit disposer d’un suivi à chaque étape via une interface pour suivre les demandes réalisées et le statut associé.",
+    "id" : "EXG-FON-010",
+    "uuid" : "ae557476-5bde-47c4-882f-1d910e3c4fa8",
+    "description" : "La plateforme doit intégrer les résultats d’audit dans la fiche de suivi du projet et permettre le suivi des demandes de modifications avec gestion des statuts et des dates.",
     "category" : "Fonctionnel",
     "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-058 | location=page 26, exigence EF2-13 | context=Suivi LOT 2 | quote=le gestionnaire IRC doit disposer d’un suivi à chaque étape via une interface"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 8, section Module 2 | context=Module 2 - Audit et modifications | quote=intégration des résultats d’audit dans la fiche de suivi du projet, suivi des demandes de modifications en cours avec gestion de statut et dates"
   }, {
-    "id" : "EXG-052",
-    "uuid" : "65e2df9f-3904-41af-b0a7-43fa32f954cc",
-    "description" : "La collaboration entre gestionnaire et prestataire doit permettre l’ajout et la transmission de pièces justificatives en cas de refus, ainsi que le commentaire et le suivi de toutes les procédures de l’IRC.",
+    "id" : "EXG-FON-011",
+    "uuid" : "5e3894db-7753-45b4-a6b2-60f6231d9ff5",
+    "description" : "La plateforme doit fournir un espace de communication comprenant messagerie, mails transactionnels, FAQ lauréats, notifications, planification de réunions Teams, fil d’actualités et organisation d’événements.",
     "category" : "Fonctionnel",
     "priority" : "Moyenne",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-059 | location=page 26, exigence EF2-14 | context=Collaboration LOT 2 | quote=la collaboration entre gestionnaire et prestataire doit permettre l’ajout et la transmission de pièces justificatives"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 9, section « 3- Module d’animation de communautés de lauréats » | context=Module 3 - Animation de communautés | quote=système de messagerie, mails transactionnels, FAQ lauréats, espace de notification / planification réunion Teams, fil d’actualités, organisation d’événements"
   }, {
-    "id" : "EXG-053",
-    "uuid" : "5e5284c7-e93c-492d-9a6b-5eeaf23bcc9d",
-    "description" : "La plateforme doit permettre une gestion en masse des IP avec suivi détaillé par cas et traçabilité, ainsi qu’un accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.",
-    "category" : "Fonctionnel / Sécurité",
-    "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-060 | location=page 27, synthèse des contraintes principales du LOT ; page 28, article 9.3 - Rôles, profils utilisateurs et droits d’accès | context=Gestion des habilitations LOT 2 | quote=la plateforme doit permettre une gestion en masse des IP avec suivi détaillé par cas et traçabilité"
+    "id" : "EXG-FON-012",
+    "uuid" : "a810dffc-0ec3-4ec0-859f-90ce14927779",
+    "description" : "La plateforme doit fournir un espace documentaire avec liste des documents disponibles, droits d’accès différenciés, liens documentaires et webinaires.",
+    "category" : "Fonctionnel",
+    "priority" : "Moyenne",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 9, section Module 3 | context=Module 3 - Documentation | quote=liste des documents disponibles avec droits d’accès différenciés, liens documentaires et webinaires"
   }, {
-    "id" : "EXG-054",
-    "uuid" : "23c782c6-ce59-486d-b57f-3ea9b40c25b7",
-    "description" : "La date prévisionnelle de déploiement est fixée au 30/06/2026.",
-    "category" : "Contraintes projet",
+    "id" : "EXG-FON-013",
+    "uuid" : "bba47ef1-ae9b-4f77-bb7a-44cdc2ba9ac7",
+    "description" : "La plateforme doit permettre la préfiguration des KPI, leur sélection par dispositif, la visualisation des KPI avec définitions et aides au remplissage, la saisie des données au format prédéfini, leur consolidation et extraction, ainsi que le contrôle de qualité des données et le suivi des calendriers de relèves.",
+    "category" : "Fonctionnel",
     "priority" : "Haute",
-    "origin" : "document=CCTP_AGIRC.pdf | ref=EX-061 | location=page 27, synthèse des contraintes principales du LOT ; page 28, article 9.3 - Rôles, profils utilisateurs et droits d’accès | context=Calendrier LOT 2 | quote=La date prévisionnelle de déploiement est le 30/06/2026"
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 9, section « 4- Module d’évaluation… » | context=Module 4 - Évaluation et collecte de données extra-financières | quote=saisie et modification d’une base de KPI ... visualisation des KPI ... extraction ... validation ou renvoi de la donnée ... suivi des calendriers de relèves"
+  }, {
+    "id" : "EXG-SUP-001",
+    "uuid" : "89e2572f-0ef8-4a67-a960-f51169158e79",
+    "description" : "Le support technique de type hot line doit être accessible à tout utilisateur du lundi au vendredi de 09h à 17h, par messagerie, avec une réponse de premier niveau sous 24 heures hors accusé de réception.",
+    "category" : "Support",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 10, paragraphe support technique | context=Assistance utilisateurs | quote=service de support technique de type “hot line” accessible par tout utilisateur du lundi au vendredi de 09h à 17h, par messagerie ; réponse de premier niveau ... dans un délai de vingt-quatre (24) heures"
+  }, {
+    "id" : "EXG-FON-014",
+    "uuid" : "86cc2097-4a3a-491f-a2cc-a76238ba5dbb",
+    "description" : "La plateforme peut être rendue accessible en version mobile en cours d’exécution, cette fonctionnalité faisant l’objet d’un bon de commande spécifique.",
+    "category" : "Fonctionnel",
+    "priority" : "Faible",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 10, paragraphe version mobile | context=Mobilité | quote=la plateforme peut être rendue accessible en version mobile en cours d’exécution ; cette fonctionnalité fera l’objet d’un bon de commande spécifique"
+  }, {
+    "id" : "EXG-GEN-001",
+    "uuid" : "4d99cd5a-c288-4899-b017-f76ce16c40e3",
+    "description" : "La solution doit permettre la reprise de l’historique des projets lauréats actifs ne nécessitant plus de processus d’instruction et des données des projets non retenus, pour un volume indicatif de 2 500 à 3 000 dossiers et sur le périmètre des AAP PIA3 et PIA4/France2030.",
+    "category" : "Migration/Reprise",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 12, section 3.5 - Reprise d’antériorité et restitution en fin de marché | context=Reprise d’antériorité | quote=reprise de l’historique des projets lauréats actifs ... volume de 2 500 à 3 000 dossiers ... périmètre actuel à intégrer est celui des appels à projets des PIA3 et PIA4/France2030"
+  }, {
+    "id" : "EXG-GEN-002",
+    "uuid" : "ab9fc4dc-ca38-44ad-8a37-71b4db14bdb8",
+    "description" : "En fin de marché, la Caisse des Dépôts doit récupérer l’ensemble des données et documents stockés sur la plateforme selon le principe de réversibilité, dans un format compatible et exploitable par les systèmes d’information de la CDC, avec un plan de réversibilité complet.",
+    "category" : "Réversibilité",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences fonctionnelles métier | location=page 12, section 3.5 - Reprise d’antériorité et restitution en fin de marché | context=Restitution de fin de marché | quote=restitution à la Caisse des Dépôts de l’ensemble des données et documents stockés sur la plateforme selon le principe de réversibilité"
+  }, {
+    "id" : "EXG-GEN-003",
+    "uuid" : "047b6d4e-7d02-4abc-86cd-0f83d2005ecf",
+    "description" : "La solution doit être hébergée en mode SaaS par le Titulaire et ses sous-traitants dans un ou plusieurs centres informatiques situés dans l’Espace Économique Européen, et les infrastructures techniques ne peuvent pas être hébergées dans les locaux de l’Acheteur.",
+    "category" : "Hébergement",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences techniques et architecture | location=page 1 ; page 10, section 3.3 - Hébergement de la Plateforme | context=Contraintes d’hébergement | quote=la plateforme et les données doivent être hébergées ... dans un ou plusieurs centres informatiques au sein de l’Espace Économique Européen"
+  }, {
+    "id" : "EXG-RSS-002",
+    "uuid" : "5d83bc92-1d9c-47e4-b747-8aca80ed734c",
+    "description" : "Le Titulaire doit proposer impérativement un hébergement natif des données dans un cloud souverain certifié SecNumcloud.",
+    "category" : "Sécurité/Hébergement",
+    "priority" : "Critique",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences techniques et architecture | location=page 10, section 3.3 - Hébergement de la Plateforme | context=Cloud souverain | quote=doit proposer impérativement en natif un hébergement des données dans un cloud souverain certifié SecNumcloud"
+  }, {
+    "id" : "EXG-RSS-003",
+    "uuid" : "032f3783-f7e9-4ed8-a025-5bf01eb0b6b7",
+    "description" : "La plateforme doit respecter la réglementation relative à la protection des données personnelles et les opérations de collecte, manipulation, stockage, maintenance et arrêt éventuel doivent être conformes aux exigences de la législation française et européenne.",
+    "category" : "Conformité",
+    "priority" : "Critique",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 7, section 3.1 - Fonctionnalités ; page 11, section 3.3 - Hébergement de la Plateforme | context=RGPD et conformité juridique | quote=respecter la réglementation relative à la protection des données personnelles ... conformes aux exigences de la législation française et européenne"
+  }, {
+    "id" : "EXG-RSS-004",
+    "uuid" : "c8ccb15f-37b1-497f-b249-317cd4750142",
+    "description" : "La plateforme doit garantir la confidentialité selon les stades du projet et assurer, une fois authentifié, un haut niveau de confidentialité.",
+    "category" : "Sécurité",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 7, section 3.1 - Fonctionnalités ; page 12, section 3.4 - Gestion des utilisateurs et de l’accès à la Plateforme | context=Confidentialité des données et des projets | quote=garantir la confidentialité selon les stades du projet ... garantir un haut niveau de confidentialité"
+  }, {
+    "id" : "EXG-RSS-005",
+    "uuid" : "00617d51-1371-453c-b3ce-9b142a3d8679",
+    "description" : "La solution doit sécuriser les accès via VPN, Firewall et SSO, gérer les identités, les habilitations et les traces, et utiliser une authentification forte pour l’accès à la plateforme.",
+    "category" : "Sécurité",
+    "priority" : "Critique",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 11, section 3.4 - Gestion des utilisateurs et de l’accès à la Plateforme | context=Contrôle des accès | quote=sécurisation des accès via VPN, Firewall, SSO ; gestion des identités et habilitations ... Les accès à la Plateforme devront être authentifiés via une solution d’authentification forte"
+  }, {
+    "id" : "EXG-RSS-006",
+    "uuid" : "dc0d0747-878f-4948-8f5e-463f0f417a07",
+    "description" : "Les échanges réalisés dans la plateforme doivent faire l’objet de protocoles sécurisés afin qu’aucune information confidentielle ne puisse être interceptée.",
+    "category" : "Sécurité",
+    "priority" : "Critique",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 12, section 3.4 - Gestion des utilisateurs et de l’accès à la Plateforme | context=Sécurisation des communications | quote=Les échanges effectués dans la Plateforme devront faire l’objet de protocoles sécurisés"
+  }, {
+    "id" : "EXG-RSS-007",
+    "uuid" : "53bc71d7-3d53-4e40-879d-2652f5ee8341",
+    "description" : "L’Acheteur doit pouvoir contrôler sur site le respect des conditions chez le sous-traitant hébergeur des données, le Titulaire devant garantir l’accord du sous-traitant pour ce contrôle.",
+    "category" : "Sécurité/Hébergement",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 11, section 3.3 - Hébergement de la Plateforme | context=Auditabilité de l’hébergeur | quote=L’Acheteur est autorisé à contrôler sur site ... le Titulaire garantit avoir obtenu l’accord du sous-traitant"
+  }, {
+    "id" : "EXG-RSS-008",
+    "uuid" : "54c9e6aa-fa04-4fe9-9e7a-373a7c9bb12d",
+    "description" : "Le Titulaire doit détailler les mesures de sécurité mises en œuvre sur la plateforme et le contrôle exercé sur celles-ci pour assurer la sécurité des données hébergées en ligne et hors ligne, y compris les sauvegardes.",
+    "category" : "Sécurité",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 11, section 3.3 - Hébergement de la Plateforme | context=Mesures de sécurité à documenter | quote=préciser les mesures de sécurité mises en œuvre ... y compris les sauvegardes"
+  }, {
+    "id" : "EXG-RSS-009",
+    "uuid" : "ffb7001d-cffb-43df-8538-dc33fe15ba03",
+    "description" : "Le Titulaire doit fournir tous les six mois des informations claires et accessibles démontrant la conformité à l’exigence de cloud souverain pendant toute la durée du marché.",
+    "category" : "Conformité",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 11, section 3.3 - Hébergement de la Plateforme | context=Preuve continue de conformité | quote=Pendant toute la durée du marché, le Titulaire doit fournir tous les six mois des informations claires et accessibles démontrant la conformité"
+  }, {
+    "id" : "EXG-RSS-010",
+    "uuid" : "83eeb733-53b1-495c-ba62-f4af5fdee15e",
+    "description" : "Toute proposition s’appuyant sur une solution SaaS doit inclure un document de présentation de la politique de sécurité à joindre au questionnaire SaaS, document obligatoire présentant les mesures techniques et organisationnelles de sécurité mises en place.",
+    "category" : "Sécurité/Conformité",
+    "priority" : "Critique",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 12, section 4 - Gestion des contraintes de sécurité | context=Questionnaire SaaS | quote=dépôt d’un document de présentation de la politique de sécurité à joindre au questionnaire SaaS ... à renseigner obligatoirement"
+  }, {
+    "id" : "EXG-RSS-011",
+    "uuid" : "a108e5b5-f4cb-4b5e-916a-4ff79523bd70",
+    "description" : "En cas de sous-traitance de tout ou partie des prestations relatives au traitement de données personnelles, la liste des sous-traitants doit être fournie avec les informations exigées par l’Annexe RGPD au CCAP.",
+    "category" : "Conformité",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences sécurité et RSSI | location=page 13, section 4 - Gestion des contraintes de sécurité | context=Sous-traitance RGPD | quote=la liste des sous-traitants doit être fournie avec les informations visées à l’article 6.1 de l’Annexe RGPD au CCAP"
+  }, {
+    "id" : "EXG-GEN-004",
+    "uuid" : "3c4c3d3d-8600-44b1-8162-f49ca788cfc2",
+    "description" : "La solution doit être déjà éprouvée, nécessiter peu de développements pour couvrir la première phase du besoin, et être déployée effectivement au plus tard trois mois après notification du marché.",
+    "category" : "Déploiement",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences qualité et méthodes | location=page 5, section 2.2 - Objet de la prestation ; page 17, Annexe 4 - Espace de démonstration | context=Maturité de la solution | quote=plateforme déjà éprouvée demandant peu de développements ... déploiement effectif au plus tard 3 mois après notification du marché"
+  }, {
+    "id" : "EXG-GEN-005",
+    "uuid" : "efba42ba-d26f-4bba-8c07-ffbf48349153",
+    "description" : "À compter du 6ème mois après notification, l’ensemble des priorités hautes doit être pleinement opérationnel, et au bout de 9 mois l’ensemble des besoins doit être couvert.",
+    "category" : "Déploiement",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences qualité et méthodes | location=page 7, section 3.1 - Fonctionnalités ; page 8-9, tableau des besoins | context=Priorisation des livraisons | quote=à compter du 6ème mois après notification, l’ensemble des priorités hautes doit être pleinement opérationnel ... au bout de 9 mois, l’ensemble des besoins doit être couvert"
+  }, {
+    "id" : "EXG-GEN-006",
+    "uuid" : "c2a2bc75-f961-4e00-8033-905863a9729b",
+    "description" : "La formation des utilisateurs doit être assurée par le prestataire en fonction de leur profil, avec un accompagnement conseil et une formation en présentiel et/ou distanciel de 100 à 120 administrateurs à la prise en main et à la personnalisation de l’outil.",
+    "category" : "Formation",
+    "priority" : "Moyenne",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences qualité et méthodes | location=page 6, « Le prestataire aura à sa charge » ; page 10, section 3.2 - Prestations de conseil | context=Montée en compétence | quote=assurer la formation des utilisateurs ... de 100 à 120 administrateurs à la prise en main et personnalisation de l’outil"
+  }, {
+    "id" : "EXG-GEN-007",
+    "uuid" : "a4801893-923b-4de9-9c3f-ba018a39b289",
+    "description" : "Les développements doivent être menés en mode agile et le Titulaire doit disposer de compétences techniques pour les assurer.",
+    "category" : "Méthode projet",
+    "priority" : "Moyenne",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Exigences qualité et méthodes | location=page 13, section 5 - Compétences requises | context=Gouvernance de développement | quote=les développements doivent être menés en mode agile ; le Titulaire doit disposer de compétences techniques pour assurer les développements en mode agile"
   } ],
-  "total_requirements" : 54,
+  "total_requirements" : 36,
   "package_uuid" : null,
   "container_uuid" : null
 }

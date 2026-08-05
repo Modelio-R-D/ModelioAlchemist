@@ -1,2 +1,0 @@
-MCP failed: Class model creation did not execute successfully via MCP.
-❌ Error in 3-phase UML model creation: No structured JSON result was returned for phase 'use_cases_phase'

@@ -1,1 +1,145 @@
-No content available for category: rse
+=== INVENTAIRE CONTEXTUALISÉ ===
+
+**REQ-032 — Exigences sécurité et RSSI**  
+**Intitulé :** En cas de sous-traitance de tout ou partie des prestations relatives au traitement de données personnelles, la liste des sous-traitants doit être fournie avec les informations exigées par l’Annexe RGPD au CCAP.
+
+- **Contexte métier spécifique**
+  - Concerne les marchés publics/privés impliquant des **traitements de données personnelles**.
+  - Vise la **transparence de la chaîne de sous-traitance** : qui traite quelles données, dans quel cadre, avec quelles garanties.
+  - S’inscrit dans les obligations du **responsable de traitement** vis-à-vis du sous-traitant et de ses éventuels sous-traitants ultérieurs.
+
+- **Impact sur l’architecture globale**
+  - Nécessite un **registre des sous-traitants** et la traçabilité des flux de données.
+  - Implique des mécanismes de **pilotage contractuel** : clauses RGPD, validation des sous-traitants, gestion des changements.
+  - Peut requérir une **architecture d’hébergement et de traitement documentée** (localisation, accès, transferts hors UE, mesures de sécurité).
+
+- **Niveau de criticité business**
+  - **Très élevé** : absence de transparence = risque juridique, réputationnel et opérationnel.
+  - Peut bloquer l’attribution du marché ou entraîner des pénalités contractuelles.
+  - Expose à des risques de non-conformité RGPD et à des contentieux avec le donneur d’ordre.
+
+- **Interdépendances identifiées**
+  - Dépend de la conformité aux exigences RGPD de l’Annexe CCAP.
+  - Lié aux exigences de **sécurité**, **gestion des accès**, **hébergement**, **journalisation**, **gestion des incidents**.
+  - Fortement corrélé à la **gouvernance des données**, aux **clauses de sous-traitance**, et à la **cartographie des traitements**.
+
+---
+
+=== REGROUPEMENT THÉMATIQUE ===
+
+## 1) Transparence, gouvernance
+- **REQ-032**
+  - Transparence sur la chaîne de sous-traitance.
+  - Identification exhaustive des sous-traitants impliqués dans le traitement des données.
+  - Fourniture des informations demandées par l’Annexe RGPD au CCAP.
+
+## 2) Éthique, protection utilisateurs
+- **REQ-032**
+  - Protection des données personnelles des utilisateurs/usagers via la maîtrise des acteurs tiers.
+  - Réduction du risque d’usage non prévu ou non maîtrisé des données.
+
+## 3) Accessibilité, inclusion numérique
+- **Non directement concerné**
+  - Toutefois, la transparence documentaire peut nécessiter des livrables lisibles et exploitables par des non-spécialistes côté donneur d’ordre.
+
+## 4) Impact social, responsabilité
+- **REQ-032**
+  - Responsabilisation de l’entreprise sur l’ensemble de sa chaîne de valeur.
+  - Obligation d’encadrement des tiers, alignée avec une démarche RSE de maîtrise des externalités.
+
+## 5) Conformité réglementaire sociale
+- **REQ-032**
+  - Conformité RGPD et exigences contractuelles associées au CCAP.
+  - Encadrement des sous-traitants au regard des responsabilités légales.
+
+---
+
+=== ANALYSE D'IMPACT SYSTÈME ===
+
+- **Impact sur les autres domaines (transversalité)**
+  - **Sécurité** : la liste des sous-traitants doit être cohérente avec les mesures de sécurité appliquées par chacun.
+  - **Juridique/contractuel** : les clauses de traitement des données doivent être alignées avec le CCAP et les annexes RGPD.
+  - **Achats / sourcing** : nécessité de contrôler et valider les prestataires avant engagement.
+  - **Opérations** : mise à jour continue en cas de changement de sous-traitant ou de périmètre.
+  - **Gouvernance** : pilotage par DPO/RSSI/juridique, avec circuit d’approbation.
+
+- **Contraintes techniques induites**
+  - Tenue d’un **référentiel de sous-traitants**.
+  - Capacité à produire rapidement les informations requises : identité, rôle, localisation, type de données, finalité, garanties.
+  - Mécanisme de **notification des changements** de sous-traitants.
+  - Gestion des preuves : contrats, certifications, audits, mesures de sécurité.
+
+- **Risques de non-conformité**
+  - Sous-traitant non déclaré ou non autorisé.
+  - Informations RGPD incomplètes ou obsolètes.
+  - Absence de traçabilité sur les transferts internationaux.
+  - Incohérence entre pratique réelle et documentation contractuelle.
+  - Risque d’amende, résiliation, réputation et perte de confiance.
+
+- **Complexité de mise en œuvre**
+  - **Moyenne à élevée** selon la taille de l’organisation et le nombre de sous-traitants.
+  - Complexité accrue si la sous-traitance est multi-niveaux ou internationale.
+  - Dépend de la maturité des processus achats, juridique et cybersécurité.
+
+---
+
+=== RECOMMANDATIONS OPÉRATIONNELLES ===
+
+- **Solutions techniques concrètes**
+  - Mettre en place un **registre centralisé des sous-traitants** avec champs obligatoires :
+    - raison sociale, contact, rôle, pays d’hébergement, type de données traitées,
+    - base contractuelle, garanties RGPD, durée, sous-sous-traitants.
+  - Intégrer un **workflow de validation** DPO/RSSI/Juridique avant toute nouvelle sous-traitance.
+  - Automatiser les **alertes de revue périodique** et de mise à jour.
+  - Conserver une **bibliothèque de preuves** (DPA, SCC, audits, certifications).
+
+- **Bonnes pratiques du domaine**
+  - Appliquer le principe de **sous-traitance minimale** : limiter les tiers au strict nécessaire.
+  - Exiger des engagements contractuels clairs sur :
+    - confidentialité, sécurité, notification d’incident, droit d’audit, effacement/restitution.
+  - Réaliser une **due diligence** avant sélection.
+  - Prévoir la **gestion des sous-traitants ultérieurs** avec autorisation préalable ou spécifique.
+
+- **Standards et normes applicables**
+  - **RGPD** : articles 28, 30, 32, 44 et suivants selon les cas.
+  - **Clauses contractuelles types (CCT/SCC)** pour les transferts hors UE.
+  - Référentiels sécurité utiles : **ISO 27001**, **ISO 27002**, éventuellement **ISO 27701**.
+  - Cadres de gouvernance internes : politique achats, politique de sécurité, politique de gestion des tiers.
+
+- **Méthodes de validation et test**
+  - Vérification documentaire de la liste des sous-traitants versus la réalité opérationnelle.
+  - Audit d’échantillons de contrats et annexes RGPD.
+  - Contrôle de complétude des informations exigées par le CCAP.
+  - Tests de processus : simulation d’ajout/suppression d’un sous-traitant et vérification du circuit de mise à jour.
+  - Revue périodique DPO/RSSI/Juridique avec traçabilité des décisions.
+
+---
+
+=== POINTS DE VIGILANCE PROJET ===
+
+- **Risques d’oubli ou de perte d’exigences**
+  - Omettre les sous-traitants de rang 2 ou les prestataires indirects.
+  - Négliger les sous-traitants temporaires ou spécifiques à un lot.
+  - Confondre prestataire technique et sous-traitant au sens RGPD.
+  - Oublier la mise à jour après changement de périmètre ou de pays d’hébergement.
+
+- **Éléments nécessitant éclaircissement**
+  - Format attendu pour la liste des sous-traitants.
+  - Niveau de détail exigé par l’Annexe RGPD au CCAP.
+  - Existence d’une autorisation préalable du donneur d’ordre pour chaque sous-traitant.
+  - Périmètre exact des traitements concernés et des données personnelles.
+
+- **Contraintes d’intégration avec l’existant**
+  - Alignement avec les outils achats, contract management, GRC, DPO et sécurité.
+  - Harmonisation entre référentiel fournisseurs et référentiel RGPD.
+  - Synchronisation avec les pratiques de suivi des incidents et de l’hébergement.
+
+- **Planning et ressources nécessaires**
+  - Besoin d’un **cadrage initial** impliquant juridique, DPO, RSSI, achats et métier.
+  - Temps nécessaire à la **cartographie des sous-traitants** et à la collecte des preuves.
+  - Prévoir une **gouvernance récurrente** pour maintenir la conformité dans le temps.
+  - Ressources recommandées : référent RGPD, juriste, RSSI, acheteur, responsable opérationnel.
+
+---
+
+Si vous le souhaitez, je peux aussi vous fournir pour **REQ-032** une **version tableau de traçabilité** (exigence / preuve attendue / responsable / risque / priorité) adaptée à un dossier d’appel d’offres.

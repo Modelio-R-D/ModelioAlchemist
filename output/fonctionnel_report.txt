@@ -1,801 +1,312 @@
 === INVENTAIRE CONTEXTUALISÉ ===
 
-Je reprends **toutes les exigences fournies**, en les recontextualisant pour le domaine **fonctionnel** de la plateforme d’interactions avec les tiers de justice pour Agirc-Arrco, en distinguant les **deux lots** :
+### REQ-001 — Plateforme SaaS complète et intégrée pour PIA/France2030 et PIC
+- **Contexte métier spécifique** : solution transverse couvrant l’ensemble du cycle de gestion des dispositifs PIA/France2030 et PIC, pour la CDC et son écosystème.
+- **Impact sur l’architecture globale** : impose une architecture multi-module, centralisée, avec services mutualisés, référentiels communs, gestion des rôles et forte capacité d’intégration.
+- **Criticité business** : **Très élevée** — fondation du programme, conditionne l’unification des processus.
+- **Interdépendances identifiées** : REQ-002, 003, 005, 011, 012, 013, 015, 016, 017, 019, 034, 035.
 
-- **LOT 1** : collaboration, échanges et suivi des dossiers contentieux / procédures avec les tiers de justice
-- **LOT 2** : inscription de privilège, radiations et relations avec les greffes / tribunaux
+### REQ-002 — Sélection et accompagnement end-to-end des projets subventionnés
+- **Contexte métier spécifique** : gestion du cycle de vie complet, de la candidature jusqu’à l’animation des lauréats.
+- **Impact sur l’architecture globale** : nécessite un workflow bout-en-bout, traçable, paramétrable, avec états, tâches, notifications et historisation.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-008, 009, 010, 013, 014, 015, 016, 017.
 
----
+### REQ-003 — Accès différenciés pour tous les acteurs de l’écosystème
+- **Contexte métier spécifique** : multi-profils complexes incluant candidats, consortiums, experts, comités, SGPI, ministères, services déconcentrés, CDC.
+- **Impact sur l’architecture globale** : gestion fine des habilitations, espaces personnalisés, segmentation des droits et des parcours.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-001, 008, 009, 010, 011, 012, 015, 016, 017, 035.
 
-### REQ-001 (EX-001)
-**Exigence :** Plateforme d’interactions avec les tiers de justice pour Agirc-Arrco couvrant deux lots distincts : LOT 1 (collaboration et échanges liés à la procédure avec les tiers de justice) et LOT 2 (gestion de l’inscription de privilège auprès des greffes).
+### REQ-005 — Réduction des interventions manuelles et amélioration de l’expérience utilisateur
+- **Contexte métier spécifique** : automatisation des tâches répétitives pour les équipes CDC et les porteurs.
+- **Impact sur l’architecture globale** : moteur d’automatisation, règles de gestion, génération documentaire, notifications, contrôles automatiques.
+- **Criticité business** : **Élevée**
+- **Interdépendances identifiées** : REQ-008, 010, 013, 015, 017.
 
-- **Contexte métier spécifique**
-  - Cadrage du produit et séparation des périmètres fonctionnels.
-  - LOT 1 : contentieux, échanges, collaboration, suivi dossier.
-  - LOT 2 : démarche greffe, inscription de privilège, radiations, retours.
-- **Impact sur l’architecture globale**
-  - Architecture modulaire avec cloisonnement fonctionnel et potentiellement technique.
-  - Nécessité d’une couche de référentiels et d’orchestration commune, mais de workflows séparés.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Base commune de dossiers, utilisateurs, traçabilité, documents, règles d’accès.
-  - Interactions transverses avec SI-RC, GCE, annuaires, facturation.
+### REQ-008 — Gestion des AAP/AMI
+- **Contexte métier spécifique** : préfiguration, inscription, formulaire paramétrable, FAQ, délais, alertes, statuts, notifications d’éligibilité/recevabilité.
+- **Impact sur l’architecture globale** : module de candidature configurable par dispositif, avec moteur de règles et gestion des échéances.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-002, 003, 005, 010, 012, 015, 016.
 
----
+### REQ-009 — Gestion des jurys et des grilles d’évaluation
+- **Contexte métier spécifique** : affectation des candidats, compatibilités/conflits, grilles paramétrables, indemnités.
+- **Impact sur l’architecture globale** : moteur d’affectation, workflow d’évaluation, consolidation des notes, composant administratif financier.
+- **Criticité business** : **Élevée**
+- **Interdépendances identifiées** : REQ-003, 005, 010, 011.
 
-### REQ-006 (EX-010)
-**Exigence :** Le LOT 1 doit gérer un annuaire des tiers de justice utilisateurs de la plateforme, composé des commissaires de justice et avocats partenaires ; pas de mise à jour automatique quotidienne depuis les bases nationales.
+### REQ-010 — Consolidation des analyses pour instances décisionnelles et contractualisation
+- **Contexte métier spécifique** : préparation des comitologies, relevés de décision, notifications, conventions et avenants.
+- **Impact sur l’architecture globale** : production documentaire, versioning, circuit de validation, intégration des changements de gouvernance.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-002, 005, 008, 009, 013, 014, 015, 016.
 
-- **Contexte métier spécifique**
-  - Référentiel opérationnel des partenaires choisis par chaque IRC.
-  - Gouvernance maîtrisée des données des tiers.
-- **Impact sur l’architecture globale**
-  - Besoin d’un référentiel interne administrable.
-  - Absence de synchronisation nationale impose des mécanismes de maintenance manuelle ou semi-automatique.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Affectation des dossiers, messagerie, facturation, droits d’accès.
-  - Cohérence avec SI-RC et paramétrage par IRC.
+### REQ-011 — Reporting et pilotage
+- **Contexte métier spécifique** : tableaux de bord, datavisualisation, cartographies, listes, exports standardisés.
+- **Impact sur l’architecture globale** : BI opérationnelle, couche d’agrégation de données, indicateurs paramétrables, extraction sécurisée.
+- **Criticité business** : **Élevée**
+- **Interdépendances identifiées** : REQ-001, 012, 013, 017, 034.
 
----
+### REQ-012 — Annuaire, référentiels contacts/intervenants/projets et interfaçage Data.gouv
+- **Contexte métier spécifique** : référentiel unifié des acteurs et projets, enrichi par Data.gouv.
+- **Impact sur l’architecture globale** : MDM/référentiel central, synchronisation externe, qualité de données, déduplication.
+- **Criticité business** : **Élevée**
+- **Interdépendances identifiées** : REQ-003, 011, 013, 017.
 
-### REQ-007 (EX-011)
-**Exigence :** Le LOT 2 doit gérer un annuaire des tribunaux, avec modalités similaires au LOT 1, les données étant communiquées au SI-RC dans la mesure du possible.
+### REQ-013 — Suivi des rapports d’activité, documentaire, complétude, ratios, service fait
+- **Contexte métier spécifique** : contrôle post-décision avant versement, sécurisation des paiements.
+- **Impact sur l’architecture globale** : gestion documentaire, règles de contrôle, workflow d’instruction financière, traçabilité.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-002, 005, 010, 014, 016, 017.
 
-- **Contexte métier spécifique**
-  - Référentiel des tribunaux requis pour le routage des demandes.
-- **Impact sur l’architecture globale**
-  - Référentiel spécifique avec capacité d’échange vers SI-RC.
-  - Nécessite gestion de qualité de données et de correspondances.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Sélection automatique du tribunal, gestion des rejets, workflows greffes.
+### REQ-014 — Intégration des audits et suivi des modifications
+- **Contexte métier spécifique** : traçabilité des audits et gestion des demandes de modification.
+- **Impact sur l’architecture globale** : historisation, gestion des changements, journalisation et statuts.
+- **Criticité business** : **Moyenne à élevée**
+- **Interdépendances identifiées** : REQ-013, 010, 011.
 
----
+### REQ-015 — Espace de communication
+- **Contexte métier spécifique** : messagerie, mails transactionnels, FAQ lauréats, notifications, réunions Teams, actualités, événements.
+- **Impact sur l’architecture globale** : services de communication multicanaux, intégration Microsoft Teams, gestion de contenu.
+- **Criticité business** : **Élevée**
+- **Interdépendances identifiées** : REQ-002, 003, 005, 008, 010, 016.
 
-### REQ-008 (EX-013)
-**Exigence :** Le LOT 1 doit couvrir tous les échanges impliquant un tiers de justice et offrir au gestionnaire contentieux des IRC un accès intelligent et approprié aux dossiers.
+### REQ-016 — Espace documentaire
+- **Contexte métier spécifique** : ressources documentaires et webinaires avec droits d’accès différenciés.
+- **Impact sur l’architecture globale** : GED intégrée, gestion des permissions, liens externes, catégorisation.
+- **Criticité business** : **Élevée**
+- **Interdépendances identifiées** : REQ-003, 008, 010, 015.
 
-- **Contexte métier spécifique**
-  - Centralisation des échanges et mise à disposition d’une vue exploitable pour le gestionnaire.
-- **Impact sur l’architecture globale**
-  - Nécessite un moteur de vue métier, de filtrage et de priorisation.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Dossiers, documents, notifications, messagerie, délais, facturation.
+### REQ-017 — KPI, collecte, contrôle qualité, consolidation et extraction
+- **Contexte métier spécifique** : préfiguration de KPI, collecte par dispositif, contrôle qualité, suivi des relèves.
+- **Impact sur l’architecture globale** : moteur de collecte, référentiel d’indicateurs, contrôles de cohérence, exports analytiques.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-011, 012, 013, 034.
 
----
+### REQ-019 — Version mobile optionnelle
+- **Contexte métier spécifique** : extension de service mobile, activable par bon de commande spécifique.
+- **Impact sur l’architecture globale** : contrainte de conception responsive/API-first, mais périmètre optionnel.
+- **Criticité business** : **Moyenne**
+- **Interdépendances identifiées** : REQ-001, 003, 015, 016, 017.
 
-### REQ-009 (EX-014)
-**Exigence :** Traitement bout en bout des échanges et du suivi des procédures impliquant commissaires de justice, avocats et autres tiers ; chaque IRC choisit librement son réseau, peut compléter/modifier les informations des tiers, et l’attribution du dossier au professionnel choisi se fait via la plateforme après ouverture par GCE.
+### REQ-035 — Formation des utilisateurs et des administrateurs
+- **Contexte métier spécifique** : formation adaptée au profil, accompagnement conseil, 100 à 120 administrateurs.
+- **Impact sur l’architecture globale** : nécessite outillage de formation, supports, environnement de préproduction, paramétrage sûr.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : REQ-001, 003, 008, 010, 012, 015, 016, 017.
 
-- **Contexte métier spécifique**
-  - Autonomie réseau par IRC.
-  - Orchestration après ouverture du dossier dans GCE.
-- **Impact sur l’architecture globale**
-  - Workflow d’attribution et de gouvernance des tiers.
-  - Gestion des modifications de référentiel par le métier.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - GCE, annuaire tiers, règles d’attribution, historiques, traçabilité.
-
----
-
-### REQ-010 (EX-016)
-**Exigence :** La solution doit permettre l’attribution des dossiers aux professionnels adéquats selon des règles précises, avec automatisations pré-enregistrées possibles par IRC selon réseau, spécialités et localisations.
-
-- **Contexte métier spécifique**
-  - Mécanismes d’orientation automatisée des dossiers.
-- **Impact sur l’architecture globale**
-  - Moteur de règles / routage paramétrable.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Annuaire tiers, critères métier, géolocalisation, spécialités, workflow.
-
----
-
-### REQ-011 (EX-017)
-**Exigence :** Attribution d’un dossier à plusieurs tiers successifs selon les procédures.
-
-- **Contexte métier spécifique**
-  - Chaînage procédural des intervenants.
-- **Impact sur l’architecture globale**
-  - Workflow séquentiel avec transitions d’état et responsabilité.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Gestion des statuts, historique des actions, notifications.
+### REQ-034 — Jalons de mise en service
+- **Contexte métier spécifique** : 6 mois pour les priorités hautes, 9 mois pour la couverture complète.
+- **Impact sur l’architecture globale** : impose une découpe MVP / incréments, priorisation forte, roadmap maîtrisée.
+- **Criticité business** : **Très élevée**
+- **Interdépendances identifiées** : toutes les exigences fonctionnelles, en particulier REQ-008 à 017 et REQ-035.
 
 ---
 
-### REQ-012 (EX-018)
-**Exigence :** Flexibilité sur l’ouverture à des tiers supplémentaires et transfert de tiers à la demande de l’IRC, y compris transfert de tous les dossiers associés à un commissaire vers un autre.
+=== REGROUPEMENT THÉMATIQUE ===
 
-- **Contexte métier spécifique**
-  - Gestion des changements de réseau et continuité de traitement.
-- **Impact sur l’architecture globale**
-  - Fonctions de transfert en masse et de requalification des responsabilités.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Référentiel tiers, dossiers, droits, notifications, historisation.
+## 1) Processus métier, workflows
+- **REQ-002** : cycle de vie complet des projets subventionnés
+- **REQ-008** : workflow AAP/AMI
+- **REQ-009** : workflow d’évaluation par jury
+- **REQ-010** : workflow comitologies / décision / contractualisation
+- **REQ-013** : workflow post-décision et service fait
+- **REQ-014** : workflow audit et modifications
+- **REQ-017** : workflow de collecte KPI
 
----
-
-### REQ-013 (EX-019)
-**Exigence :** Outil souple pour les gestionnaires IRC avec interfaçage SI-RC permettant l’affichage des montants à recouvrer, état de procédure, montant transféré aux tiers et autres mouvements ; transfert quotidien des documents vers SI-RC si nécessaire.
-
-- **Contexte métier spécifique**
-  - Poste de travail du gestionnaire contentieux.
-- **Impact sur l’architecture globale**
-  - Besoin d’une interface intégrée et d’échanges documentaires récurrents.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - SI-RC, gestion documentaire, finance métier, dossier contentieux.
+**Analyse métier** :  
+Ces exigences définissent la colonne vertébrale du fonctionnement de la plateforme. Elles impliquent une gestion des statuts, des transitions, des délais, des validations, des retours, et des traitements différenciés selon le rôle. La solution doit permettre des workflows configurables par dispositif.
 
 ---
 
-### REQ-014 (EX-020)
-**Exigence :** Recherche avancée, consultation des dossiers et dépôt de documents, avec recherche par dossier, nom d’entreprise, SIRET ou SIREN.
+## 2) Fonctionnalités principales et secondaires
+### Fonctionnalités principales
+- **REQ-001** : plateforme SaaS intégrée
+- **REQ-002** : end-to-end projet
+- **REQ-008** : candidatures AAP/AMI
+- **REQ-009** : jurys et évaluation
+- **REQ-010** : décision et contractualisation
+- **REQ-011** : reporting et pilotage
+- **REQ-012** : annuaire et référentiels
+- **REQ-013** : suivi activité / financier / service fait
+- **REQ-015** : communication
+- **REQ-016** : documentaire
+- **REQ-017** : KPI et collecte
 
-- **Contexte métier spécifique**
-  - Productivité opérationnelle et identification rapide.
-- **Impact sur l’architecture globale**
-  - Moteur de recherche indexé, ergonomie de recherche multi-critères.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Données société, dossiers, pièces jointes, droits d’accès.
-
----
-
-### REQ-015 (EX-021)
-**Exigence :** Gestion de l’Euro avec deux décimales.
-
-- **Contexte métier spécifique**
-  - Conformité monétaire pour calculs et affichages.
-- **Impact sur l’architecture globale**
-  - Normalisation des montants, arrondis, stockage décimal.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Facturation, recouvrement, seuils, exports comptables.
+### Fonctionnalités secondaires ou optionnelles
+- **REQ-014** : audit et modifications
+- **REQ-019** : version mobile optionnelle
 
 ---
 
-### REQ-016 (EX-022)
-**Exigence :** Tableau de bord avec KPI automatiques : montant recouvré, nombre de dossiers par état, par avancement, par motif, par collaborateur, et suivi de facturation des tiers.
+## 3) Règles de gestion, validation
+- **REQ-005** : automatisation et réduction des interventions manuelles
+- **REQ-008** : délais, alertes, éligibilité, recevabilité
+- **REQ-009** : compatibilités/conflits, répartition jury, indemnités
+- **REQ-010** : modifications de comitologie, génération documentaire
+- **REQ-013** : contrôle de complétude, ratios, service fait
+- **REQ-014** : statuts et dates des demandes de modification
+- **REQ-017** : contrôle qualité des données, calendriers de relèves
+- **REQ-035** : formation et personnalisation, pour garantir la bonne application des règles
 
-- **Contexte métier spécifique**
-  - Pilotage opérationnel et reporting.
-- **Impact sur l’architecture globale**
-  - Data mart / couche BI ou reporting opérationnel.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Statuts dossiers, événements, facturation, activités utilisateurs.
-
----
-
-### REQ-017 (EX-023)
-**Exigence :** KPI de facturation : non-facturé, facturé, payé ; granularité par dossier ou consolidation de factures réseau sur période ; typologie frais d’actes / frais d’honoraires.
-
-- **Contexte métier spécifique**
-  - Suivi de cycle de vie de la facturation.
-- **Impact sur l’architecture globale**
-  - Modèle de données facturation détaillé, agrégations et états.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Factures, dossiers, tiers, périodes, natures de frais.
+**Analyse métier** :  
+Le périmètre est fortement normé. Les règles de gestion sont structurantes et doivent être paramétrables par dispositif. Les contrôles doivent être tracés, opposables et auditables.
 
 ---
 
-### REQ-019 (EX-025)
-**Exigence :** Gestion des délais avec contrôles automatiques, notifications, alertes de tâches et tableau de suivi par gestionnaire et par dossier, paramétrable par IRC.
+## 4) Interface utilisateur, ergonomie
+- **REQ-003** : parcours adaptés selon profils
+- **REQ-005** : amélioration de l’UX et réduction de la charge manuelle
+- **REQ-008** : formulaire personnalisable, FAQ, alertes
+- **REQ-011** : tableaux de bord et datavisualisation
+- **REQ-015** : espace de communication
+- **REQ-016** : espace documentaire
+- **REQ-019** : accessibilité mobile
+- **REQ-035** : formation, prise en main, personnalisation
 
-- **Contexte métier spécifique**
-  - Respect des échéances procédurales.
-- **Impact sur l’architecture globale**
-  - Moteur d’alertes, scheduler, règles de délai, cockpit opérationnel.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Workflow, tâches, notifications, référentiels de délais.
-
----
-
-### REQ-020 (EX-026)
-**Exigence :** Collaboration active et directe avec commentaires archivables, messagerie dynamique, alertes de réception, recherche et filtrage, proposition dynamique de message pour validation ou interaction récurrente.
-
-- **Contexte métier spécifique**
-  - Échanges structurés et historisés avec les tiers.
-- **Impact sur l’architecture globale**
-  - Sous-système de messagerie et journal d’audit.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Dossiers, notifications, archivage, recherche, rôles utilisateurs.
+**Analyse métier** :  
+L’ergonomie est critique pour l’adoption par des populations variées, parfois occasionnelles. Les interfaces doivent être simples, guidées, contextualisées et cohérentes entre profils.
 
 ---
 
-### REQ-021 (EX-027)
-**Exigence :** Paramétrage de règles pour envoyer des messages à des tiers, règles précisées en phase de cadrage.
+## 5) Gestion des données métier
+- **REQ-012** : référentiel contacts, projets, consortiums, Data.gouv
+- **REQ-013** : rapports, pièces, contrôle documentaire, indicateurs financiers
+- **REQ-014** : audits et demandes de modification
+- **REQ-017** : KPI, qualité, consolidation, extraction
+- **REQ-011** : reporting et exports
+- **REQ-016** : documents et ressources
+- **REQ-010** : documents décisionnels et contractuels
 
-- **Contexte métier spécifique**
-  - Automatisation contrôlée des communications.
-- **Impact sur l’architecture globale**
-  - Moteur de règles configurable.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Messagerie, délais, workflow, segmentation par IRC.
-
----
-
-### REQ-022 (EX-028)
-**Exigence :** Accusé de réception simple et notification de nouveau message reçu sans AR à valeur légale, prérequis pour l’UO1.
-
-- **Contexte métier spécifique**
-  - Preuve opérationnelle de réception, sans valeur légale.
-- **Impact sur l’architecture globale**
-  - Gestion des accusés de réception applicatifs et des événements de réception.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Messagerie, notifications, archivage, horodatage.
+**Analyse métier** :  
+La qualité des données est un enjeu majeur : unicité, complétude, historisation, traçabilité, cohérence inter-modules et exploitation analytique.
 
 ---
 
-### REQ-023 (EX-029)
-**Exigence :** Suivi de facturation souple et intelligent, avec rappel aux tiers pour inscrire leurs frais rapidement après chaque acte ou à la clôture, écran de restitution des frais avec filtrage par IRC et export, distinction factures d’actes / honoraires.
+=== ANALYSE D’IMPACT SYSTÈME ===
 
-- **Contexte métier spécifique**
-  - Fluidification de la saisie des frais et contrôle interne.
-- **Impact sur l’architecture globale**
-  - Gestion du cycle de facturation et export de données.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Tiers, dossiers, statuts de facturation, exports, contrôles.
+## Impact transversal
+- **Gestion des accès et habilitations** : requis par REQ-003, 012, 015, 016, 017.
+- **Moteur de workflow** : indispensable pour REQ-002, 008, 009, 010, 013, 014, 017.
+- **Gestion documentaire / GED** : structurante pour REQ-010, 013, 015, 016.
+- **Référentiels et qualité de données** : fondamentaux pour REQ-011, 012, 013, 017.
+- **Communication et notifications** : transverses à REQ-008, 010, 013, 015.
+- **Reporting/BI** : alimente les usages de pilotage, décision et suivi.
 
----
+## Contraintes techniques induites
+- Architecture **SaaS multi-rôles**
+- Ségrégation stricte des données et droits
+- Paramétrage par dispositif sans développement lourd
+- Interfaçage avec **Data.gouv**
+- Intégration avec **Microsoft Teams**
+- Capacités d’export et d’extraction standardisés
+- Traçabilité et historisation complètes
+- Scalabilité pour 100–120 administrateurs formés et un large écosystème utilisateur
 
-### REQ-024 (EX-030)
-**Exigence :** Factures associées à chaque dossier ouvert, visibles uniquement par les IRC ayant droit ; accessibles, catégorisées, facturation déclenchable au fil de l’eau ou en fin de dossier selon procédure et tiers.
+## Risques de non-conformité
+- Mauvaise séparation des droits entre profils
+- Workflows non suffisamment paramétrables par dispositif
+- Perte de traçabilité sur décisions, audits, modifications et service fait
+- Qualité de données insuffisante pour KPI et reporting
+- Trop forte dépendance à des traitements manuels
+- Inadéquation UX conduisant à faible adoption
+- Retard de livraison vis-à-vis des jalons REQ-034
 
-- **Contexte métier spécifique**
-  - Contrôle d’accès et souplesse de déclenchement de la facturation.
-- **Impact sur l’architecture globale**
-  - Gestion fine des droits, cloisonnement par dossier et règles de facturation.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - IAM / habilitations, dossier, procédure, tiers, facture.
-
----
-
-### REQ-025 (EX-031)
-**Exigence :** Règles coconstruites en cadrage pour le processus de validation, règles de montant, libellés des virements, contrôles automatiques au-delà de certains seuils, contrôle manuel avec possibilité de réfuter le montant et de renvoyer au tiers, export simplifié des factures.
-
-- **Contexte métier spécifique**
-  - Chaîne de contrôle financier et opérationnel.
-- **Impact sur l’architecture globale**
-  - Workflow de validation, règles de seuils, gestion des rejets.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Facturation, seuils IRC, contrôle manuel, export, messagerie.
+## Complexité de mise en œuvre
+- **Très élevée** sur les processus métier et le paramétrage
+- **Élevée** sur les intégrations et la gestion documentaire
+- **Élevée** sur le reporting et la qualité de données
+- **Moyenne à élevée** sur la mobilité optionnelle
 
 ---
 
-### REQ-026 (EX-032)
-**Exigence :** La plateforme ne suit pas les paiements ; elle suit la facturation, le contrôle, le pilotage et l’archivage des pièces justificatives des actes facturés, avec facturation finale pour les commissaires et au fil de l’eau pour les avocats.
+=== RECOMMANDATIONS OPÉRATIONNELLES ===
 
-- **Contexte métier spécifique**
-  - Délimitation claire du périmètre financier.
-- **Impact sur l’architecture globale**
-  - Interfaces avec systèmes financiers externes sans paiement dans la plateforme.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Facturation, archivage, dossiers, typologie de tiers.
+## Solutions techniques concrètes
+1. **Architecture modulaire SaaS**
+   - modules distincts mais intégrés : candidature, évaluation, décision, suivi, communication, documentaire, reporting.
+2. **Moteur de workflow / BPM**
+   - pour les statuts, validations, délais, affectations, relances, circuits de décision.
+3. **Gestion fine des habilitations**
+   - RBAC + éventuellement ABAC pour gérer les profils complexes et les niveaux d’accès.
+4. **Référentiel central des entités**
+   - acteurs, projets, consortiums, dispositifs, KPI, comitologies.
+5. **GED intégrée**
+   - versioning, droits, classification, liens documentaires, conservation.
+6. **Couche BI / reporting**
+   - tableaux de bord paramétrables, exports sécurisés, cartographies.
+7. **Connecteurs d’intégration**
+   - Data.gouv, Microsoft Teams, services de messagerie/notifications.
+8. **Automatisation**
+   - contrôle de complétude, notifications, génération de documents, consolidation des données.
 
----
+## Bonnes pratiques du domaine
+- Concevoir la plateforme **par dispositif paramétrable** plutôt que par développements spécifiques.
+- Mettre en place une **traçabilité exhaustive** des décisions, statuts et documents.
+- Prévoir des **workflows de validation** explicites pour chaque étape sensible.
+- Séparer les données de **référence**, de **gestion**, et d’**analyse**.
+- Adopter une logique **user-centric** pour les porteurs et administrateurs.
+- Prévoir des **environnements de test, préproduction et recette métier** représentatifs.
 
-### REQ-027 (EX-033)
-**Exigence :** Flexibilité de workflow pour cas particuliers, par exemple transmission de pièces justificatives à d’autres tiers ou clôture d’une procédure tout au long du workflow.
+## Standards et normes applicables
+- **RGPD** pour les données personnelles
+- **Référentiels d’accessibilité numérique** si applicables au portail public
+- **Bonnes pratiques d’archivage et de conservation documentaire**
+- **Sécurité des systèmes d’information** de type MFA, journalisation, chiffrement
+- **Pratiques ITIL / BPMN / DMN** pour modéliser processus et règles métier
 
-- **Contexte métier spécifique**
-  - Gestion des exceptions et variantes procédurales.
-- **Impact sur l’architecture globale**
-  - Workflow paramétrable, gestion d’états exceptionnels.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Documents, clôture, notifications, règles métier.
-
----
-
-### REQ-028 (EX-034)
-**Exigence :** Seuils propres à chaque IRC paramétrables et cadrés lors du déploiement.
-
-- **Contexte métier spécifique**
-  - Adaptation locale des politiques de contrôle.
-- **Impact sur l’architecture globale**
-  - Paramétrage multi-tenant / multi-IRC.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Validation, alertes, facturation, gouvernance de paramétrage.
-
----
-
-### REQ-030 (EX-036)
-**Exigence :** Pour les procédures individuelles, réception des pièces justificatives initiales, transmission à l’avocat et au commissaire de justice, enregistrement des mises à jour de procédure, relances, réception des informations de procédure, clôture, suivi des encaissements et préparation de la note rectificative pour les CCSF.
-
-- **Contexte métier spécifique**
-  - Processus individuel complet, avec jalons et livrables.
-- **Impact sur l’architecture globale**
-  - Workflow métier complet, gestion documentaire et suivi d’état.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Documents, avocats, commissaires, relances, clôture, suivi financier, CCSF.
+## Méthodes de validation et test
+- **Recette par parcours métier** : candidature, instruction, jury, décision, suivi, reporting.
+- **Tests de droits** : vérification exhaustive par profil.
+- **Tests de non-régression** sur les dispositifs paramétrés.
+- **Tests d’intégration** : Data.gouv, Teams, notifications.
+- **Tests de volumétrie** : documents, KPI, utilisateurs, exports.
+- **Tests de conformité métier** : complétude, service fait, indemnités, statuts.
+- **Ateliers de validation avec utilisateurs pilotes** et administrateurs.
 
 ---
 
-### REQ-031 (EX-037)
-**Exigence :** Pour l’injonction de payer, le gestionnaire IRC peut imprimer et envoyer la requête et ses pièces par La Poste pour initier le dossier avant de passer la main au commissaire de justice ; la plateforme doit gérer les deux cas de figure, avec ou sans commissaire.
-
-- **Contexte métier spécifique**
-  - Variante de lancement de procédure IP.
-- **Impact sur l’architecture globale**
-  - Support de deux branches de processus.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Dossiers, documents, commissaires, courrier, statut d’initiation.
-
----
-
-### REQ-032 (EX-038)
-**Exigence :** LOT 1 UO2 doit automatiser l’envoi des injonctions de payer directement aux greffes des tribunaux de commerce, couvrant 85% des cas, avec maintien des systèmes actuels pour les 15% restants.
-
-- **Contexte métier spécifique**
-  - Dématérialisation majoritaire, coexistence avec les circuits existants.
-- **Impact sur l’architecture globale**
-  - Traitement hybride, bascule selon compatibilité tribunal/cas.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Annuaire tribunaux, SI-RC, dossier, gestion des exceptions.
-
----
-
-### REQ-034 (EX-040)
-**Exigence :** Le dossier UO2 doit être généré et visualisable via la plateforme, qui doit informer le gestionnaire en cas de rejet ou d’impossibilité d’utiliser la dématérialisation automatique pour le tribunal concerné.
-
-- **Contexte métier spécifique**
-  - Visibilité de bout en bout et gestion des rejets.
-- **Impact sur l’architecture globale**
-  - Gestion des statuts techniques et métier, notification des échecs.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Workflow IP, annuaire tribunaux, alertes, reprise manuelle.
-
----
-
-### REQ-035 (EX-041)
-**Exigence :** Suivi des frais de tribunaux pour consolider les frais et assurer une trace comptable ; aucun paiement via la plateforme.
-
-- **Contexte métier spécifique**
-  - Traçabilité financière des frais de greffe.
-- **Impact sur l’architecture globale**
-  - Sous-modèle comptable de suivi sans paiement.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Facturation, dossiers, exports comptables, immobilisation des montants.
-
----
-
-### REQ-036 (EX-042)
-**Exigence :** Le prestataire doit gérer toutes les articulations entre gestion IRC, commissaire, avocats et SI-RC ; l’envoi à l’avocat doit être facultatif pour les IRC ne procédant pas avec des avocats.
-
-- **Contexte métier spécifique**
-  - Adaptation aux pratiques des IRC.
-- **Impact sur l’architecture globale**
-  - Workflow conditionnel selon le schéma organisationnel de chaque IRC.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - SI-RC, profils IRC, règles d’envoi, rôles tiers.
-
----
-
-### REQ-037 (EX-044)
-**Exigence :** La 3e relance amiable ne fait pas partie du contentieux mais peut, selon les IRC, être transmise à des commissaires de justice ; chaque IRC décide dans GCE de son processus, soit gestion dans SI-RC sans impact sur la plateforme, soit transmission via la plateforme.
-
-- **Contexte métier spécifique**
-  - Cas optionnel de précontentieux.
-- **Impact sur l’architecture globale**
-  - Branches fonctionnelles optionnelles, dépendantes du choix IRC.
-- **Niveau de criticité business**
-  - **Moyen à élevé**
-- **Interdépendances identifiées**
-  - GCE, SI-RC, annuaire tiers, workflow de relance.
-
----
-
-### REQ-038 (EX-045)
-**Exigence :** Le processus de 3e relance comprend le ciblage des comptes, la transmission du périmètre à la plateforme, l’attribution à un tiers selon règles, le suivi, la mise à jour du dossier avec gestion des délais, renégociation, dénonciation, échanges entre tiers et entreprise, ainsi que le suivi des frais et de la facturation.
-
-- **Contexte métier spécifique**
-  - Chaîne complète de relance amiable outillée.
-- **Impact sur l’architecture globale**
-  - Workflow transversal complexe avec intégration facturation et communication.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Ciblage, attribution, messagerie, délais, facturation, tiers.
-
----
-
-### REQ-040 (EX-047)
-**Exigence :** Sélection automatique du tribunal adéquat selon critères définis et informations SI-RC, à partir d’un annuaire des tribunaux et de règles légales de sélection.
-
-- **Contexte métier spécifique**
-  - Compétence territoriale / légale.
-- **Impact sur l’architecture globale**
-  - Moteur de décision et de routage juridique.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Annuaire tribunaux, données SI-RC, règles légales, rejet/acceptation.
-
----
-
-### REQ-043 (EX-050)
-**Exigence :** Le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet, prendre en compte la correction et renvoyer l’IP corrigée.
-
-- **Contexte métier spécifique**
-  - Reprise après rejet greffe.
-- **Impact sur l’architecture globale**
-  - Boucle de correction / réémission.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Statuts rejet, pièces, validation, reprise workflow.
-
----
-
-### REQ-048 (EX-055)
-**Exigence :** Le gestionnaire doit pouvoir corriger les éléments nécessaires selon le motif de rejet, prendre en compte la correction et renvoyer la radiation corrigée.
-
-- **Contexte métier spécifique**
-  - Reprise après rejet pour radiation.
-- **Impact sur l’architecture globale**
-  - Même logique de reprise que l’IP, avec variante métier.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Statuts, pièces, règles de correction, annuaire tribunaux.
-
----
-
-### REQ-050 (EX-057)
-**Exigence :** Facturation précise distinguant les frais avancés aux tribunaux et les frais de service séparés, une partie des frais avancés étant imputée aux entreprises.
-
-- **Contexte métier spécifique**
-  - Ventilation comptable entre débours et prestations.
-- **Impact sur l’architecture globale**
-  - Modèle de facturation détaillé avec règles d’imputation.
-- **Niveau de criticité business**
-  - **Très élevé**
-- **Interdépendances identifiées**
-  - Factures, dossiers, typologie de frais, comptabilité, exports.
-
----
-
-### REQ-051 (EX-058)
-**Exigence :** Suivi à chaque étape via une interface pour suivre les demandes réalisées et le statut associé.
-
-- **Contexte métier spécifique**
-  - Pilotage opérationnel du cycle de vie.
-- **Impact sur l’architecture globale**
-  - Traçabilité des événements et vue de suivi.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Workflow, statuts, messagerie, documents, notifications.
-
----
-
-### REQ-052 (EX-059)
-**Exigence :** Ajout et transmission de pièces justificatives en cas de refus, ainsi que commentaire et suivi de toutes les procédures de l’IRC.
-
-- **Contexte métier spécifique**
-  - Gestion collaborative des refus et complétude documentaire.
-- **Impact sur l’architecture globale**
-  - Gestion documentaire avec boucle de reprise.
-- **Niveau de criticité business**
-  - **Élevé**
-- **Interdépendances identifiées**
-  - Rejets, documents, commentaires, suivi des procédures.
-
----
-
-## REGROUPEMENT THÉMATIQUE
-
-### 1) Processus métier, workflows
-
-**LOT 1**
-- REQ-001 : cadrage global des deux lots
-- REQ-008 : couverture de tous les échanges avec tiers
-- REQ-009 : traitement bout en bout, sélection libre du réseau, attribution via plateforme
-- REQ-010 : attribution selon règles et automatisations pré-enregistrées
-- REQ-011 : attribution à plusieurs tiers successifs
-- REQ-012 : transfert de tiers / transfert massif de dossiers
-- REQ-019 : gestion des délais, alertes et tableau de suivi
-- REQ-027 : flexibilité de workflow pour cas particuliers
-- REQ-030 : procédure individuelle complète
-- REQ-031 : injonction de payer avec ou sans commissaire
-- REQ-032 : automatisation UO2 vers greffes
-- REQ-034 : génération et visualisation du dossier UO2, gestion des rejets
-- REQ-036 : articulation avec avocats facultative selon IRC
-- REQ-037 : 3e relance amiable optionnelle
-- REQ-038 : processus complet de relance amiable
-
-**LOT 2**
-- REQ-001 : cadrage global
-- REQ-007 : annuaire tribunaux
-- REQ-040 : sélection automatique tribunal
-- REQ-043 : correction après rejet IP
-- REQ-048 : correction après rejet radiation
-- REQ-051 : suivi des demandes par étape
-- REQ-052 : pièces justificatives et suivi en cas de refus
-
----
-
-### 2) Fonctionnalités principales et secondaires
-
-**Fonctionnalités principales**
-- Gestion des annuaires :
-  - REQ-006, REQ-007
-- Dossiers et attribution :
-  - REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-030, REQ-031, REQ-036, REQ-040
-- Collaboration/messagerie :
-  - REQ-020, REQ-021, REQ-022, REQ-052
-- Recherche et consultation :
-  - REQ-014
-- Facturation/suivi financier :
-  - REQ-013, REQ-015, REQ-016, REQ-017, REQ-023, REQ-024, REQ-025, REQ-026, REQ-035, REQ-050
-- Suivi des délais et alertes :
-  - REQ-019
-
-**Fonctionnalités secondaires / options métier**
-- Cas particuliers / exceptions :
-  - REQ-027, REQ-037, REQ-038
-- Rejets et reprises :
-  - REQ-034, REQ-043, REQ-048, REQ-052
-- UO2 automatisée et gestion hybride :
-  - REQ-032, REQ-034, REQ-035, REQ-040
-
----
-
-### 3) Règles de gestion, validation
-
-- Monnaie et montants :
-  - REQ-015
-- Seuils paramétrables par IRC :
-  - REQ-028
-- Contrôles automatiques / manuels :
-  - REQ-025
-- Différence facture acte / honoraires :
-  - REQ-017, REQ-023, REQ-026, REQ-050
-- Visibilité restreinte des factures :
-  - REQ-024
-- Réseau choisi par IRC et gestion des tiers :
-  - REQ-006, REQ-009, REQ-012, REQ-036
-- Sélection automatique des tribunaux selon règles légales :
-  - REQ-040
-- Messages et accusés de réception :
-  - REQ-021, REQ-022
-- Dématérialisation automatique vs cas non automatisables :
-  - REQ-032, REQ-034
-
----
-
-### 4) Interface utilisateur, ergonomie
-
-- Poste gestionnaire avec affichage intelligent :
-  - REQ-008, REQ-013
-- Recherche avancée multi-critères :
-  - REQ-014
-- Tableau de bord KPI :
-  - REQ-016, REQ-017
-- Tableau de suivi délais/tâches :
-  - REQ-019
-- Messagerie ergonomique :
-  - REQ-020, REQ-021, REQ-022
-- Consultation des statuts et demandes :
-  - REQ-051
-- Reprise après rejet avec guidage :
-  - REQ-043, REQ-048, REQ-052
-
----
-
-### 5) Gestion des données métier
-
-- Référentiels :
-  - REQ-006 : annuaire tiers
-  - REQ-007 : annuaire tribunaux
-- Dossiers :
-  - REQ-008, REQ-009, REQ-011, REQ-012, REQ-014, REQ-030, REQ-031, REQ-034, REQ-043, REQ-048, REQ-051
-- Documents :
-  - REQ-013, REQ-014, REQ-020, REQ-022, REQ-027, REQ-030, REQ-031, REQ-052
-- Factures / frais / montants :
-  - REQ-013, REQ-015, REQ-016, REQ-017, REQ-023, REQ-024, REQ-025, REQ-026, REQ-035, REQ-050
-- Statuts / avancement / motifs :
-  - REQ-016, REQ-017, REQ-019, REQ-030, REQ-034, REQ-051
-- Historique / traçabilité :
-  - REQ-020, REQ-022, REQ-027, REQ-052
-
----
-
-## ANALYSE D’IMPACT SYSTÈME
-
-### Impact transversal
-- **SI-RC** est un système pivot :
-  - alimentation des dossiers, montants, pièces, statuts, documents, et communication d’informations.
-- **GCE** intervient dans l’ouverture du dossier et le pilotage du processus, notamment pour la relance amiable et l’orientation vers la plateforme.
-- **Gestion documentaire** transversale :
-  - pièces justificatives, archivage, export quotidien, reprise après rejet.
-- **Finance/comptabilité** :
-  - suivi des montants, facturation, débours, distinctions actes/honoraires, export.
-- **IAM / habilitations** :
-  - visibilité des factures par IRC autorisé, cloisonnement par dossier, droits sur les actions.
-
-### Contraintes techniques induites
-- Moteur de workflow paramétrable multi-IRC.
-- Référentiels administrables sans synchro obligatoire avec sources externes.
-- Mécanisme de messagerie interne avec historisation et notifications.
-- Indexation pour recherche avancée.
-- Modèle de données financier finement typé.
-- Interfaces d’échange avec SI-RC, greffes, éventuellement courrier ou traitements manuels hybrides.
-- Gestion des rejets et des reprises, avec conservation d’historique.
-
-### Risques de non-conformité
-- Mauvaise sélection du tribunal = rejet ou invalidité procédurale.
-- Mauvaise gestion des seuils = validation incorrecte des frais.
-- Fuite d’information entre IRC = non-respect des droits d’accès.
-- Absence de traçabilité = difficulté de contrôle et de preuve opérationnelle.
-- Couplage trop fort avec des sources externes non synchronisées = dérive de référentiel.
-- Workflow trop rigide = incapacité à traiter les exceptions et cas métier réels.
-
-### Complexité de mise en œuvre
-- **Très élevée** sur :
-  - workflow multi-acteurs,
-  - facturation avec règles variables,
-  - gestion des rejets/reprises,
-  - interfaçage SI-RC,
-  - paramétrage par IRC,
-  - indicateurs KPI.
-- **Élevée** sur :
-  - messagerie historisée,
-  - recherche,
-  - transferts de dossiers en masse,
-  - gestion de plusieurs profils de tiers et de procédures.
-
----
-
-## RECOMMANDATIONS OPÉRATIONNELLES
-
-### Solutions techniques concrètes
-1. **Workflow engine / BPM**
-   - Pour modéliser les procédures, variantes, rejets, relances, transferts et clôtures.
-2. **Référentiels métiers administrables**
-   - Annuaire tiers et annuaire tribunaux avec gouvernance métier.
-3. **Moteur de règles**
-   - Sélection tribunal, affectation partenaire, seuils IRC, déclenchement notifications, validations.
-4. **Messagerie contextualisée au dossier**
-   - Messages liés au dossier, accusés de réception applicatifs, historique consultable.
-5. **Gestion documentaire intégrée**
-   - Versioning, classement par dossier, export automatique vers SI-RC.
-6. **Cockpit de pilotage / BI**
-   - KPI opérationnels et financiers, vues IRC, consolidations par réseau/période.
-7. **Sécurité et habilitations**
-   - Contrôle strict par IRC, par dossier, par rôle et par type de données.
-8. **Mécanisme de reprise après rejet**
-   - Écran guidé par motif, réémission, journalisation.
-
-### Bonnes pratiques du domaine
-- Séparer clairement :
-  - **données de référence**
-  - **données dossier**
-  - **événements métier**
-  - **documents**
-  - **facturation**
-- Garder un **journal d’audit complet**.
-- Prévoir des **états métier explicites** pour les dossiers et les factures.
-- Mettre en place une **gestion des exceptions dès la conception**.
-- Paramétrer par IRC sans multiplier les développements spécifiques.
-- Standardiser les libellés, motifs de rejet, motifs d’avancement et natures de frais.
-
-### Standards et normes applicables
-- **RGPD** : données personnelles des entreprises, tiers, contacts, échanges.
-- **Sécurité SI** : contrôle d’accès, journalisation, traçabilité.
-- **Normes comptables internes** : distinction débours / prestations / honoraires.
-- **Bonne pratique BPMN** pour modélisation des workflows.
-- **Référentiel monétaire** : stockage décimal, arrondis cohérents à 2 décimales.
-
-### Méthodes de validation et test
-- **Tests de bout en bout** sur cas standard et cas exceptionnels.
-- **Tests de non-régression** après changement des règles IRC.
-- **Tests de droits** par profil IRC et par dossier.
-- **Tests de rejets/reprises** pour IP, radiation, relance, transfert.
-- **Tests de volumétrie** sur transferts massifs, exports et tableaux de bord.
-- **Tests d’intégration SI-RC** sur flux entrants/sortants, documents et statuts.
-- **UAT métiers** avec scénarios procéduraux réels par IRC.
-
----
-
-## POINTS DE VIGILANCE PROJET
-
-### Risques d’oubli ou de perte d’exigences
-- Oublier la distinction **LOT 1 / LOT 2** et leurs périmètres propres.
-- Négliger les **cas optionnels** :
-  - tiers supplémentaires,
-  - 3e relance amiable,
-  - avec ou sans avocat,
-  - 85% automatisés / 15% non automatisables.
-- Omettre la **non-gestion des paiements** dans la plateforme.
-- Oublier les **différences de facturation** entre commissaires et avocats.
-- Sous-estimer la **reprise après rejet**.
-
-### Éléments nécessitant éclaircissement
-- Règles exactes de sélection automatique des tribunaux.
-- Typologie précise des statuts, motifs de rejet, motifs d’avancement.
-- Règles de consolidation des factures réseau/période.
-- Format des exports comptables et documentaires.
-- Niveau exact d’automatisation attendu pour l’attribution et les relances.
-- Modalités d’échange avec SI-RC pour les documents et référentiels.
-- Règles de propriété des données des tiers par IRC.
-
-### Contraintes d’intégration avec l’existant
-- SI-RC comme source/consommateur majeur.
-- GCE comme point d’entrée ou d’orchestration amont.
-- Continuité avec systèmes actuels pour les 15% non dématérialisables.
-- Gestion des doublons et des incohérences entre annuaires plateforme et SI-RC.
-- Synchronisation des statuts et documents entre outils.
-
-### Planning et ressources nécessaires
-- Forte implication :
-  - experts contentieux,
-  - experts greffe / procédures,
-  - référents IRC,
-  - équipes SI-RC,
-  - experts finance/facturation,
-  - experts sécurité et habilitations.
+=== POINTS DE VIGILANCE PROJET ===
+
+## Risques d’oubli ou de perte d’exigences
+- Oublier le caractère **end-to-end** du cycle de vie projet.
+- Sous-estimer la complexité des **habilitations multi-profils**.
+- Négliger le **service fait** et les contrôles financiers.
+- Omettre la **gestion documentaire** liée aux décisions et avenants.
+- Sous-modéliser les **KPI** et la qualité des données.
+- Oublier l’option **mobile** comme périmètre contractuel distinct.
+- Minimiser le besoin de **formation** pour 100–120 administrateurs.
+
+## Éléments nécessitant éclaircissement
+- Périmètre exact des dispositifs inclus dans PIA/France2030 et PIC au lancement.
+- Liste détaillée des profils et de leurs droits attendus.
+- Niveau de paramétrage attendu par dispositif sans assistance éditeur.
+- Format attendu des exports, tableaux de bord et cartographies.
+- Modalités précises de calcul des KPI et des ratios de service fait.
+- Niveau d’intégration attendu avec Data.gouv et Teams.
+- Contenu exact des priorités hautes visées à 6 mois.
+
+## Contraintes d’intégration avec l’existant
+- Articulation avec les outils CDC existants de gestion, documentaire et reporting.
+- Gestion des échanges avec les référentiels et données externes.
+- Compatibilité avec les pratiques internes de comitologie et contractualisation.
+- Reprise éventuelle de données historiques.
+
+## Planning et ressources nécessaires
+- Le jalon **REQ-034** impose une **stratégie de livraison incrémentale**.
+- Prioriser :
+  1. socle d’accès et référentiels,
+  2. candidatures AAP/AMI,
+  3. instruction/décision/contractualisation,
+  4. suivi et reporting,
+  5. communication/documentaire/KPI.
 - Prévoir :
-  - ateliers de cadrage par sous-processus,
-  - maquettage UX des écrans de suivi, facture, messagerie et rejet,
-  - lots de tests métiers par procédure,
-  - phase de stabilisation post-déploiement.
+  - experts métier CDC,
+  - chef de produit / BA,
+  - architecte solution,
+  - spécialiste sécurité et intégration,
+  - référents data/BI,
+  - formateurs et support au changement.
 
----
-
-Si vous le souhaitez, je peux maintenant transformer cette analyse en :
-1. **matrice de traçabilité exigences → fonctions → impacts → tests**, ou
-2. **cartographie BPMN des processus LOT 1 / LOT 2**, ou
-3. **backlog produit structuré par EPIC / user stories / critères d’acceptation**.
+Si vous le souhaitez, je peux maintenant produire une **matrice de traçabilité exhaustive** sous forme de tableau REQ → sous-domaines → impacts → risques → dépendances.

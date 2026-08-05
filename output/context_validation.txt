@@ -1,16 +1,16 @@
 === VALIDATION DE CONTEXTUALISATION DES EXIGENCES ===
 
 📊 STATISTIQUES GÉNÉRALES :
-   - Exigences totales : 57
-   - Exigences contextualisées : 57
+   - Exigences totales : 37
+   - Exigences contextualisées : 37
    - Taux de contextualisation : 100,0%
 
 📋 RÉPARTITION PAR CATÉGORIE :
-   - FONCTIONNEL : 37 exigences
-   - RSSI : 4 exigences
+   - FONCTIONNEL : 17 exigences
+   - RSSI : 10 exigences
    - ECOCONCEPTION : 0 exigences
-   - RSE : 0 exigences
-   - TECHNIQUE : 16 exigences
+   - RSE : 1 exigences
+   - TECHNIQUE : 9 exigences
 
 💡 RECOMMANDATIONS :
    📊 Déséquilibre détecté - certaines catégories sont vides, vérifier la classification

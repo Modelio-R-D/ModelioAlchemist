@@ -1,318 +1,336 @@
 === INVENTAIRE CONTEXTUALISÉ ===
 
-#### REQ-002 (EX-002)
-- **Contexte métier spécifique** : La solution s’inscrit dans la trajectoire de dématérialisation des échanges entre les institutions de retraite complémentaire (IRC) et les instances judiciaires, dans le cadre du nouveau SI-RC Agirc-Arrco.
-- **Impact sur l’architecture globale** : impose une architecture d’intégration orientée échanges numériques, avec forte dépendance à SI-RC comme socle de référence métier et documentaire.
-- **Niveau de criticité business** : **Très élevé** — prérequis structurant de l’urbanisation cible.
-- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-029, REQ-039, REQ-042, REQ-045, REQ-047.
+### REQ-001 — Plateforme SaaS complète et intégrée pour PIA/France2030 et PIC
+- **Contexte métier spécifique**  
+  Plateforme cible unique pour gérer l’ensemble des parcours : candidature, instruction, contractualisation, suivi, animation, avec intégration transverse au SI CDC et à l’écosystème externe.
+- **Impact sur l’architecture globale**  
+  Implique une architecture **multi-modulaire**, multi-profils, orientée processus métier, avec séparation claire des responsabilités fonctionnelles et forte capacité d’intégration SI.
+- **Niveau de criticité business**  
+  **Très élevé** : c’est la colonne vertébrale du projet et le fondement du modèle de service.
+- **Interdépendances identifiées**  
+  Dépend de REQ-006 pour l’accès multi-support, REQ-007 pour les intégrations, REQ-020/021 pour la migration et réversibilité, REQ-022/023 pour l’hébergement, REQ-027 pour la sécurité, REQ-033 pour le délai de mise en œuvre.
 
-#### REQ-003 (EX-004)
-- **Contexte métier spécifique** : Décommissionnement de GRECCO en février 2026 et remplacement par GCE, nouvel outil central de compte et de recouvrement amiable/contentieux.
-- **Impact sur l’architecture globale** : changement majeur de système source, nécessitant adaptation des interfaces, reprise de données, gestion de coexistence et alignement des flux.
-- **Niveau de criticité business** : **Critique** — bascule applicative avec risque de rupture de service.
-- **Interdépendances identifiées** : REQ-004, REQ-013, REQ-029, REQ-039, REQ-045.
+---
 
-#### REQ-004 (EX-005)
-- **Contexte métier spécifique** : GCE démarre avec le socle Compte/Recouvrement amiable, puis ajout du contentieux au 30/06/2026.
-- **Impact sur l’architecture globale** : architecture transitoire en deux temps, avec gestion de fonctionnalités indisponibles temporairement.
-- **Niveau de criticité business** : **Critique** — nécessité de concevoir pour une cohabitation fonctionnelle.
-- **Interdépendances identifiées** : REQ-003, REQ-013, REQ-029, REQ-039, REQ-045.
+### REQ-006 — Responsive Web Design, charte CDC et marque blanche Banque des Territoires
+- **Contexte métier spécifique**  
+  Accès depuis tous types d’écrans pour utilisateurs internes et externes, avec personnalisation graphique selon l’identité CDC et une variante marque blanche.
+- **Impact sur l’architecture globale**  
+  Nécessite une couche front-end responsive, un système de theming/branding, et un design system gouverné.
+- **Niveau de criticité business**  
+  **Élevé** : impact direct sur l’adoption, l’ergonomie et l’unification des parcours.
+- **Interdépendances identifiées**  
+  Dépend de la conception UX/UI, de l’architecture front, et du référentiel d’identité visuelle. Influence REQ-001 et REQ-033.
 
-#### REQ-005 (EX-009)
-- **Contexte métier spécifique** : Deux lots contractuels indépendants, potentiellement avec des prestataires distincts, sans obligation d’échanges entre plateformes.
-- **Impact sur l’architecture globale** : nécessité de cloisonnement fort des lots, avec interfaces optionnelles seulement.
-- **Niveau de criticité business** : **Élevé** — contrainte de non-couplage contractuel et technique.
-- **Interdépendances identifiées** : REQ-033, REQ-039, REQ-041 à REQ-049, REQ-053.
+---
 
-#### REQ-013 (EX-019)
-- **Contexte métier spécifique** : Poste de travail unifié pour les gestionnaires IRC avec vue dossier, montants, états de procédure, mouvements et synchronisation documentaire quotidienne vers SI-RC.
-- **Impact sur l’architecture globale** : nécessite un agrégateur de données métier, une couche d’orchestration des vues et un mécanisme robuste de transfert documentaire.
-- **Niveau de criticité business** : **Très élevé** — élément central de l’expérience utilisateur et de la qualité de service.
-- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-029, REQ-039, REQ-042, REQ-045, REQ-047.
+### REQ-007 — Flux de données sécurisés via API avec SI CDC et SI du mandant
+- **Contexte métier spécifique**  
+  Interopérabilité bidirectionnelle avec les référentiels, outils métiers, GED, communication, BI, et le système du mandant.
+- **Impact sur l’architecture globale**  
+  Exige une architecture d’API robuste, sécurisée, gouvernée, avec gestion des contrats d’interface, des formats et des mécanismes d’échange.
+- **Niveau de criticité business**  
+  **Très élevé** : sans interopérabilité, la plateforme ne peut pas éviter les ressaisies ni assurer la continuité bout en bout.
+- **Interdépendances identifiées**  
+  Fortement lié à REQ-001, REQ-027, REQ-020/021 et aux choix d’hébergement REQ-022/023.
 
-#### REQ-029 (EX-035)
-- **Contexte métier spécifique** : Toute action manuelle dans la plateforme ayant un effet sur GCE doit générer un flux vers GCE.
-- **Impact sur l’architecture globale** : exige une architecture événementielle ou synchronisée garantissant la cohérence de l’état métier.
-- **Niveau de criticité business** : **Critique** — enjeu de vérité du compte et d’absence de divergence.
-- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-039, REQ-045.
+---
 
-#### REQ-033 (EX-039)
-- **Contexte métier spécifique** : Envoi direct des demandes d’injonction de payer aux greffes via webservice type Infogreffe, avec pièces justificatives, éléments de créances et commissaire de justice désigné.
-- **Impact sur l’architecture globale** : intégration externe critique, dépendance à un fournisseur de service, gestion des écrans de saisie/validation et du contrat de service.
-- **Niveau de criticité business** : **Très élevé** — automatisation d’un acte procédural sensible.
-- **Interdépendances identifiées** : REQ-005, REQ-041, REQ-042, REQ-044, REQ-053.
+### REQ-020 — Reprise de l’historique des projets lauréats actifs et non retenus
+- **Contexte métier spécifique**  
+  Migration de 2 500 à 3 000 dossiers PIA3 et PIA4/France2030, pour assurer continuité de suivi, reporting et conservation des pièces.
+- **Impact sur l’architecture globale**  
+  Nécessite une stratégie de migration, de modélisation des données historiques, de contrôle qualité des reprises et de gestion documentaire.
+- **Niveau de criticité business**  
+  **Très élevé** : conditionne la continuité opérationnelle et la fiabilité des états de référence.
+- **Interdépendances identifiées**  
+  Dépend de l’architecture de données, des mécanismes d’import/export, de la GED et de REQ-021 pour la réversibilité future.
 
-#### REQ-039 (EX-046)
-- **Contexte métier spécifique** : Réception récurrente des demandes d’IP depuis GCE au moins hebdomadaire en masse, avec modifications manuelles renvoyées vers GCE et documents transférés quotidiennement vers SI-RC.
-- **Impact sur l’architecture globale** : coexistence de flux batch massifs, d’échanges ponctuels et de synchronisation documentaire quotidienne.
-- **Niveau de criticité business** : **Élevé** — important pour la tenue opérationnelle et la volumétrie.
-- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-029, REQ-053.
+---
 
-#### REQ-041 (EX-048)
-- **Contexte métier spécifique** : Envoi des informations au tribunal via flux dématérialisé avec bordereaux, avec bascule papier/email si le tribunal ne le permet pas.
-- **Impact sur l’architecture globale** : architecture hybride avec gestion de modes dégradés par juridiction.
-- **Niveau de criticité business** : **Élevé** — continuité de service malgré l’hétérogénéité des tribunaux.
-- **Interdépendances identifiées** : REQ-033, REQ-042, REQ-044, REQ-046, REQ-047, REQ-049.
+### REQ-021 — Réversibilité complète en fin de marché
+- **Contexte métier spécifique**  
+  Restitution complète des données et documents dans un format compatible avec les SI CDC, avec plan de réversibilité détaillé.
+- **Impact sur l’architecture globale**  
+  Implique une conception “exit-ready” : exportabilité native, portabilité documentaire, documentation technique et cartographie des données.
+- **Niveau de criticité business**  
+  **Très élevé** : exigence contractuelle majeure de continuité de service et de protection des actifs informationnels.
+- **Interdépendances identifiées**  
+  Dépend de REQ-007, REQ-020, REQ-022/023, et de la structuration des données dès l’amont.
 
-#### REQ-042 (EX-049)
-- **Contexte métier spécifique** : Retour tribunal dématérialisé quotidien avec date, référence IP, statut, motif de rejet et tribunal.
-- **Impact sur l’architecture globale** : boucle de retour structurée, nécessitant des traitements d’intégration, de rapprochement et de mise à jour d’état.
-- **Niveau de criticité business** : **Très élevé** — indispensable au pilotage des procédures.
-- **Interdépendances identifiées** : REQ-033, REQ-041, REQ-044, REQ-053.
+---
 
-#### REQ-044 (EX-051)
-- **Contexte métier spécifique** : Prise en charge des rejets et régénération du flux si l’anomalie relève du prestataire, y compris les rejets techniques ou calcul de compétence tribunal.
-- **Impact sur l’architecture globale** : besoin de gestion d’erreurs métier/techniques, reprocessing, contrôle qualité des flux.
-- **Niveau de criticité business** : **Très élevé** — réduction des blocages et des délais.
-- **Interdépendances identifiées** : REQ-033, REQ-041, REQ-042, REQ-049.
+### REQ-022 — Hébergement SaaS dans l’EEE, hors locaux de l’Acheteur
+- **Contexte métier spécifique**  
+  Externalisation de l’infrastructure dans des centres situés dans l’EEE, sans hébergement on-premise CDC.
+- **Impact sur l’architecture globale**  
+  Oriente vers un modèle cloud/externalisé avec maîtrise des zones géographiques, des sous-traitants et des flux transfrontaliers.
+- **Niveau de criticité business**  
+  **Élevé** : enjeu de conformité réglementaire et de souveraineté.
+- **Interdépendances identifiées**  
+  Converge avec REQ-023, REQ-027, REQ-007 et les exigences de réversibilité.
 
-#### REQ-045 (EX-052)
-- **Contexte métier spécifique** : La radiation suit le même modèle que l’IP : réception hebdomadaire, mises à jour quotidiennes vers SI-RC pour actions manuelles, transfert quotidien des documents.
-- **Impact sur l’architecture globale** : réutilisation du pattern IP pour un second flux fonctionnel, avec besoins identiques de synchronisation.
-- **Niveau de criticité business** : **Élevé** — cohérence du cycle de vie des privilèges.
-- **Interdépendances identifiées** : REQ-003, REQ-004, REQ-013, REQ-029, REQ-046, REQ-047, REQ-049.
+---
 
-#### REQ-046 (EX-053)
-- **Contexte métier spécifique** : Informations au tribunal pour la radiation via flux dématérialisé avec bordereaux, sinon papier/email.
-- **Impact sur l’architecture globale** : même contrainte d’hybridation que pour l’IP, avec adaptation par tribunal.
-- **Niveau de criticité business** : **Élevé**.
-- **Interdépendances identifiées** : REQ-041, REQ-045, REQ-047, REQ-049.
+### REQ-023 — Hébergement natif dans un cloud souverain certifié SecNumcloud
+- **Contexte métier spécifique**  
+  Exigence d’un niveau élevé de confiance sur l’infrastructure hébergeant les données sensibles et personnelles.
+- **Impact sur l’architecture globale**  
+  Réduit fortement le choix des fournisseurs et impose une architecture cloud conforme aux exigences de certification.
+- **Niveau de criticité business**  
+  **Très élevé** : exigence structurante et potentiellement discriminante dans le choix technique.
+- **Interdépendances identifiées**  
+  Étroitement lié à REQ-022, REQ-027, REQ-007 et à la stratégie de sécurité globale.
 
-#### REQ-047 (EX-054)
-- **Contexte métier spécifique** : Retour tribunal pour la radiation dématérialisé, quotidien, avec date, référence, statut, motif de rejet.
-- **Impact sur l’architecture globale** : traitement de retours structurés et synchronisation quotidienne des états.
-- **Niveau de criticité business** : **Très élevé**.
-- **Interdépendances identifiées** : REQ-045, REQ-046, REQ-049.
+---
 
-#### REQ-049 (EX-056)
-- **Contexte métier spécifique** : Régénération des flux de radiation en cas de rejet imputable au prestataire.
-- **Impact sur l’architecture globale** : mécanismes de reprise, correction et re-soumission.
-- **Niveau de criticité business** : **Élevé**.
-- **Interdépendances identifiées** : REQ-045, REQ-046, REQ-047.
+### REQ-027 — Protocoles sécurisés pour les échanges
+- **Contexte métier spécifique**  
+  Protection contre l’interception d’informations confidentielles lors des échanges utilisateurs, services et composants.
+- **Impact sur l’architecture globale**  
+  Implique chiffrement en transit, gestion des certificats, durcissement des canaux d’échange et politique de sécurité des communications.
+- **Niveau de criticité business**  
+  **Très élevé** : exigence de sécurité de base, non négociable.
+- **Interdépendances identifiées**  
+  Dépend des mécanismes d’intégration REQ-007 et du socle d’hébergement REQ-022/023.
 
-#### REQ-053 (EX-060)
-- **Contexte métier spécifique** : Gestion en masse des IP avec suivi détaillé par cas, traçabilité fine et accès restreint aux gestionnaires habilités.
-- **Impact sur l’architecture globale** : nécessite traitements batch, auditabilité forte, gestion des habilitations et cloisonnement des données.
-- **Niveau de criticité business** : **Très élevé** — enjeu d’industrialisation et de conformité.
-- **Interdépendances identifiées** : REQ-033, REQ-039, REQ-042, REQ-044.
+---
+
+### REQ-033 — Solution éprouvée, peu développée, déployable en 3 mois
+- **Contexte métier spécifique**  
+  Besoin d’un déploiement rapide d’une solution mature, avec peu de paramétrage spécifique.
+- **Impact sur l’architecture globale**  
+  Favorise un progiciel SaaS standard ou fortement paramétrable, limite les développements spécifiques et impose une accélération du cadrage, des tests et du déploiement.
+- **Niveau de criticité business**  
+  **Très élevé** : contrainte de planning déterminante pour la réussite du marché.
+- **Interdépendances identifiées**  
+  Contrainte sur REQ-001, REQ-006, REQ-007, REQ-020 et REQ-021, avec arbitrage fort entre standardisation et spécificités métier.
 
 ---
 
 === REGROUPEMENT THÉMATIQUE ===
 
 ## 1) Architecture applicative et patterns
-- **REQ-013** : vue dossier unifiée et poste de travail gestionnaire
-- **REQ-029** : synchronisation des actions manuelles vers GCE
-- **REQ-033** : saisie/validation et envoi direct des IP
-- **REQ-044** : traitement des rejets et régénération
-- **REQ-049** : régénération des flux radiation
-- **REQ-053** : gestion en masse, traçabilité, accès restreint
+### Exigences concernées
+- REQ-001
+- REQ-006
+- REQ-033
 
-### Lecture d’architecture
-- Besoin d’une **application de traitement métier** avec :
-  - orchestration de processus,
-  - gestion de dossiers,
-  - statuts métier,
-  - auditabilité,
-  - moteur de reprise sur rejet,
-  - séparation claire entre UI, logique métier, intégration.
+### Analyse
+- La solution doit être conçue comme une **plateforme SaaS intégrée**, probablement organisée en modules fonctionnels correspondant aux parcours métier.
+- Le besoin de **faible développement** et de **mise en production en 3 mois** favorise :
+  - une approche **paramétrique** plutôt que sur-mesure,
+  - un **design system** standard,
+  - une architecture orientée **configuration**, **workflow**, **RBAC** et **multi-profils**.
+- Le responsive et la marque blanche impliquent une séparation nette entre **moteur métier** et **présentation**.
+
+### Patterns recommandés
+- Architecture **modulaire monolithique** ou **SaaS multi-tenant paramétrable** si le produit le permet.
+- **Workflow engine / BPM** pour les processus d’instruction et contractualisation.
+- **DDD léger** sur les domaines clés, si le produit est partiellement customisé.
+- **Front découplé** du back avec API contractuelles.
+
+---
 
 ## 2) Infrastructure, déploiement, cloud
-- **REQ-002** : alignement trajectoire SI-RC
-- **REQ-003** : décommissionnement GRECCO / transition vers GCE
-- **REQ-004** : coexistence temporaire amiable/contentieux
-- **REQ-005** : indépendance contractuelle des lots
-- **REQ-039** : batch hebdo + quotidien documentaire
-- **REQ-041** : modes dégradés papier/email selon tribunal
+### Exigences concernées
+- REQ-022
+- REQ-023
+- REQ-033
 
-### Lecture d’infrastructure
-- Besoin d’une **architecture d’échanges industrialisée**, potentiellement en mode hybride :
-  - services exposés,
-  - traitement batch planifié,
-  - file d’attente/ordonnancement,
-  - stockage documentaire sécurisé,
-  - supervision des flux.
+### Analyse
+- L’hébergement doit être en **SaaS externe**, dans l’**EEE**, avec **cloud souverain SecNumcloud**.
+- Cela implique une sélection très contrainte de l’infrastructure et du fournisseur.
+- La cible devra être industrialisée dès le départ : environnements distincts, supervision, sauvegarde, PRA/PCA, gestion des mises à jour sans rupture.
+
+### Conséquences architecturales
+- Déploiement sur cloud certifié avec séparation des environnements **dev / recette / préprod / prod**.
+- Gestion des logs, sauvegardes, PRA et chiffrement au niveau plateforme.
+- Maîtrise des sous-traitants et de la chaîne d’hébergement.
+
+---
 
 ## 3) Performance, scalabilité, disponibilité
-- **REQ-039** : volumes massifs hebdomadaires
-- **REQ-053** : gestion de masse des IP
-- **REQ-042 / REQ-047** : retours quotidiens systématiques
-- **REQ-041 / REQ-046** : continuité via modes dégradés
-- **REQ-044 / REQ-049** : reprise sur erreur
+### Exigences concernées
+- REQ-001
+- REQ-020
+- REQ-033
 
-### Lecture performance
-- Besoin de capacités de :
-  - traitement par lots,
-  - reprise sur incident,
-  - montée en charge ponctuelle,
-  - tenue des délais quotidiens,
-  - disponibilité suffisante des interfaces.
+### Analyse
+- Le volume initial de reprise 2 500 à 3 000 dossiers n’est pas extrême, mais la plateforme doit supporter :
+  - des usages simultanés internes/externes,
+  - des flux API,
+  - des pièces jointes,
+  - des fonctions de suivi/reporting.
+- Le délai court impose une solution déjà scalable et éprouvée.
+
+### Attendus techniques
+- Dimensionnement basé sur la volumétrie documentaire et les pics d’usage.
+- Mécanismes de cache, pagination, traitement asynchrone des imports.
+- Haute disponibilité adaptée à un service métier critique.
+
+---
 
 ## 4) Intégrations, APIs, protocoles
-- **REQ-033** : webservice type Infogreffe
-- **REQ-039** : flux GCE ↔ plateforme
-- **REQ-041 / REQ-046** : flux dématérialisés avec bordereaux
-- **REQ-042 / REQ-047** : retours quotidiens dématérialisés
-- **REQ-029** : flux de mise à jour GCE
-- **REQ-013** : transfert documentaire quotidien vers SI-RC
+### Exigences concernées
+- REQ-007
+- REQ-027
+- REQ-020
+- REQ-021
 
-### Lecture intégration
-- Besoin d’un **socle d’intégration** multi-protocoles :
-  - webservice synchrone,
-  - batch fichier,
-  - dépôt documentaire,
-  - notifications/retours,
-  - contrôles de cohérence et d’accusés de réception.
+### Analyse
+- L’API est un point central : flux descendants et ascendants avec SI CDC et SI mandant.
+- Les échanges doivent être protégés et structurés.
+- La reprise et la réversibilité imposent des interfaces d’import/export maîtrisées, documentées, automatisables.
+
+### Points clés
+- API REST sécurisées, éventuellement event-driven selon le besoin.
+- Schémas contractuels versionnés.
+- Gestion des authentifications de type OAuth2/OpenID Connect, certificats mutuels, ou équivalent selon l’architecture cible.
+- Exports normés pour réversibilité : CSV, XML, JSON, PDF/A pour documents selon les cas d’usage.
+
+---
 
 ## 5) Technologies, frameworks, composants
-Les exigences n’imposent pas de technologies nominatives, mais orientent fortement vers :
-- un **moteur de workflow / orchestration**,
-- une **API d’intégration** vers GCE/SI-RC,
-- un **stockage documentaire** centralisé ou synchronisé,
-- un **référentiel d’habilitations**,
-- une **couche d’audit et traçabilité**,
-- un **scheduler batch**,
-- une **brique de transformation/contrôle des flux**.
+### Exigences concernées
+- REQ-006
+- REQ-007
+- REQ-023
+- REQ-033
+
+### Analyse
+- Les choix doivent privilégier :
+  - composants éprouvés,
+  - faible dette technique,
+  - compatibilité cloud souverain,
+  - outillage d’intégration et de gouvernance API.
+- Le front doit supporter le responsive, le theming, et éventuellement une architecture SPA ou hybride selon le produit.
+- Le back doit intégrer :
+  - sécurité,
+  - API management,
+  - traitement documentaire,
+  - journalisation et audit.
 
 ---
 
 === ANALYSE D’IMPACT SYSTÈME ===
 
-## Transversalité des exigences
+### Impact transversal des exigences
+- **REQ-001** structure toute la cible fonctionnelle et conditionne l’architecture applicative.
+- **REQ-007** impose une forte intégration transverse avec le SI CDC et le SI mandant.
+- **REQ-020** et **REQ-021** imposent une maîtrise complète du cycle de vie des données.
+- **REQ-022** et **REQ-023** verrouillent les choix d’hébergement et de cloud.
+- **REQ-027** impose une politique de sécurité bout en bout.
+- **REQ-033** réduit l’espace de personnalisation et augmente le besoin de solution “prête à l’emploi”.
 
-### REQ-002
-- **Impact transverse** : fixe le cadre de toute l’urbanisation, de l’intégration et du choix des patterns.
-- **Contraintes induites** : compatibilité avec SI-RC, réduction du manuel, traçabilité.
-- **Risque** : architecture non alignée sur la cible fédérale.
-- **Complexité** : structurelle, mais non technique en soi.
+### Contraintes techniques induites
+- Compatibilité avec les référentiels et outils CDC existants.
+- Gestion sécurisée des identités, accès et échanges.
+- Capacité de migration documentaire.
+- Traçabilité complète des opérations.
+- Gouvernance des configurations et des versions.
 
-### REQ-003 / REQ-004
-- **Impact transverse** : touchent toutes les interfaces amont/aval, la donnée, les écrans et les traitements batch.
-- **Contraintes induites** : gestion de la double temporalité GRECCO/GCE et séparation amiable/contentieux.
-- **Risque** : rupture d’échange au moment de la bascule.
-- **Complexité** : élevée, car migration et coexistence.
+### Risques de non-conformité
+- Choix d’un SaaS non certifié ou non hébergé dans le bon périmètre géographique.
+- Sous-estimation des besoins d’intégration SI.
+- Difficulté à répliquer les processus métier dans le délai imposé.
+- Réversibilité insuffisante faute de conception orientée export.
+- Sécurité des flux insuffisante.
 
-### REQ-005
-- **Impact transverse** : impose une découpe nette des périmètres techniques et contractuels.
-- **Contraintes induites** : éviter toute dépendance forte entre plateformes des deux lots.
-- **Risque** : couplage involontaire difficile à contractualiser et à maintenir.
-- **Complexité** : moyenne à élevée selon interfaces optionnelles.
-
-### REQ-013 / REQ-029
-- **Impact transverse** : cœur du fonctionnement métier, liaison forte avec GCE et SI-RC.
-- **Contraintes induites** : cohérence temps quasi réel ou différé maîtrisé, gestion documentaire, sécurité des accès.
-- **Risque** : désynchronisation entre outil de travail et système de vérité.
-- **Complexité** : élevée.
-
-### REQ-033 / REQ-041 / REQ-042 / REQ-044
-- **Impact transverse** : chaîne complète de dépôt IP vers greffe, retour, rejet, correction, régénération.
-- **Contraintes induites** : gestion des formats, des accusés, des rejets, de la non-dématérialisation.
-- **Risque** : blocage procédural ou non-conformité légale.
-- **Complexité** : très élevée.
-
-### REQ-039 / REQ-045 / REQ-047 / REQ-049
-- **Impact transverse** : même logique que l’IP mais étendue à la radiation.
-- **Contraintes induites** : réutilisation de composants, paramètres métier distincts, volume et planification.
-- **Risque** : duplication de logique et divergence de comportement.
-- **Complexité** : élevée.
-
-### REQ-053
-- **Impact transverse** : impact sécurité, UI, performance, audit, gouvernance des données.
-- **Contraintes induites** : gestion fine des autorisations et de la traçabilité.
-- **Risque** : fuite d’information ou absence de preuve de traitement.
-- **Complexité** : élevée.
+### Complexité de mise en œuvre
+- **Élevée**, principalement à cause de la combinaison :
+  - intégrations nombreuses,
+  - exigence de sécurité forte,
+  - hébergement contraint,
+  - délai de déploiement court,
+  - migration de l’historique.
 
 ---
 
 === RECOMMANDATIONS OPÉRATIONNELLES ===
 
 ## Solutions techniques concrètes
-1. **Architecture orientée services / événementielle**
-   - API REST ou SOAP selon capacité des SI tiers.
-   - Bus d’intégration ou file de messages pour les actions manuelles à répercuter vers GCE.
-   - Traitements batch planifiés pour les envois hebdomadaires et retours quotidiens.
-
-2. **Moteur de workflow**
-   - Pour piloter les statuts IP/radiation, les rejets, les reprises et les validations.
-   - Permet de gérer les cas métier et les exceptions.
-
-3. **Gestion documentaire industrialisée**
-   - Référentiel sécurisé des pièces.
-   - Synchronisation quotidienne vers SI-RC.
-   - Hachage, horodatage, journalisation des transferts.
-
-4. **Gestion des rejets et reprocessing**
-   - Mécanisme de quarantaine des flux rejetés.
-   - Règles de correction selon responsabilité.
-   - Possibilité de régénération idempotente.
-
-5. **Sécurisation des accès**
-   - RBAC fin par profil, gestionnaire, périmètre IRC.
-   - Journal d’audit complet des consultations, saisies et transmissions.
+1. **Choisir une solution SaaS standard du marché** fortement paramétrable, déjà utilisée pour des processus de gestion de dispositifs / subventions / dossiers.
+2. **Mettre en place une couche d’intégration API dédiée** :
+   - API Gateway,
+   - gestion des secrets,
+   - authentification forte,
+   - journalisation des flux.
+3. **Structurer le front-end en design system** avec theming pour CDC et Banque des Territoires.
+4. **Prévoir un module de reprise de données industrialisé** :
+   - mapping,
+   - contrôle qualité,
+   - rejets,
+   - reprise incrémentale si nécessaire.
+5. **Concevoir la réversibilité dès le départ** :
+   - dictionnaire de données,
+   - exports documentés,
+   - scripts d’extraction,
+   - format d’archive pérenne.
+6. **S’appuyer sur un cloud souverain SecNumcloud** avec PRA/PCA natifs et supervision de sécurité.
 
 ## Bonnes pratiques du domaine
-- Concevoir des échanges **idempotents**.
-- Prévoir des **accusés de réception techniques et métier**.
-- Séparer les couches :
-  - présentation,
-  - orchestration,
-  - métier,
-  - intégration,
-  - persistance.
-- Documenter les **cas de rejet** et les règles de reprise.
-- Mettre en place des **référentiels de correspondance** : tribunaux, compétences, statuts, références dossiers.
+- Security by design et privacy by design.
+- API-first avec versionnement des interfaces.
+- Configuration as code si possible.
+- Séparation stricte des environnements.
+- Traçabilité et audit de bout en bout.
+- Tests d’intégration automatisés et recette métier sur scénarios réels.
 
 ## Standards et normes applicables
-- **Sécurité et protection des données** : RGPD, PSSI interne, chiffrement en transit et au repos.
-- **Traçabilité** : journalisation probante, horodatage.
-- **Interopérabilité** : API REST/SOAP, échanges fichiers sécurisés, formats structurés (XML/JSON/PDF selon contexte).
-- **Qualité** : principes d’urbanisation du SI, gestion des versions d’API et de schémas.
+- **RGPD** pour les données personnelles.
+- **ISO 27001 / 27002** pour le système de management de la sécurité.
+- **SecNumCloud** pour le cloud souverain.
+- **OWASP ASVS / Top 10** pour la sécurité applicative.
+- **HTTPS/TLS 1.2+**, idéalement 1.3.
+- Bonnes pratiques **REST**, **OpenAPI**, et formats d’échange documentés.
+- **PDF/A** pour l’archivage documentaire si pertinent.
 
 ## Méthodes de validation et test
-- **Tests d’intégration bout en bout** avec GCE, SI-RC et fournisseur type Infogreffe.
-- **Tests de non-régression** sur les traitements batch hebdomadaires et quotidiens.
-- **Tests de charge** sur les massifs IP/radiations.
-- **Tests de reprise sur rejet** et scénarios de déphasage.
-- **Tests de sécurité** : habilitations, cloisonnement, audit.
-- **Tests de conformité métier** avec jeux d’essai représentatifs par tribunal.
+- Tests d’intégration API bout en bout avec le SI CDC et le SI mandant.
+- Tests de sécurité : chiffrement, authentification, audit, scans de vulnérabilités.
+- Recette de reprise de données sur échantillon puis sur volumétrie cible.
+- Tests de réversibilité simulée.
+- Tests responsive multi-devices.
+- Tests de charge et de performance.
+- Vérification de conformité hébergement EEE / SecNumcloud.
 
 ---
 
 === POINTS DE VIGILANCE PROJET ===
 
-## Risques d’oubli ou de perte d’exigences
-- Sous-estimer la **coexistence GRECCO/GCE** et la temporalité de migration.
-- Oublier le **mode dégradé papier/email** pour les tribunaux non dématérialisés.
-- Négliger la **synchronisation documentaire quotidienne** vers SI-RC.
-- Omettre la **régénération des flux** après rejet.
-- Confondre les périmètres **IP** et **radiation** alors qu’ils sont similaires mais distincts.
+### Risques d’oubli ou de perte d’exigences
+- Négliger la réversibilité opérationnelle au profit de la seule extraction de données.
+- Sous-estimer la reprise documentaire et les pièces jointes.
+- Oublier la déclinaison marque blanche dans les environnements de test et de production.
+- Réduire l’intégration API à quelques flux initiaux sans prévoir l’extensibilité.
+- Sous-dimensionner les besoins d’audit et de traçabilité.
 
-## Éléments nécessitant éclaircissement
-- Format exact des flux GCE ↔ plateforme.
-- Mode de transport des documents vers SI-RC.
-- Responsabilités précises en cas d’erreur de compétence tribunal.
-- Définition des bordereaux et des accusés de réception.
-- Liste des tribunaux dématérialisés vs non dématérialisés.
-- Nature exacte du webservice type Infogreffe et ses SLA.
-- Règles de volumétrie et fenêtres de traitement batch.
+### Éléments nécessitant éclaircissement
+- Liste précise des systèmes du SI CDC à interfacer.
+- Formats attendus pour la reprise et la réversibilité.
+- Niveau exact de personnalisation autorisé en marque blanche.
+- Périmètre fonctionnel exact de la “première phase”.
+- Critères d’acceptation du SecNumcloud et du cloud souverain.
+- Exigences de disponibilité, RPO, RTO, PRA/PCA.
+- Politique d’archivage et durées de conservation.
 
-## Contraintes d’intégration avec l’existant
-- Compatibilité avec le SI-RC cible fédéral.
-- Alignement avec les calendriers de bascule GCE.
-- Gestion des référentiels communs : dossiers, créances, juridictions, statuts.
-- Gouvernance des habilitations et des accès par gestionnaire.
-- Réversibilité ou substitution si prestataire différent sur les lots.
+### Contraintes d’intégration avec l’existant
+- Référentiels de données CDC.
+- Outils métier, GED, BI, messagerie, éventuellement IAM/SSO.
+- Règles de sécurité du SI CDC et du mandant.
+- Contraintes de formats et d’authentification.
 
-## Planning et ressources nécessaires
-- Prévoir un lot **intégration/fondations** avant les fonctionnalités métiers.
-- Prévoir un lot **migration et coexistence** autour de février 2026.
-- Prévoir une phase de **stabilisation** avant l’arrivée du contentieux GCE au 30/06/2026.
-- Mobiliser :
-  - architecte d’intégration,
-  - expert métier recouvrement/contentieux,
+### Planning et ressources nécessaires
+- **Délai très contraint** : 3 mois pour un déploiement effectif implique un cadrage ultra-priorisé.
+- Ressources nécessaires :
+  - architecte solution,
   - expert sécurité,
-  - spécialiste batch/ETL,
-  - test manager,
-  - référent documentaire et habilitations.
+  - expert intégration API,
+  - responsable migration de données,
+  - référents métier,
+  - UX/UI pour theming rapide,
+  - chef de projet de déploiement.
+- Recommandation : lancer immédiatement un **atelier de cadrage d’interfaces**, un **atelier migration**, et un **atelier réversibilité** en parallèle du choix de la solution.
 
-Si vous le souhaitez, je peux maintenant produire la **version sous forme de tableau de traçabilité exigence → impacts → recommandations**, ou une **synthèse architecturale cible LOT 1 / LOT 2**.
+Si vous le souhaitez, je peux maintenant produire la **même analyse sous forme de matrice de traçabilité exhaustive** avec colonnes : *Exigence / Sous-domaine / Impacts / Risques / Recommandation / Tests / Priorité*.

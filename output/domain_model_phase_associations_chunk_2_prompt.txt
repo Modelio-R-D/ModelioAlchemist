@@ -1,0 +1,133 @@
+DEMANDE UTILISATEUR À EXÉCUTER MAINTENANT (PHASE 3B, lot 2/3)
+Objectif unique: créer dans Modelio les associations listées ci-dessous.
+Interdictions absolues: ne pas exécuter `project_overview`, ne pas appeler `analyst_queryItems`, ne pas recréer les classes sauf nécessité absolue.
+🚨 UN SEUL appel `uml_createAssociationsBulk` pour TOUT ce lot : résoudre d'abord l'UUID de chaque classe référencée
+   (via `search_model` type=class si nécessaire), puis construire le tableau `relations` complet
+   (relation_type, source_uuid, target_uuid, name, source_role, target_role, source_multiplicity, target_multiplicity) et l'envoyer en un seul appel.
+   PAS de `uml_createStaticRelation` par relation, et JAMAIS `uml_updateAssociationEnd` : multiplicités et rôles se passent directement dans le batch.
+   Un item du batch qui échoue (UUID introuvable) n'annule pas les autres — vérifier `failed[]` dans la réponse et le signaler sans bloquer.
+Retour attendu: uniquement un compte-rendu as-built avec UUIDs réels.
+
+## CONTEXTE EXIGENCES
+{
+  "requirements_created" : [ {
+    "id" : "EXG-FON-001",
+    "uuid" : "0e103f46-a769-4989-9962-c9df1840edb7",
+    "description" : "La solution doit être mise à disposition en mode SaaS sous la forme d’une plateforme informatique complète et intégrée pour la gestion des actions PIA/France2030 et PIC, afin d’accompagner la transformation numérique des գործընթաց internes et externes de la CDC et de son écosystème.",
+    "category" : "Fonctionnel",
+    "priority" : "Haute",
+    "origin" : "document=20245175 - CCTP.pdf | ref=Contexte général / Exigences fonctionnelles métier | location=pag
+... (tronqué)
+
+## UUIDS EXIGENCES DISPONIBLES POUR «SATISFAIT» SI REQUIS
+- 0e103f46-a769-4989-9962-c9df1840edb7
+- 7964bea9-238a-4754-94a9-516902d5aa38
+- f14fa721-4fb7-47f0-9f9a-90f388b4e781
+- 6b3ebfdb-8db1-4144-82bf-30ca1ec56cef
+- 856f7e26-1103-44f5-9f96-ee01031755d9
+- f1afd95d-fbf2-467a-acd0-bf3e0b80f8fd
+- 5fd57412-4cd0-4fee-a8ad-6aa8ea34abd8
+- 3f815257-e9e4-4204-a0b5-a06fc35387c5
+- 68bfcc75-d170-4041-99bc-cebcb383473f
+- 8ad5ff13-c0e2-42a6-9de3-cf31479977c8
+- bd250cd8-7564-47e4-82f9-357648dc5085
+- 2d59c850-4bcd-4ce4-8144-2e3296562fcb
+- 6af1b1cd-78d9-45e5-9a17-8ad5d1a25e13
+- ae557476-5bde-47c4-882f-1d910e3c4fa8
+- 5e3894db-7753-45b4-a6b2-60f6231d9ff5
+- a810dffc-0ec3-4ec0-859f-90ce14927779
+- bba47ef1-ae9b-4f77-bb7a-44cdc2ba9ac7
+- 89e2572f-0ef8-4a67-a960-f51169158e79
+- 86cc2097-4a3a-491f-a2cc-a76238ba5dbb
+- 4d99cd5a-c288-4899-b017-f76ce16c40e3
+... (16 autres UUIDs disponibles dans le projet)
+
+## CLASSES DÉJÀ CRÉÉES (RÉFÉRENCE NOMS)
+- PlateformeSaaS
+- Dispositif
+- AAP_AMI
+- FormulaireParametrable
+- Candidature
+- Projet
+- Consortium
+- Acteur
+- AnnuaireReferentiel
+- Evaluation
+- GrilleEvaluation
+- Jury
+- IndemniteJury
+- InstanceDecisionnelle
+- Decision
+- Contrat
+- RapportActivite
+- ServiceFait
+- KPIIndicateur
+- CollecteKPI
+- AuditModification
+- DemandeModification
+- Document
+- DossierDocumentaire
+- Notification
+- EspaceCommunication
+- RapportPilotage
+- HistoriqueDossier
+- LotMigration
+- PlanReversibilite
+- SousTraitant
+- CataloguePreuvesConformite
+- WorkflowEngine
+- RuleEngine
+- ApiGateway
+- ConnecteurSICDC
+- ConnecteurMandant
+- ConnecteurDataGouv
+- ConnecteurMicrosoftTeams
+- GEDService
+- ReportingService
+- MigrationService
+- ExportService
+- FrontendThemingService
+- CloudSecNumCloudEnvironment
+- SupervisionService
+- IAMService
+- AutorisationService
+- PolitiqueConfidentialiteParStade
+- TLSCertificateService
+- JournalisationSecurite
+- RGPDService
+- GestionSousTraitantsRGPD
+- DossierPolitiqueSecuriteSaaS
+- SauvegardeChiffreeService
+
+## RELATIONS DE CE LOT (PlantUML)
+```plantuml
+@startuml PROMPT_INPUT
+Business.EspaceCommunication "1" --> "0..*" Business.Notification : "émet (REQ-015)"
+Business.DossierDocumentaire "1" *-- "0..*" Business.Document : "contient (REQ-016)"
+Business.Projet "1" --> "0..*" Business.DossierDocumentaire : "dispose (REQ-016)"
+Business.RapportPilotage "0..*" --> "1" Business.Dispositif : "pilote (REQ-011)"
+Business.RapportPilotage "0..*" --> "0..*" Business.Projet : "agrège (REQ-011)"
+Business.HistoriqueDossier "0..*" --> "1" Business.Projet : "représente (REQ-020)"
+Business.LotMigration "1" --> "0..*" Business.HistoriqueDossier : "importe (REQ-020)"
+Business.PlanReversibilite "1" --> "1" Business.PlateformeSaaS : "couvre (REQ-021)"
+Business.SousTraitant "0..*" --> "1" Business.PlateformeSaaS : "opère pour (REQ-032)"
+Business.CataloguePreuvesConformite "1" --> "0..*" Business.SousTraitant : "documente (REQ-032)"
+Business.CataloguePreuvesConformite "1" --> "1" Business.PlanReversibilite : "inclut (REQ-021)"
+Technical.WorkflowEngine --> Business.Candidature : "pilote workflow (REQ-002/008)"
+Technical.WorkflowEngine --> Business.Decision : "orchestration (REQ-010)"
+Technical.RuleEngine --> Business.Candidature : "contrôle (REQ-005/008)"
+Technical.GEDService --> Business.Document : "stocke (REQ-016)"
+Technical.ReportingService --> Business.RapportPilotage : "produit (REQ-011)"
+Technical.ApiGateway --> Business.PlateformeSaaS : "expose APIs (REQ-007)"
+Technical.ConnecteurSICDC --> Business.AnnuaireReferentiel : "synchronise (REQ-007/012)"
+Technical.ConnecteurMandant --> Business.Projet : "échange données (REQ-007)"
+Technical.ConnecteurDataGouv --> Business.Acteur : "enrichit (REQ-012)"
+Technical.ConnecteurMicrosoftTeams --> Business.EspaceCommunication : "intègre (REQ-015)"
+Technical.MigrationService --> Business.LotMigration : "exécute (REQ-020)"
+Technical.ExportService --> Business.PlanReversibilite : "réalise exports (REQ-021)"
+Technical.FrontendThemingService --> Business.PlateformeSaaS : "applique marque (REQ-006)"
+Technical.CloudSecNumCloudEnvironment --> Business.PlateformeSaaS : "héberge (REQ-022/023)"
+@enduml
+```
+
+Retourner uniquement un compte-rendu as-built avec UUIDs réels des relations créées.

@@ -1,350 +1,408 @@
 === INVENTAIRE CONTEXTUALISÉ ===
 
-### REQ-018 (EX-024)
-**Exigence :** Les KPI doivent être propres à chaque IRC et visibles uniquement par les membres des IRC ; les tiers de justice et autres IRC n’y ont pas accès.  
-**Contexte métier :** Cloisonnement inter-IRC, confidentialité des indicateurs de performance et de facturation, prévention des fuites d’informations sensibles entre institutions et vers les tiers de justice.
+#### REQ-004 — Accès personnalisés lecture/écriture selon rôle
+- **Contexte métier spécifique** : Cloisonnement fin des informations entre plusieurs populations hétérogènes : candidats, jurys, comités, SGPI, ministères, agences, services déconcentrés, équipes CDC. Les données sensibles couvrent les candidatures, évaluations, décisions, contrats et suivi financier.
+- **Impact sur l’architecture globale** : Nécessite un moteur d’autorisation granulaire (RBAC, potentiellement ABAC), une gestion des périmètres fonctionnels et une séparation stricte des espaces de données.
+- **Niveau de criticité business** : **Très élevé**. Un défaut de cloisonnement peut exposer des données sensibles, biaiser les processus de sélection et générer un risque juridique majeur.
+- **Interdépendances identifiées** :
+  - REQ-026 : IAM, SSO, habilitations, traces, MFA
+  - REQ-024 : RGPD et minimisation d’accès
+  - REQ-025 : confidentialité par stade
+  - REQ-007 / REQ-027 : sécurisation des échanges et des API
 
-- **Référence et ID :** REQ-018 / EX-024
-- **Contexte métier spécifique :**
-  - Données de pilotage internes à chaque IRC.
-  - Risque de corrélation entre performance, volumétrie, délais, facturation.
-  - Besoin de séparation forte entre organismes, y compris vis-à-vis des tiers de justice.
-- **Impact sur l’architecture globale :**
-  - Mise en place d’un modèle multi-tenant ou d’un cloisonnement logique strict par IRC.
-  - Filtrage systématique au niveau API, application et éventuellement base de données.
-  - Gestion des habilitations par organisation, rôle et appartenance.
-- **Niveau de criticité business :** Élevé
-  - Fuite de KPI = perte de confidentialité, risque concurrentiel et institutionnel, défaut de confiance.
-- **Interdépendances identifiées :**
-  - REQ-024 sur la confidentialité des factures.
-  - REQ-053 sur les habilitations fines.
-  - Transversal avec l’authentification et l’audit.
+#### REQ-007 — Flux de données sécurisés via API avec SI CDC et mandant
+- **Contexte métier spécifique** : Synchronisation de référentiels et données projets entre la plateforme et les systèmes existants du SI CDC et du mandant.
+- **Impact sur l’architecture globale** : Implique une architecture d’intégration sécurisée, gestion des API, authentification inter-systèmes, contrôle d’accès machine-to-machine, chiffrement, journalisation et gestion d’erreurs.
+- **Niveau de criticité business** : **Élevé à très élevé**. Toute faiblesse peut provoquer fuite, corruption ou désynchronisation de données métiers.
+- **Interdépendances identifiées** :
+  - REQ-027 : protocoles sécurisés en transit
+  - REQ-026 : gestion des identités et authentification forte
+  - REQ-029 : contrôle et traçabilité des mesures
+  - REQ-023 : contraintes d’hébergement cloud souverain
 
----
+#### REQ-023 — Hébergement natif en cloud souverain certifié SecNumCloud
+- **Contexte métier spécifique** : Exigence structurante de souveraineté et de conformité à la politique SSI attendue par la CDC.
+- **Impact sur l’architecture globale** : Contraint fortement le choix d’hébergement, de services managés, d’outillage de sécurité et de la chaîne de sous-traitance.
+- **Niveau de criticité business** : **Critique**. C’est une condition d’éligibilité et de recevabilité de la solution.
+- **Interdépendances identifiées** :
+  - REQ-028 : contrôle des sous-traitants et audit sur site
+  - REQ-029 / REQ-031 : preuves des mesures de sécurité
+  - REQ-007 / REQ-027 : sécurité des flux dans l’environnement d’hébergement
 
-### REQ-022 (EX-028)
-**Exigence :** Le service doit fournir un accusé de réception simple et une notification de nouveau message reçu sans AR à valeur légale, prérequis pour l’UO1.  
-**Contexte métier :** Échanges IRC ↔ tiers, besoin de preuve de dépôt/réception opérationnelle non probante juridiquement pour sécuriser le suivi, les relances et la coordination de procédure dans UO1.
+#### REQ-024 — Conformité RGPD et législation française/européenne
+- **Contexte métier spécifique** : Données personnelles traitées sur tout le cycle de vie : collecte, instruction, décision, contractualisation, suivi, animation, fin de traitement, suppression/archivage.
+- **Impact sur l’architecture globale** : Nécessite des mécanismes de privacy by design/by default, registre de traitements, gestion des durées de conservation, droits des personnes, purge/archivage, et preuves de conformité.
+- **Niveau de criticité business** : **Critique**. Risque réglementaire, contentieux, atteinte réputationnelle.
+- **Interdépendances identifiées** :
+  - REQ-004 : restriction des droits d’accès
+  - REQ-025 : confidentialité selon les stades
+  - REQ-029 : documentation des mesures
+  - REQ-031 : politique de sécurité SaaS
+  - REQ-023 : hébergement et sous-traitance
 
-- **Référence et ID :** REQ-022 / EX-028
-- **Contexte métier spécifique :**
-  - Notifications de bon fonctionnement et de suivi opérationnel.
-  - Pas de valeur probante légale, mais exigence de preuve d’acheminement métier.
-- **Impact sur l’architecture globale :**
-  - Gestion d’événements de messagerie avec journalisation des statuts.
-  - Mécanisme de notification asynchrone et accusé simple.
-  - Séparation claire entre preuve opérationnelle et valeur juridique.
-- **Niveau de criticité business :** Moyen à élevé
-  - Impact fort sur l’exploitation, la coordination et les délais de traitement.
-- **Interdépendances identifiées :**
-  - Audit et traçabilité des événements.
-  - Gestion de messages, workflow et notifications.
-  - Besoin d’éviter toute confusion avec un AR à valeur légale.
+#### REQ-025 — Confidentialité selon les stades du projet
+- **Contexte métier spécifique** : Les informations ne doivent être visibles qu’aux acteurs légitimes selon l’avancement : candidature, instruction, décision, contractualisation, suivi.
+- **Impact sur l’architecture globale** : Implique des règles de visibilité dynamiques, potentiellement liées au workflow, aux statuts métiers et aux rôles.
+- **Niveau de criticité business** : **Très élevé**. Les fuites d’informations entre phases peuvent compromettre l’équité des procédures.
+- **Interdépendances identifiées** :
+  - REQ-004 : gestion fine des habilitations
+  - REQ-024 : minimisation et confidentialité RGPD
+  - REQ-026 : gestion des identités et droits
+  - REQ-027 : protection en transit
 
----
+#### REQ-026 — Accès via VPN, Firewall, SSO, gestion des identités/habilitations/traces, authentification forte
+- **Contexte métier spécifique** : Contrôle des accès utilisateurs et administrateurs avec exigences d’IAM avancées, réduction du risque d’accès non autorisé.
+- **Impact sur l’architecture globale** : Implique une architecture d’authentification fédérée, MFA, segmentation réseau, journalisation de sécurité, gestion du cycle de vie des comptes et des habilitations.
+- **Niveau de criticité business** : **Critique**. C’est un socle de sécurité transverse.
+- **Interdépendances identifiées** :
+  - REQ-004 : droits personnalisés
+  - REQ-007 : sécurisation des APIs
+  - REQ-027 : protection des communications
+  - REQ-029 : traçabilité des contrôles
 
-### REQ-024 (EX-030)
-**Exigence :** Les factures doivent être associées à chaque dossier ouvert et visibles uniquement par les IRC ayant droit ; elles doivent être accessibles, catégorisées, et la facturation peut être déclenchée au fil de l’eau ou en fin de dossier selon le type de procédure et le tiers intervenant.  
-**Contexte métier :** Confidentialité financière par dossier, empêchant l’accès aux informations de frais/factures par des tiers non autorisés.
+#### REQ-027 — Protocoles sécurisés pour tous les échanges
+- **Contexte métier spécifique** : Protection de toutes les données confidentielles entre clients, navigateur, API, services internes et SI tiers.
+- **Impact sur l’architecture globale** : Implique TLS robuste, durcissement des suites cryptographiques, gestion des certificats, validation des endpoints, potentiellement mTLS pour les flux inter-applicatifs.
+- **Niveau de criticité business** : **Critique**. Réduit fortement le risque d’interception et d’altération.
+- **Interdépendances identifiées** :
+  - REQ-007 : API sécurisées
+  - REQ-026 : authentification et réseau
+  - REQ-023 : environnement d’hébergement
+  - REQ-029 : preuves de mise en œuvre
 
-- **Référence et ID :** REQ-024 / EX-030
-- **Contexte métier spécifique :**
-  - Facturation liée au dossier et non globale.
-  - Variabilité du mode de déclenchement selon procédure.
-  - Sensibilité des données financières et relationnelles.
-- **Impact sur l’architecture globale :**
-  - Modèle de données dossier-facture fortement lié.
-  - Contrôles d’accès granulaires par dossier, IRC et éventuel rôle métier.
-  - Gestion des états de facturation, catégories et déclencheurs.
-- **Niveau de criticité business :** Élevé
-  - Risque de divulgation de données financières sensibles.
-- **Interdépendances identifiées :**
-  - REQ-018 sur le cloisonnement inter-IRC.
-  - REQ-053 sur les autorisations fines.
-  - Audit et conformité.
+#### REQ-028 — Contrôle sur site chez le sous-traitant hébergeur
+- **Contexte métier spécifique** : Droit d’audit physique et organisationnel de l’hébergeur/sous-traitant par l’Acheteur.
+- **Impact sur l’architecture globale** : Nécessite des clauses contractuelles adaptées, un dispositif d’auditabilité, et une gouvernance des sous-traitants compatible avec les exigences SecNumCloud et RGPD.
+- **Niveau de criticité business** : **Élevé**. Concerne la confiance dans la chaîne de sous-traitance.
+- **Interdépendances identifiées** :
+  - REQ-023 : hébergement cloud souverain
+  - REQ-031 : dossier de politique de sécurité SaaS
+  - REQ-029 : description des contrôles
 
----
+#### REQ-029 — Détail des mesures de sécurité et du contrôle sur celles-ci, y compris sauvegardes
+- **Contexte métier spécifique** : Attente de transparence sur les mesures techniques et organisationnelles, pour les données en ligne et hors ligne.
+- **Impact sur l’architecture globale** : Implique capacité à produire une documentation de sécurité, une cartographie des contrôles, des preuves de tests, et une gestion sécurisée des sauvegardes.
+- **Niveau de criticité business** : **Élevé à très élevé**.
+- **Interdépendances identifiées** :
+  - REQ-023 : hébergement souverain
+  - REQ-024 : conformité RGPD
+  - REQ-028 : audit sous-traitant
+  - REQ-031 : politique de sécurité SaaS
 
-### REQ-053 (EX-060)
-**Exigence :** La plateforme doit permettre une gestion en masse des IP avec suivi détaillé par cas et traçabilité, ainsi qu’un accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.  
-**Contexte métier :** LOT 2 : habilitations fines nécessaires car les demandes d’IP et leurs pièces sont sensibles ; traçabilité requise pour audit et responsabilisation des actions.
-
-- **Référence et ID :** REQ-053 / EX-060
-- **Contexte métier spécifique :**
-  - Gestion de masse des IP.
-  - Données sensibles liées à des créances/entreprises.
-  - Besoin de gouvernance forte des accès et de l’historique des actions.
-- **Impact sur l’architecture globale :**
-  - Mécanismes de traitement batch avec journalisation détaillée.
-  - RBAC/ABAC fin selon IRC, profil, gestionnaire, éventuellement statut de dossier.
-  - Sécurisation des exports, listes et vues détaillées.
-- **Niveau de criticité business :** Très élevé
-  - Données sensibles, risque d’accès abusif, exigence d’auditabilité.
-- **Interdépendances identifiées :**
-  - REQ-018 et REQ-024 sur le cloisonnement et la confidentialité.
-  - Audit sécurité, gestion des habilitations, éventuellement conservation probatoire des traces.
+#### REQ-031 — Document de présentation de la politique de sécurité pour SaaS
+- **Contexte métier spécifique** : Dossier obligatoire pour évaluer une solution SaaS via un questionnaire sécurité.
+- **Impact sur l’architecture globale** : Nécessite une formalisation de la politique SSI, des mesures techniques/organisationnelles, de la gestion des risques et des responsabilités.
+- **Niveau de criticité business** : **Critique** pour l’acceptation de la solution SaaS.
+- **Interdépendances identifiées** :
+  - REQ-023 : hébergement et souveraineté
+  - REQ-024 : conformité RGPD
+  - REQ-028 : auditabilité
+  - REQ-029 : preuves des mesures
 
 ---
 
 === REGROUPEMENT THÉMATIQUE ===
 
 ## 1) Authentification, autorisation, SSO
+
 ### Exigences concernées
-- **REQ-018** : visibilité limitée aux membres de l’IRC.
-- **REQ-024** : visibilité limitée aux IRC ayant droit.
-- **REQ-053** : accès fin et restreint aux IP aux gestionnaires habilités par IRC, profil et gestionnaire.
+- REQ-004
+- REQ-026
+- REQ-025
+- REQ-007 (partiellement pour les flux inter-applicatifs)
 
 ### Analyse
-- Nécessité d’un **contrôle d’accès multi-dimensionnel** :
-  - appartenance à l’IRC,
-  - rôle métier,
-  - habilitation nominative,
-  - éventuellement périmètre dossier/procédure.
-- L’authentification seule ne suffit pas : il faut une **autorisation forte** à chaque requête.
-- Si SSO présent, il devra véhiculer les attributs de tenant/organisation et de rôle, sans exposer de droits excessifs.
+La plateforme doit mettre en place une **gestion des accès granulaire** pour des profils multiples et des phases métier distinctes. Cela suppose :
+- authentification forte des utilisateurs humains ;
+- SSO fédéré avec l’existant ;
+- gestion des habilitations par rôle, par périmètre, et par statut métier ;
+- gestion des comptes techniques pour API ;
+- journalisation de toutes les actions sensibles.
+
+### Impact système
+- Forte dépendance à un IAM central ou fédéré.
+- Besoin d’un modèle de droits évolutif.
+- Nécessité de séparer strictement identité, authentification, autorisation et audit.
 
 ### Risques
-- Contournement via URL directe, API ou export.
-- Sur-attribution de droits par rôle trop large.
-- Mauvaise séparation entre membres IRC et tiers de justice.
+- sur-habilitation ;
+- accès croisé entre dossiers ;
+- comptes orphelins ;
+- absence de traçabilité exploitable.
 
 ---
 
 ## 2) Protection des données, chiffrement
+
 ### Exigences concernées
-- **REQ-018** : KPI sensibles.
-- **REQ-024** : factures sensibles par dossier.
-- **REQ-053** : IP et pièces de dossiers sensibles.
+- REQ-025
+- REQ-027
+- REQ-007
+- REQ-023
+- REQ-029
 
 ### Analyse
-- Les données doivent être protégées :
-  - **au repos** par chiffrement de stockage si nécessaire,
-  - **en transit** par TLS,
-  - **au niveau applicatif** via masquage/filtrage selon le profil.
-- L’enjeu principal est moins le chiffrement seul que la **minimisation d’exposition** via cloisonnement.
+L’ensemble des données sensibles doit être protégé :
+- en transit ;
+- au repos ;
+- dans les sauvegardes ;
+- potentiellement lors des traitements techniques et de l’administration.
+
+### Impact système
+- TLS renforcé obligatoire.
+- Chiffrement du stockage et des sauvegardes.
+- Gestion des clés de chiffrement dans un environnement conforme.
+- Contrôles sur les exports, logs et pièces jointes.
 
 ### Risques
-- Fuites via cache, logs, exports, pièces jointes ou erreurs de filtrage.
-- Reconstitution d’informations sensibles par corrélation entre KPI, factures et IP.
+- interception de données ;
+- compromission de sauvegardes ;
+- divulgation via environnements de test ou d’exploitation ;
+- dépendance à des services cloud non souverains si mal cadré.
 
 ---
 
 ## 3) Audit, traçabilité, logs sécurité
+
 ### Exigences concernées
-- **REQ-022** : accusé de réception simple et notification.
-- **REQ-053** : suivi détaillé par cas et traçabilité.
-- Indirectement **REQ-018** et **REQ-024** : besoin de tracer les accès.
+- REQ-026
+- REQ-029
+- REQ-028
+- REQ-031
 
 ### Analyse
-- Les logs doivent couvrir :
-  - consultation,
-  - téléchargement,
-  - modification,
-  - envoi,
-  - traitement en masse,
-  - déclenchement de facturation,
-  - notifications et accusés reçus.
-- Les logs doivent être **séparés des données métier** et protégés contre la falsification.
-- Il faut distinguer :
-  - **trace opérationnelle**,
-  - **trace de sécurité**,
-  - **preuve métier non probante**.
+La traçabilité doit couvrir :
+- connexions ;
+- actions métier sensibles ;
+- changements d’habilitation ;
+- accès aux données ;
+- opérations d’administration ;
+- sauvegardes/restaurations ;
+- échanges API.
+
+### Impact système
+- nécessité d’un SIEM ou d’un mécanisme centralisé de logs ;
+- conservation des journaux selon politique définie ;
+- horodatage fiable ;
+- intégrité des traces.
 
 ### Risques
-- Logs contenant des données sensibles en clair.
-- Absence de journalisation des accès interdites ou des échecs d’autorisation.
-- Difficulté de reconstitution d’incident.
+- impossibilité d’investigation ;
+- non-détection d’incidents ;
+- non-conformité RGPD et SSI ;
+- faible valeur probante des logs.
 
 ---
 
 ## 4) Conformité RGPD, normes sécuritaires
+
 ### Exigences concernées
-- **REQ-018**, **REQ-024**, **REQ-053** : données sensibles et cloisonnement.
-- **REQ-022** : traçabilité d’échange, même non probante.
+- REQ-024
+- REQ-031
+- REQ-023
+- REQ-028
+- REQ-029
 
 ### Analyse
-- Principes RGPD impactés :
-  - minimisation,
-  - limitation des finalités,
-  - intégrité et confidentialité,
-  - traçabilité des traitements.
-- Les données de KPI, factures et IP peuvent être des données à caractère personnel ou indirectement sensibles selon le contexte.
-- Besoin d’encadrer :
-  - durées de conservation,
-  - habilitations,
-  - accès des sous-traitants,
-  - gestion des incidents.
+Le traitement de données personnelles impose :
+- base légale ;
+- minimisation ;
+- durée de conservation ;
+- droits des personnes ;
+- sécurité des traitements ;
+- gouvernance des sous-traitants ;
+- documentation.
 
-### Normes et référentiels utiles
-- **RGPD**
-- **ISO 27001 / 27002**
-- **ANSSI** : guides d’hygiène informatique, journalisation, cloisonnement
-- Selon contexte : **OWASP ASVS**, **OWASP Top 10**
+### Impact système
+- architecture privacy by design ;
+- séparation des données selon finalité ;
+- fonctions de suppression, anonymisation, archivage ;
+- capacité à répondre aux demandes d’exercice des droits.
+
+### Risques
+- non-conformité CNIL/RGPD ;
+- contentieux ;
+- blocage du déploiement ;
+- refus de validation RSSI/DPO.
 
 ---
 
 ## 5) Gestion des risques, continuité
+
 ### Exigences concernées
-- **REQ-022** : continuité des échanges et suivi.
-- **REQ-053** : traitement en masse et traçabilité.
-- **REQ-018 / REQ-024** : continuité sans fuite inter-tenant.
+- REQ-023
+- REQ-029
+- REQ-028
+- REQ-031
+- REQ-007
 
 ### Analyse
-- Les contrôles d’accès et de traçabilité ne doivent pas empêcher l’exploitation.
-- Il faut prévoir :
-  - reprise sur incident,
-  - sauvegarde des journaux,
-  - archivage des éléments de suivi,
-  - supervision des anomalies d’accès.
-- La gestion en masse des IP augmente les risques d’erreur humaine et d’effet de bord.
+La solution doit démontrer sa résilience :
+- maîtrise de l’hébergement ;
+- sauvegardes ;
+- restauration ;
+- supervision ;
+- gestion des incidents ;
+- contrôle des sous-traitants ;
+- capacité d’audit.
+
+### Impact système
+- besoin de PCA/PRA ;
+- sauvegardes chiffrées et testées ;
+- stratégie de réversibilité ;
+- procédures d’incident et de notification.
+
+### Risques
+- indisponibilité prolongée ;
+- perte de données ;
+- dépendance fournisseur ;
+- rupture de service sur l’interface SI.
 
 ---
 
 === ANALYSE D’IMPACT SYSTÈME ===
 
 ## Impact sur les autres domaines
-- **Métier / processus :**
-  - Les règles de visibilité influencent le parcours utilisateur, les écrans, les exports et les relances.
-  - La facturation doit être alignée avec le cycle de vie des dossiers.
-  - Les notifications doivent être intégrées aux workflows sans créer d’ambiguïté juridique.
-- **Données / référentiel :**
-  - Besoin d’un modèle de tenant/IRC robuste.
-  - Liaison stricte dossier–facture–KPI–IP.
-- **Sécurité :**
-  - Gestion fine des rôles, des périmètres et des actions en masse.
-  - Journalisation structurée et exploitable.
-- **Exploitation :**
-  - Supervision des échecs d’accès, des notifications et des volumes de traitement.
+- **Métier** : le cloisonnement des accès affecte les workflows, les validations et la circulation des dossiers.
+- **Intégration** : les API sécurisées imposent une gouvernance stricte des interfaces et des comptes techniques.
+- **Infrastructure** : le choix SecNumCloud peut exclure certaines briques techniques non conformes.
+- **Exploitation** : les exigences d’audit, de logs et de contrôle renforcent les coûts de run.
+- **Conformité** : RGPD et sécurité doivent être traités dès la conception, pas en fin de projet.
 
 ## Contraintes techniques induites
-- Contrôle d’accès à plusieurs niveaux : tenant, rôle, dossier, ressource.
-- Filtrage côté serveur obligatoire ; jamais côté front uniquement.
-- Gestion des événements asynchrones pour les notifications.
-- Segmentation des données en base ou via une couche d’isolation stricte.
-- Mécanisme d’audit inviolable ou au minimum fortement protégé.
+- SSO avec fédération d’identité.
+- MFA obligatoire pour les accès sensibles et administrateurs.
+- RBAC/ABAC avec règles liées aux statuts métier.
+- TLS fort et éventuellement mTLS pour API.
+- Chiffrement des données au repos et sauvegardes.
+- Journalisation centralisée et horodatage fiable.
+- Hébergement et sous-traitance compatibles SecNumCloud.
+- Mécanismes de purge, archivage, réversibilité.
 
 ## Risques de non-conformité
-- Accès croisé entre IRC.
-- Exposition de factures ou KPI dans des exports ou API.
-- Traçabilité insuffisante des accès aux IP.
-- Confusion entre accusé simple et AR à valeur légale.
-- Non-respect des principes de minimisation et de cloisonnement.
+- violation du RGPD ;
+- exposition de données sensibles ;
+- non-respect des exigences de souveraineté ;
+- absence de preuves de sécurité ;
+- dépendance à un sous-traitant non contrôlable ;
+- refus de qualification par la maîtrise d’ouvrage ou RSSI.
 
 ## Complexité de mise en œuvre
-- **REQ-018 / REQ-024 :** complexité élevée, car le cloisonnement doit être systématique.
-- **REQ-053 :** très élevée, car il combine volume, accès fin et audit.
-- **REQ-022 :** complexité moyenne, mais vigilance sur la sémantique et la traçabilité.
+- **Élevée** pour IAM, RBAC/ABAC, SSO, traçabilité.
+- **Très élevée** pour l’alignement SecNumCloud + SaaS + contraintes d’intégration.
+- **Élevée** pour la conformité RGPD complète et la gestion du cycle de vie des données.
+- **Moyenne à élevée** pour le chiffrement et la sécurisation des flux, selon l’existant.
 
 ---
 
 === RECOMMANDATIONS OPÉRATIONNELLES ===
 
-## 1) Solutions techniques concrètes
-- Mettre en place un **RBAC complété par ABAC** :
-  - rôle,
-  - IRC d’appartenance,
-  - périmètre dossier,
-  - statut de la demande,
-  - type de ressource.
-- Appliquer des **filtres d’autorisation côté back-end** sur toutes les routes.
-- Prévoir un **modèle multi-tenant** avec isolation logique stricte, voire séparation physique si le niveau de sensibilité l’impose.
-- Pour les factures et KPI :
-  - accès par dossier/tenant,
-  - suppression de toute exposition indirecte via listes globales.
-- Pour les IP :
-  - workflow de masse avec file de traitement,
-  - journal d’opérations détaillé,
-  - contrôle des accès nominatif et révisable.
-- Pour REQ-022 :
-  - accusé simple horodaté,
-  - notification de réception,
-  - statut “reçu / en attente / traité” sans portée légale.
+## Solutions techniques concrètes
+1. **IAM centralisé**
+   - SSO via SAML 2.0 ou OpenID Connect selon l’existant.
+   - MFA pour profils sensibles et administrateurs.
+   - Gestion du cycle de vie des comptes avec provisioning/deprovisioning.
 
-## 2) Bonnes pratiques du domaine
-- Principe du **moindre privilège**.
-- **Séparation des rôles** : consultation, validation, administration.
-- **Journalisation exhaustive** des actions sensibles.
-- **Masquage** des données dans les interfaces et exports.
-- **Revue régulière des habilitations**.
-- Tests de non-régression sécurité à chaque évolution.
+2. **Autorisation granulaire**
+   - Modèle RBAC complété par ABAC si les règles dépendent du statut du dossier, du type d’acteur ou de la phase.
+   - Cloisonnement par tenant/projet/dossier si nécessaire.
+   - Séparation stricte des rôles lecture/écriture/admin/audit.
 
-## 3) Standards et normes applicables
-- **RGPD**
-- **ISO 27001 / 27002**
-- **ANSSI** : recommandations de sécurité applicative, journalisation, gestion des accès
-- **OWASP ASVS** pour les contrôles applicatifs
-- Selon besoin d’archivage probant, définir explicitement si un mécanisme à valeur légale est requis ou non, afin d’éviter toute ambiguïté.
+3. **Sécurisation des flux**
+   - TLS 1.2+ ou 1.3, suites robustes.
+   - mTLS pour flux inter-systèmes critiques.
+   - API Gateway avec authentification machine-to-machine, throttling, journalisation.
 
-## 4) Méthodes de validation et test
-- **Tests d’autorisation** :
-  - un utilisateur IRC ne voit que ses données,
-  - un tiers de justice n’accède pas aux KPI/factures/IP non autorisés,
-  - un autre IRC n’accède à rien.
-- **Tests d’intrusion fonctionnels** :
-  - accès direct par URL,
-  - modification d’ID dans la requête,
-  - export de masse,
-  - API non documentée.
-- **Tests de non-régression** sur :
-  - filtres multi-tenant,
-  - traitement en masse,
-  - notification et accusé.
-- **Audit des logs** :
-  - complétude,
-  - horodatage,
-  - non-répudiation opérationnelle,
-  - absence d’exfiltration de données sensibles.
-- **Revue RGPD / sécurité** :
-  - base légale,
-  - minimisation,
-  - durées de conservation,
-  - droits d’accès internes.
+4. **Protection des données**
+   - Chiffrement au repos et des sauvegardes.
+   - Gestion de clés dans un service compatible souverain et gouverné.
+   - Masquage ou pseudonymisation pour les environnements non productifs.
+
+5. **Traçabilité**
+   - Logs de sécurité centralisés.
+   - Conservation et intégrité des journaux.
+   - Corrélation avec les événements IAM et applicatifs.
+
+6. **Conformité RGPD**
+   - Cartographie des traitements.
+   - Registre, durées de conservation, purge automatique.
+   - Procédures pour droits d’accès, rectification, suppression, opposition.
+   - Clauses de sous-traitance adaptées.
+
+7. **Résilience**
+   - PCA/PRA documentés.
+   - Sauvegardes chiffrées et tests réguliers de restauration.
+   - Réversibilité et export des données en format exploitable.
+
+## Bonnes pratiques du domaine
+- Security by design et privacy by design.
+- Moindre privilège.
+- Séparation des environnements.
+- Revue périodique des habilitations.
+- Journalisation non altérable.
+- Contrôles réguliers des sous-traitants.
+- Tests d’intrusion et audits de configuration.
+
+## Standards et normes applicables
+- **RGPD** et doctrine CNIL.
+- **SecNumCloud**.
+- **ISO/IEC 27001** et 27002.
+- **ISO/IEC 27017 / 27018** pour le cloud et la protection des données personnelles.
+- **OWASP ASVS / Top 10** pour les risques applicatifs.
+- **ANSSI** : recommandations de durcissement, MFA, administration sécurisée.
+- Éventuellement **ISO 22301** pour la continuité.
+
+## Méthodes de validation et test
+- Tests fonctionnels d’habilitations par profil et par phase.
+- Tests de non-régression des droits d’accès.
+- Audit de configuration SSO/MFA.
+- Revue de sécurité des API et tests d’authentification inter-systèmes.
+- Tests de chiffrement et de robustesse TLS.
+- Vérification de purge, archivage et restauration.
+- Audit documentaire RGPD et questionnaire sécurité SaaS.
+- Tests de restauration de sauvegarde.
+- Pentest applicatif et revue d’architecture.
 
 ---
 
 === POINTS DE VIGILANCE PROJET ===
 
 ## Risques d’oubli ou de perte d’exigences
-- Exposition involontaire via :
-  - exports CSV/PDF,
-  - notifications email,
-  - tableaux de bord globaux,
-  - caches applicatifs,
-  - index de recherche.
-- Assimilation erronée de l’AR simple à un AR légal.
-- Oubli du cloisonnement dans les APIs techniques, pas seulement dans les écrans.
+- Oubli de la gestion des habilitations fines sur les pièces jointes et exports.
+- Oubli de la traçabilité des actions d’administration.
+- Oubli des sauvegardes et de leur protection.
+- Oubli des droits RGPD en fin de cycle de vie.
+- Oubli du cloisonnement entre phases métiers.
+- Oubli des comptes techniques utilisés par les API.
 
 ## Éléments nécessitant éclaircissement
-- Définition exacte de “membres des IRC” :
-  - tous les utilisateurs du tenant ou seulement certains rôles ?
-- Définition de “tiers de justice” :
-  - quels statuts, quels droits, quels périmètres ?
-- Nature des IP :
-  - données personnelles, pièces justificatives, documents de procédure ?
-- Politique de conservation :
-  - durée des KPI, factures, notifications, logs ?
-- Exigence de séparation logique ou physique entre IRC.
+- Nature exacte du SSO attendu par le SI CDC et le mandant.
+- Niveau de MFA attendu selon les profils.
+- Politique de conservation et d’archivage des données.
+- Périmètre exact des données échangées via API.
+- Exigences de réversibilité et de restitution de données.
+- Modalités précises du contrôle sur site chez le sous-traitant.
+- Attentes de la CDC sur la preuve de conformité SecNumCloud pour les services utilisés.
 
 ## Contraintes d’intégration avec l’existant
-- SSO et annuaires existants à interfacer.
-- Compatibilité avec les workflows déjà en place.
-- Gestion des identités externes pour les tiers de justice.
-- Interfaçage avec outils de reporting, BI, export, GED ou facturation.
+- Compatibilité avec les annuaires et fédérateurs d’identité existants.
+- Compatibilité des formats d’échange API.
+- Gestion des interconnexions sans contournement des règles IAM.
+- Politique d’hébergement imposée pouvant limiter certains services SaaS standards.
+- Alignement avec les outils de supervision, SIEM et archivage de l’organisation.
 
 ## Planning et ressources nécessaires
-- Attribuer dès le cadrage :
-  - un expert sécurité applicative,
-  - un référent RGPD,
-  - un architecte IAM/autorisation,
-  - un responsable métier par IRC.
-- Prévoir une phase dédiée de :
-  - modélisation des droits,
-  - revue des cas d’usage,
-  - tests d’intrusion fonctionnels,
-  - validation de conformité.
-- Risque projet élevé si les règles d’habilitation et de cloisonnement ne sont pas figées tôt.
+- **Phase amont** : cadrage RSSI/DPO/architecture indispensable.
+- **Conception** : modélisation des rôles, phases métier et flux.
+- **Réalisation** : sécurité applicative, API, chiffrement, logs, IAM.
+- **Validation** : audits, tests d’intrusion, tests de restauration, revue RGPD.
+- **Ressources** :
+  - architecte sécurité ;
+  - expert IAM/SSO ;
+  - expert RGPD/DPO ;
+  - expert cloud souverain/SecNumCloud ;
+  - ingénieur intégration API ;
+  - responsable exploitation/supervision ;
+  - support audit et conformité.
 
----
-
-Si vous le souhaitez, je peux maintenant produire une **matrice de conformité par exigence** sous forme de tableau, avec colonnes :
-**Exigence / Risque / Contrôle attendu / Preuve de conformité / Priorité / Responsable**.
+Si vous le souhaitez, je peux maintenant produire une **matrice de conformité REQ par REQ** avec colonnes : *exigence, contrôle attendu, preuve attendue, niveau de risque, priorité de mise en œuvre*.

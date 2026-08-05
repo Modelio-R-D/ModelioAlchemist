@@ -1,0 +1,108 @@
+{
+  "technique": [
+    {
+      "requirement_id": "REQ-027",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "Les échanges réalisés dans la plateforme doivent utiliser des protocoles sécurisés afin qu’aucune information confidentielle ne puisse être interceptée (ex. chiffrement en transit).",
+      "technical_domain": "integration",
+      "business_context": "Sécurisation des communications entre utilisateurs, services et composants de la plateforme (données potentiellement sensibles), pour éviter l’interception lors des échanges."
+    },
+    {
+      "requirement_id": "REQ-033",
+      "original_ref": "Exigences qualité et méthodes",
+      "description": "La solution doit être déjà éprouvée, nécessiter peu de développements pour couvrir la première phase du besoin, et être déployée effectivement au plus tard trois mois après notification du marché.",
+      "technical_domain": "infrastructure",
+      "business_context": "Contrainte d’industrialisation et de déploiement rapide : privilégier une solution mature et standardisée pour réduire le risque de dérive calendrier et permettre une mise en production sous 3 mois."
+    }
+  ],
+  "rssi": [
+    {
+      "requirement_id": "REQ-026",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "La solution doit sécuriser les accès via VPN, Firewall et SSO, gérer les identités, les habilitations et les traces, et utiliser une authentification forte pour l’accès à la plateforme.",
+      "technical_domain": "architecture",
+      "business_context": "Contrôle des accès à la plateforme (utilisateurs/administrateurs) avec exigences fortes d’IAM : SSO, MFA, cloisonnement par habilitations et traçabilité des actions pour réduire le risque d’accès non autorisé."
+    },
+    {
+      "requirement_id": "REQ-027",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "Les échanges réalisés dans la plateforme doivent faire l’objet de protocoles sécurisés afin qu’aucune information confidentielle ne puisse être interceptée.",
+      "technical_domain": "integration",
+      "business_context": "Protection des données en transit entre navigateurs/clients, APIs, services internes et éventuels SI tiers, afin d’empêcher l’écoute et l’altération des flux."
+    },
+    {
+      "requirement_id": "REQ-028",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "L’Acheteur doit pouvoir contrôler sur site le respect des conditions chez le sous-traitant hébergeur des données, le Titulaire devant garantir l’accord du sous-traitant pour ce contrôle.",
+      "technical_domain": "infrastructure",
+      "business_context": "Auditabilité de la chaîne d’hébergement : l’Acheteur conserve un droit de contrôle (sur site) des conditions de sécurité et d’exploitation chez l’hébergeur/sous-traitant."
+    },
+    {
+      "requirement_id": "REQ-029",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "Le Titulaire doit détailler les mesures de sécurité mises en œuvre sur la plateforme et le contrôle exercé sur celles-ci pour assurer la sécurité des données hébergées en ligne et hors ligne, y compris les sauvegardes.",
+      "technical_domain": "infrastructure",
+      "business_context": "Démonstration et vérifiabilité des protections (production et sauvegardes) : documentation des mesures techniques/organisationnelles et des contrôles, pour évaluer la robustesse de la protection des données."
+    },
+    {
+      "requirement_id": "REQ-031",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "Toute proposition s’appuyant sur une solution SaaS doit inclure un document de présentation de la politique de sécurité à joindre au questionnaire SaaS, document obligatoire présentant les mesures techniques et organisationnelles de sécurité mises en place.",
+      "technical_domain": "architecture",
+      "business_context": "Dossier RSSI pour solution SaaS : production d’une politique de sécurité et de preuves de mesures de sécurité (techniques et organisationnelles) pour permettre l’instruction du questionnaire SaaS et l’acceptation du risque."
+    }
+  ],
+  "fonctionnel": [
+    {
+      "requirement_id": "REQ-035",
+      "original_ref": "Exigences qualité et méthodes",
+      "description": "La formation des utilisateurs doit être assurée par le prestataire en fonction de leur profil, avec un accompagnement conseil et une formation en présentiel et/ou distanciel de 100 à 120 administrateurs à la prise en main et à la personnalisation de l’outil.",
+      "technical_domain": "architecture",
+      "business_context": "Montée en compétence et autonomie : former des administrateurs (100–120) à l’exploitation et à la personnalisation de l’outil, conditionnant l’adoption, la qualité du paramétrage et l’efficacité opérationnelle."
+    },
+    {
+      "requirement_id": "REQ-034",
+      "original_ref": "Exigences qualité et méthodes",
+      "description": "À compter du 6ème mois après notification, l’ensemble des priorités hautes doit être pleinement opérationnel, et au bout de 9 mois l’ensemble des besoins doit être couvert.",
+      "technical_domain": "architecture",
+      "business_context": "Mise en service progressive attendue par l’Acheteur : jalons de couverture fonctionnelle (priorités hautes à 6 mois, couverture complète à 9 mois) servant de cadre de pilotage et d’acceptation."
+    }
+  ],
+  "rse": [
+    {
+      "requirement_id": "REQ-032",
+      "original_ref": "Exigences sécurité et RSSI",
+      "description": "En cas de sous-traitance de tout ou partie des prestations relatives au traitement de données personnelles, la liste des sous-traitants doit être fournie avec les informations exigées par l’Annexe RGPD au CCAP.",
+      "technical_domain": "infrastructure",
+      "business_context": "Gouvernance des données personnelles et transparence de la sous-traitance : identification des sous-traitants et des informations RGPD attendues (chaîne de traitement), pour maîtriser les responsabilités et obligations."
+    }
+  ],
+  "ecoconception": [],
+  "cross_category_links": [
+    {
+      "source": "REQ-026",
+      "target": "REQ-027",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-028",
+      "target": "REQ-029",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-031",
+      "target": "REQ-026",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-030",
+      "target": "REQ-028",
+      "relationship": "dependency"
+    },
+    {
+      "source": "REQ-033",
+      "target": "REQ-034",
+      "relationship": "dependency"
+    }
+  ]
+}

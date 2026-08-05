@@ -5,469 +5,580 @@
 
 package "Business" {
 
-  class IRC {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +configurerSeuils()
+  class PlateformeSaaS {
+    +idPlateforme: int
+    +nomPlateforme: String
+    +modeMultiTenant: boolean
+    +activerMarqueBlanche: boolean
+    +activerMobileOptionnel: boolean
+    +deployerMVP(): boolean
+    +activerModule(nomModule: String): boolean
   }
 
-  class Utilisateur {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +consulterDossier()
+  class Dispositif {
+    +idDispositif: int
+    +nomDispositif: String
+    +typeDispositif: String  ' AAP/AMI, PIC, PIA/France2030
+    +reglesParametrageJSON: String
+    +publier(): boolean
+    +cloner(): boolean
   }
 
-  class Profil {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +definirPermissions()
+  class AAP_AMI {
+    +idAAPAMI: int
+    +titre: String
+    +description: String
+    +dateOuverture: String
+    +dateCloture: String
+    +statut: String
+    +ouvrirDepot(): boolean
+    +cloreDepot(): boolean
   }
 
-  class Habilitation {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +verifierAcces()
+  class FormulaireParametrable {
+    +idFormulaire: int
+    +schemaJSON: String
+    +version: int
+    +actif: boolean
+    +validerSchema(): boolean
+    +publierVersion(): boolean
   }
 
-  class Dossier {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +changerStatut()
+  class Candidature {
+    +idCandidature: int
+    +referenceExterne: String
+    +statut: String
+    +eligible: boolean
+    +recevable: boolean
+    +soumettre(): boolean
+    +changerStatut(nouveauStatut: String): boolean
   }
 
-  class Procedure {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +cloturer()
+  class Projet {
+    +idProjet: int
+    +intitule: String
+    +statut: String
+    +montantDemande: float
+    +montantAccorde: float
+    +devenirLauréat(): boolean
+    +mettreAJourMontants(): boolean
   }
 
-  class Attribution {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +attribuerTiers()
+  class Consortium {
+    +idConsortium: int
+    +nomConsortium: String
+    +typeConsortium: String
+    +ajouterMembre(): boolean
+    +retirerMembre(): boolean
   }
 
-  class TiersDeJustice {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +mettreAJourCoordonnees()
+  class Acteur {
+    +idActeur: int
+    +typeActeur: String  ' candidat, jury, comité, SGPI, ministère, agence, CDC...
+    +nomAffiche: String
+    +email: String
+    +actif: boolean
+    +mettreAJourContact(): boolean
+    +desactiver(): boolean
   }
 
-  class CommissaireDeJustice {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +executerActe()
+  class AnnuaireReferentiel {
+    +idAnnuaire: int
+    +strategieDeduplication: String
+    +sourceExterneActive: boolean
+    +dedupliquer(): boolean
+    +reconcilier(): boolean
   }
 
-  class Avocat {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +deposerConclusion()
+  class Evaluation {
+    +idEvaluation: int
+    +statut: String
+    +noteGlobale: float
+    +commentaire: String
+    +saisirNote(note: float): boolean
+    +soumettreEvaluation(): boolean
   }
 
-  class Tribunal {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +indiquerModeTransmission()
+  class GrilleEvaluation {
+    +idGrille: int
+    +nomGrille: String
+    +definitionJSON: String
+    +version: int
+    +calculerScore(): float
+    +publier(): boolean
   }
 
-  class RegleAttribution {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +evaluer()
+  class Jury {
+    +idJury: int
+    +nomJury: String
+    +reglesConflitInteret: String
+    +affecterEvaluateur(): boolean
+    +verifierConflits(): boolean
   }
 
-  class RegleSelectionTribunal {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +determinerTribunal()
+  class IndemniteJury {
+    +idIndemnite: int
+    +montant: float
+    +statutPaiement: String
+    +referencePaiement: String
+    +calculer(): float
+    +marquerPayee(): boolean
   }
 
-  class Tache {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +planifier()
+  class InstanceDecisionnelle {
+    +idInstance: int
+    +nomInstance: String
+    +typeInstance: String
+    +produireReleveDecision(): boolean
+    +validerDecision(): boolean
   }
 
-  class Delai {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +calculerEcheance()
+  class Decision {
+    +idDecision: int
+    +typeDecision: String  ' retenu / non retenu / ajourné
+    +motif: String
+    +statut: String
+    +notifier(): boolean
+    +archiver(): boolean
   }
 
-  class Notification {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +notifier()
+  class Contrat {
+    +idContrat: int
+    +typeContrat: String  ' convention / avenant
+    +version: int
+    +statutSignature: String
+    +genererDocument(): boolean
+    +signer(): boolean
   }
 
-  class Message {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +envoyer()
+  class RapportActivite {
+    +idRapport: int
+    +periode: String
+    +statut: String
+    +tauxAvancement: float
+    +soumettre(): boolean
+    +controlerCompletude(): boolean
   }
 
-  class AccuseReceptionSimple {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +horodater()
+  class ServiceFait {
+    +idServiceFait: int
+    +statut: String
+    +ratioJustification: float
+    +eligibleVersement: boolean
+    +calculerRatio(): float
+    +valider(): boolean
+  }
+
+  class KPIIndicateur {
+    +idIndicateur: int
+    +code: String
+    +libelle: String
+    +unite: String
+    +calculDefJSON: String
+    +verifierCohérence(): boolean
+    +exporter(): boolean
+  }
+
+  class CollecteKPI {
+    +idCollecte: int
+    +periode: String
+    +statut: String
+    +tauxReponse: float
+    +relancer(): boolean
+    +consolider(): boolean
+  }
+
+  class AuditModification {
+    +idAudit: int
+    +typeAudit: String
+    +statut: String
+    +description: String
+    +enregistrer(): boolean
+    +clore(): boolean
+  }
+
+  class DemandeModification {
+    +idDemande: int
+    +objet: String
+    +statut: String
+    +dateDemande: String
+    +soumettre(): boolean
+    +approuver(): boolean
   }
 
   class Document {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +archiver()
+    +idDocument: int
+    +nomFichier: String
+    +typeDocument: String
+    +format: String
+    +tailleKo: int
+    +televerser(): boolean
+    +telecharger(): boolean
   }
 
-  class TransfertDocumentaire {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +transfererVersSIRC()
+  class DossierDocumentaire {
+    +idDossierDoc: int
+    +categorie: String
+    +droitsAcces: String
+    +ajouterDocument(): boolean
+    +retirerDocument(): boolean
   }
 
-  class Facture {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +categoriser()
+  class Notification {
+    +idNotification: int
+    +canal: String  ' email, in-app
+    +objet: String
+    +message: String
+    +statutEnvoi: String
+    +envoyer(): boolean
+    +reessayer(): boolean
   }
 
-  class LigneFacture {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +calculerMontant()
+  class EspaceCommunication {
+    +idEspace: int
+    +typeEspace: String  ' FAQ, actualités, messagerie
+    +actif: boolean
+    +publierActualite(): boolean
+    +planifierEvenement(): boolean
   }
 
-  class FraisTribunal {
-    +id: int
+  class RapportPilotage {
+    +idRapportPilotage: int
     +nom: String
-    +date: String
-    +status: String
-    +consolider()
+    +formatExport: String  ' CSV/XML/JSON/PDF
+    +requeteJSON: String
+    +generer(): boolean
+    +exporter(): boolean
   }
 
-  class KPI {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +calculer()
+  class HistoriqueDossier {
+    +idHistorique: int
+    +source: String  ' PIA3, PIA4/France2030
+    +qualiteImport: String
+    +importer(): boolean
+    +produireRejets(): boolean
   }
 
-  class HistoriqueAction {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +journaliser()
+  class LotMigration {
+    +idLot: int
+    +volumeDossiers: int
+    +etatTraitement: String
+    +executionAsynchrone: boolean
+    +lancerImport(): boolean
+    +validerQualite(): boolean
   }
 
-  class InjonctionDePayer {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +genererFlux()
+  class PlanReversibilite {
+    +idPlan: int
+    +formatExportDonnees: String
+    +formatExportDocuments: String
+    +documentationTechnique: String
+    +genererExports(): boolean
+    +verifierExitReady(): boolean
   }
 
-  class Radiation {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +genererFlux()
+  class SousTraitant {
+    +idSousTraitant: int
+    +raisonSociale: String
+    +pays: String
+    +roleTraitement: String
+    +typeDonnees: String
+    +mettreAJourInfosRGPD(): boolean
+    +declarerSousSousTraitant(): boolean
   }
 
-  class RetourTribunal {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +rapprocher()
+  class CataloguePreuvesConformite {
+    +idCatalogue: int
+    +lienDossierSecurite: String
+    +lienDossierRGPD: String
+    +version: int
+    +ajouterPreuve(): boolean
+    +exporterPourAO(): boolean
   }
-
-  class Rejet {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +qualifierResponsabilite()
-  }
-
-  class Correction {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +appliquer()
-  }
-
-  class RegenerationFlux {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +regenerer()
-  }
-
-  class LotContractuel {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +isolerPerimetre()
-  }
-
 }
 
 package "Technical" {
 
-  class WorkflowService {
-    +processData()
-    +validateInput()
+  class WorkflowEngine {
+    +idMoteur: int
+    +modeleWorkflow: String
+    +versionModele: int
+    +demarrerInstance(): boolean
+    +appliquerTransition(): boolean
   }
 
-  class OrchestrationService {
-    +processData()
-    +validateInput()
+  class RuleEngine {
+    +idMoteurRegles: int
+    +langageRegles: String
+    +reglesJSON: String
+    +evaluerEligibilite(): boolean
+    +evaluerRecevabilite(): boolean
   }
 
-  class ReglesEngineService {
-    +processData()
-    +validateInput()
+  class ApiGateway {
+    +idGateway: int
+    +versionOpenAPI: String
+    +throttlingActif: boolean
+    +publierAPI(): boolean
+    +appliquerQuota(): boolean
   }
 
-  class RechercheService {
-    +processData()
-    +validateInput()
+  class ConnecteurSICDC {
+    +idConnecteur: int
+    +systemeCible: String
+    +modeEchange: String  ' REST/event
+    +synchroniserReferentiels(): boolean
+    +remonterStatuts(): boolean
   }
 
-  class BatchSchedulerService {
-    +processData()
-    +validateInput()
+  class ConnecteurMandant {
+    +idConnecteurMandant: int
+    +nomMandant: String
+    +modeEchange: String
+    +envoyerDonnees(): boolean
+    +recevoirDonnees(): boolean
   }
 
-  class MessageService {
-    +processData()
-    +validateInput()
+  class ConnecteurDataGouv {
+    +idConnecteurDG: int
+    +apiEndpoint: String
+    +modeEnrichissement: String
+    +enrichirActeurs(): boolean
+    +mettreAJourCache(): boolean
   }
 
-  class NotificationService {
-    +processData()
-    +validateInput()
+  class ConnecteurMicrosoftTeams {
+    +idConnecteurTeams: int
+    +tenantId: String
+    +modeNotification: String
+    +creerReunion(): boolean
+    +posterMessage(): boolean
   }
 
-  class IntegrationGCEAdapter {
-    +processData()
-    +validateInput()
+  class GEDService {
+    +idGED: int
+    +strategieVersioning: String
+    +stockagePerenne: boolean
+    +classerDocument(): boolean
+    +appliquerDroitsDocument(): boolean
   }
 
-  class IntegrationSIRCAdapter {
-    +processData()
-    +validateInput()
+  class ReportingService {
+    +idServiceBI: int
+    +modeAgregation: String
+    +cacheActif: boolean
+    +genererTableauDeBord(): boolean
+    +produireExport(): boolean
   }
 
-  class InfogreffeWebServiceAdapter {
-    +processData()
-    +validateInput()
+  class MigrationService {
+    +idServiceMigration: int
+    +modeReprise: String  ' incrémentale/one-shot
+    +mappingJSON: String
+    +traiterLot(): boolean
+    +gererRejets(): boolean
   }
 
-  class TribunalFluxAdapter {
-    +processData()
-    +validateInput()
+  class ExportService {
+    +idServiceExport: int
+    +formatsSupportes: String
+    +anonymisationOptionnelle: boolean
+    +exporterDonnees(): boolean
+    +exporterDocuments(): boolean
   }
 
-  class StockageDocumentaireService {
-    +processData()
-    +validateInput()
+  class FrontendThemingService {
+    +idTheming: int
+    +designSystemVersion: String
+    +themeActif: String
+    +appliquerTheme(): boolean
+    +validerResponsive(): boolean
   }
 
-  class TransformationControleFluxService {
-    +processData()
-    +validateInput()
+  class CloudSecNumCloudEnvironment {
+    +idEnvironnement: int
+    +regionEEE: String
+    +certifieSecNumCloud: boolean
+    +typeEnvironnement: String  ' dev/recette/preprod/prod
+    +deployer(): boolean
+    +activerPRA(): boolean
   }
 
-  class ReprocessingService {
-    +processData()
-    +validateInput()
-  }
-
-  class AuditService {
-    +processData()
-    +validateInput()
-  }
-
-  class CloisonnementTenantService {
-    +processData()
-    +validateInput()
+  class SupervisionService {
+    +idSupervision: int
+    +collecteLogsActive: boolean
+    +metriquesActives: boolean
+    +declencherAlerte(): boolean
+    +produireRapportRun(): boolean
   }
 }
 
 package "Securite" {
-  class AuthService {
-    +authenticate(): boolean
-    +authorize(): boolean
+
+  class IAMService {
+    +idIAM: int
+    +typeFederation: String  ' SAML/OIDC
+    +mfaObligatoire: boolean
+    +authentifier(): boolean
+    +provisionnerCompte(): boolean
   }
 
-  class RBACService {
-    +authenticate(): boolean
-    +authorize(): boolean
+  class AutorisationService {
+    +idAutorisation: int
+    +modele: String  ' RBAC/ABAC
+    +politiqueJSON: String
+    +verifierDroitLecture(): boolean
+    +verifierDroitEcriture(): boolean
   }
 
-  class ABACService {
-    +authenticate(): boolean
-    +authorize(): boolean
+  class PolitiqueConfidentialiteParStade {
+    +idPolitique: int
+    +reglesVisibiliteJSON: String
+    +stadesCouverts: String
+    +estVisible(): boolean
+    +filtrerChamps(): boolean
   }
 
-  class ChiffrementService {
-    +authenticate(): boolean
-    +authorize(): boolean
+  class TLSCertificateService {
+    +idCert: int
+    +autorite: String
+    +rotationAutomatique: boolean
+    +validerEndpointTLS(): boolean
+    +emettreCertificat(): boolean
   }
 
-  class JournalSecuriteService {
-    +authenticate(): boolean
-    +authorize(): boolean
+  class JournalisationSecurite {
+    +idJournal: int
+    +conservationJours: int
+    +integriteActive: boolean
+    +journaliserAction(): boolean
+    +journaliserConnexion(): boolean
+  }
+
+  class RGPDService {
+    +idRGPD: int
+    +registreTraitements: String
+    +politiqueConservation: String
+    +executerPurge(): boolean
+    +traiterDemandeDroit(): boolean
+  }
+
+  class GestionSousTraitantsRGPD {
+    +idGestion: int
+    +workflowValidation: String
+    +listeSousTraitants: String
+    +validerSousTraitant(): boolean
+    +notifierChangement(): boolean
+  }
+
+  class DossierPolitiqueSecuriteSaaS {
+    +idDossierSSI: int
+    +version: int
+    +contenuSynthese: String
+    +produireQuestionnaireSecurite(): boolean
+    +mettreAJourPreuves(): boolean
+  }
+
+  class SauvegardeChiffreeService {
+    +idBackup: int
+    +frequenceHeures: int
+    +testRestaurationMensuel: boolean
+    +declencherSauvegarde(): boolean
+    +restaurer(): boolean
   }
 }
 
-package "Transverse" {
-  class ReferentielStatuts {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +normaliser()
-  }
+' =========================
+' RELATIONS OBLIGATOIRES avec cardinalités + traçabilité REQ
+' =========================
 
-  class ReferentielMotifsRejet {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +fournirMotifs()
-  }
+' REQ-001/002/008 : Dispositifs, AAP/AMI, candidatures, projets
+Business.PlateformeSaaS "1" --> "1..*" Business.Dispositif : "gère (REQ-001)"
+Business.Dispositif "1" --> "0..*" Business.AAP_AMI : "publie (REQ-008)"
+Business.AAP_AMI "1" *-- "1" Business.FormulaireParametrable : "contient (REQ-008)"
+Business.AAP_AMI "1" --> "0..*" Business.Candidature : "reçoit (REQ-008)"
+Business.Candidature "1" --> "0..1" Business.Projet : "devient (REQ-002)"
+Business.Projet "0..1" o-- "0..1" Business.Consortium : "porte (REQ-003)"
+Business.Consortium "1" --> "1..*" Business.Acteur : "regroupe (REQ-003)"
+Business.AnnuaireReferentiel "1" --> "0..*" Business.Acteur : "référence (REQ-012)"
+Business.Projet "1" --> "1..*" Business.Acteur : "implique (REQ-003)"
 
-  class ParametrageIRC {
-    +id: int
-    +nom: String
-    +date: String
-    +status: String
-    +definirSeuils()
-  }
-}
+' REQ-009 : jury, grilles, évaluations, indemnités
+Business.Jury "1" --> "1" Business.GrilleEvaluation : "utilise (REQ-009)"
+Business.Jury "1" --> "0..*" Business.Evaluation : "produit (REQ-009)"
+Business.Evaluation "1" --> "1" Business.Candidature : "évalue (REQ-009)"
+Business.IndemniteJury "0..*" --> "1" Business.Jury : "concerne (REQ-009)"
 
-' --- HERITAGE ---
-Business.TiersDeJustice <|-- Business.CommissaireDeJustice
-Business.TiersDeJustice <|-- Business.Avocat
+' REQ-010 : instances décisionnelles, décisions, contrats
+Business.InstanceDecisionnelle "1" --> "0..*" Business.Decision : "rend (REQ-010)"
+Business.Decision "1" --> "1" Business.Projet : "porte sur (REQ-010)"
+Business.Projet "1" --> "0..*" Business.Contrat : "contractualise (REQ-010)"
+Business.Contrat "1" --> "0..*" Business.Document : "génère (REQ-010)"
 
-' --- RELATIONS OBLIGATOIRES avec cardinalités + libellés ---
-Business.IRC "1" --> "0..*" Business.Utilisateur : "gère (REQ-018/EX-024)"
-Business.Utilisateur "1" --> "1" Business.Profil : "utilise"
-Business.Profil "1" --> "0..*" Business.Habilitation : "contient (REQ-053/EX-060)"
-Business.IRC "1" --> "0..*" Transverse.ParametrageIRC : "gère (REQ-028/EX-034)"
-Business.IRC "1" --> "0..*" Business.KPI : "gère (REQ-016/EX-022, REQ-018/EX-024)"
-Business.IRC "1" --> "0..*" Business.Dossier : "gère (REQ-008/EX-013)"
+' REQ-013/017 : rapports, service fait, KPI, collecte
+Business.Projet "1" --> "0..*" Business.RapportActivite : "demande (REQ-013)"
+Business.RapportActivite "1" --> "0..*" Business.Document : "attache (REQ-013)"
+Business.Projet "1" --> "0..*" Business.ServiceFait : "contrôle (REQ-013)"
+Business.Dispositif "1" --> "0..*" Business.KPIIndicateur : "définit (REQ-017)"
+Business.CollecteKPI "1" --> "1..*" Business.KPIIndicateur : "collecte (REQ-017)"
+Business.CollecteKPI "0..*" --> "1" Business.Projet : "cible (REQ-017)"
 
-Business.Dossier *-- Business.Procedure : "contient (REQ-030/EX-036)"
-Business.Dossier *-- Business.Document : "contient (REQ-013/EX-019)"
-Business.Dossier *-- Business.Message : "contient (REQ-020/EX-026)"
-Business.Dossier *-- Business.Facture : "contient (REQ-024/EX-030)"
-Business.Facture *-- Business.LigneFacture : "contient (REQ-017/EX-023, REQ-050/EX-057)"
-Business.Dossier *-- Business.HistoriqueAction : "contient (REQ-053/EX-060)"
+' REQ-014 : audits et demandes de modification
+Business.AuditModification "0..*" --> "1" Business.Projet : "audite (REQ-014)"
+Business.DemandeModification "0..*" --> "1" Business.Projet : "modifie (REQ-014)"
 
-Business.Dossier "1" --> "0..*" Business.Attribution : "gère (REQ-009/EX-014, REQ-011/EX-017)"
-Business.Attribution "1" --> "1..*" Business.TiersDeJustice : "gère (REQ-011/EX-017)"
+' REQ-015/016 : communication, GED
+Business.EspaceCommunication "1" --> "0..*" Business.Notification : "émet (REQ-015)"
+Business.DossierDocumentaire "1" *-- "0..*" Business.Document : "contient (REQ-016)"
+Business.Projet "1" --> "0..*" Business.DossierDocumentaire : "dispose (REQ-016)"
 
-Business.IRC "1" --> "0..*" Business.TiersDeJustice : "gère (REQ-006/EX-010)"
-Business.IRC "1" --> "0..*" Business.Tribunal : "gère (REQ-007/EX-011)"
-Business.RegleAttribution "1" --> "0..*" Business.Attribution : "utilise (REQ-010/EX-016)"
-Business.RegleSelectionTribunal "1" --> "0..*" Business.InjonctionDePayer : "utilise (REQ-040/EX-047)"
-Business.Tribunal "1" --> "0..*" Business.InjonctionDePayer : "gère (REQ-033/EX-039, REQ-041/EX-048)"
-Business.Tribunal "1" --> "0..*" Business.Radiation : "gère (REQ-046/EX-053)"
-Business.InjonctionDePayer "1" --> "0..*" Business.RetourTribunal : "gère (REQ-042/EX-049)"
-Business.Radiation "1" --> "0..*" Business.RetourTribunal : "gère (REQ-047/EX-054)"
-Business.RetourTribunal "0..*" --> "0..*" Business.Rejet : "gère (REQ-044/EX-051)"
-Business.Rejet "1" --> "0..*" Business.Correction : "contient (REQ-043/EX-050, REQ-048/EX-055)"
-Business.Rejet "0..*" --> "0..*" Business.RegenerationFlux : "gère (REQ-044/EX-051, REQ-049/EX-056)"
+' REQ-011 : reporting/pilotage
+Business.RapportPilotage "0..*" --> "1" Business.Dispositif : "pilote (REQ-011)"
+Business.RapportPilotage "0..*" --> "0..*" Business.Projet : "agrège (REQ-011)"
 
-Business.Dossier "1" --> "0..*" Business.Tache : "gère (REQ-019/EX-025)"
-Business.Tache *-- Business.Delai : "contient (REQ-019/EX-025)"
-Business.Notification "0..*" --> "0..*" Business.Tache : "gère"
-Business.Message "1" --> "0..*" Business.AccuseReceptionSimple : "gère (REQ-022/EX-028)"
+' REQ-020/021 : migration historique et réversibilité
+Business.HistoriqueDossier "0..*" --> "1" Business.Projet : "représente (REQ-020)"
+Business.LotMigration "1" --> "0..*" Business.HistoriqueDossier : "importe (REQ-020)"
+Business.PlanReversibilite "1" --> "1" Business.PlateformeSaaS : "couvre (REQ-021)"
 
-Business.FraisTribunal "0..*" --> "0..*" Business.Dossier : "gère (REQ-035/EX-041)"
+' REQ-032 : sous-traitants et preuves
+Business.SousTraitant "0..*" --> "1" Business.PlateformeSaaS : "opère pour (REQ-032)"
+Business.CataloguePreuvesConformite "1" --> "0..*" Business.SousTraitant : "documente (REQ-032)"
+Business.CataloguePreuvesConformite "1" --> "1" Business.PlanReversibilite : "inclut (REQ-021)"
 
-Business.LotContractuel "1" --> "0..*" Business.Dossier : "gère (REQ-001/EX-001, REQ-005/EX-009)"
+' ============
+' Dépendances techniques -> métier
+' ============
+Technical.WorkflowEngine --> Business.Candidature : "pilote workflow (REQ-002/008)"
+Technical.WorkflowEngine --> Business.Decision : "orchestration (REQ-010)"
+Technical.RuleEngine --> Business.Candidature : "contrôle (REQ-005/008)"
+Technical.GEDService --> Business.Document : "stocke (REQ-016)"
+Technical.ReportingService --> Business.RapportPilotage : "produit (REQ-011)"
+Technical.ApiGateway --> Business.PlateformeSaaS : "expose APIs (REQ-007)"
+Technical.ConnecteurSICDC --> Business.AnnuaireReferentiel : "synchronise (REQ-007/012)"
+Technical.ConnecteurMandant --> Business.Projet : "échange données (REQ-007)"
+Technical.ConnecteurDataGouv --> Business.Acteur : "enrichit (REQ-012)"
+Technical.ConnecteurMicrosoftTeams --> Business.EspaceCommunication : "intègre (REQ-015)"
+Technical.MigrationService --> Business.LotMigration : "exécute (REQ-020)"
+Technical.ExportService --> Business.PlanReversibilite : "réalise exports (REQ-021)"
+Technical.FrontendThemingService --> Business.PlateformeSaaS : "applique marque (REQ-006)"
+Technical.CloudSecNumCloudEnvironment --> Business.PlateformeSaaS : "héberge (REQ-022/023)"
+Technical.SupervisionService --> Business.CataloguePreuvesConformite : "alimente preuves (REQ-029/031)"
 
-' --- TECHNICAL uses BUSINESS ---
-Technical.WorkflowService --> Business.Procedure : "utilise (REQ-027/EX-033)"
-Technical.OrchestrationService --> Business.Dossier : "utilise (REQ-013/EX-019)"
-Technical.ReglesEngineService --> Business.RegleAttribution : "utilise (REQ-010/EX-016)"
-Technical.ReglesEngineService --> Business.RegleSelectionTribunal : "utilise (REQ-040/EX-047)"
-Technical.RechercheService --> Business.Dossier : "utilise (REQ-014/EX-020)"
-Technical.MessageService --> Business.Message : "utilise (REQ-020/EX-026)"
-Technical.NotificationService --> Business.Notification : "utilise (REQ-019/EX-025, REQ-022/EX-028)"
-Technical.BatchSchedulerService --> Business.InjonctionDePayer : "utilise (REQ-039/EX-046)"
-Technical.BatchSchedulerService --> Business.Radiation : "utilise (REQ-045/EX-052)"
-Technical.IntegrationGCEAdapter --> Business.Dossier : "utilise (REQ-003/EX-004, REQ-029/EX-035)"
-Technical.IntegrationSIRCAdapter --> Business.TransfertDocumentaire : "utilise (REQ-002/EX-002, REQ-013/EX-019)"
-Technical.InfogreffeWebServiceAdapter --> Business.InjonctionDePayer : "utilise (REQ-033/EX-039)"
-Technical.TribunalFluxAdapter --> Business.RetourTribunal : "utilise (REQ-042/EX-049, REQ-047/EX-054)"
-Technical.StockageDocumentaireService --> Business.Document : "utilise (REQ-013/EX-019)"
-Technical.TransformationControleFluxService --> Business.Rejet : "utilise (REQ-044/EX-051)"
-Technical.ReprocessingService --> Business.RegenerationFlux : "utilise (REQ-044/EX-051, REQ-049/EX-056)"
-Technical.AuditService --> Business.HistoriqueAction : "utilise (REQ-053/EX-060)"
-Technical.CloisonnementTenantService --> Business.IRC : "utilise (REQ-018/EX-024, REQ-024/EX-030)"
-
-' --- SECURITY uses BUSINESS/TECH ---
-Securite.AuthService --> Business.Utilisateur : "utilise"
-Securite.RBACService --> Business.Profil : "utilise (REQ-053/EX-060)"
-Securite.ABACService --> Business.Habilitation : "utilise (REQ-018/EX-024, REQ-024/EX-030)"
-Securite.JournalSecuriteService --> Business.HistoriqueAction : "utilise (REQ-053/EX-060)"
-Securite.ChiffrementService --> Business.Document : "utilise"
+' ============
+' Sécurité -> technique/métier
+' ============
+Securite.IAMService --> Technical.ApiGateway : "SSO/M2M (REQ-026/007)"
+Securite.AutorisationService --> Business.Projet : "contrôle accès (REQ-004)"
+Securite.PolitiqueConfidentialiteParStade --> Business.Candidature : "filtre visibilité (REQ-025)"
+Securite.TLSCertificateService --> Technical.ApiGateway : "TLS/mTLS (REQ-027)"
+Securite.JournalisationSecurite --> Business.Decision : "trace actions (REQ-026/029)"
+Securite.JournalisationSecurite --> Technical.ApiGateway : "trace flux (REQ-029/007)"
+Securite.RGPDService --> Business.Acteur : "droits personnes (REQ-024)"
+Securite.RGPDService --> Business.Document : "purge/archivage (REQ-024)"
+Securite.GestionSousTraitantsRGPD --> Business.SousTraitant : "valide chaîne (REQ-032)"
+Securite.DossierPolitiqueSecuriteSaaS --> Business.CataloguePreuvesConformite : "formalise SSI (REQ-031)"
+Securite.SauvegardeChiffreeService --> Technical.CloudSecNumCloudEnvironment : "protège backups (REQ-029/023)"
 
 @enduml
 ```
@@ -477,268 +588,311 @@ Securite.ChiffrementService --> Business.Document : "utilise"
 @startuml UseCases
 !theme plain
 
-actor "Gestionnaire IRC" as Gestionnaire
-actor "Administrateur IRC" as AdminIRC
-actor "Tiers de justice (Commissaire/Avocat)" as Tiers
-actor "Greffe / Tribunal" as Tribunal
-actor "GCE" as GCE
-actor "SI-RC" as SIRC
-actor "Service type Infogreffe" as Infogreffe
-actor "Administrateur Plateforme" as AdminPlat
+actor "Candidat / Porteur" as Candidat
+actor "Membre Consortium" as ConsortiumMember
+actor "Expert / Evaluateur" as Evaluateur
+actor "Jury" as Jury
+actor "Membre Comité / Instance décisionnelle" as Comite
+actor "SGPI" as SGPI
+actor "Ministère" as Ministere
+actor "Agence" as Agence
+actor "Service déconcentré" as ServiceDeconcentre
+actor "Gestionnaire CDC" as GestionnaireCDC
+actor "Administrateur Plateforme" as Admin
+actor "RSSI" as RSSI
+actor "DPO" as DPO
+actor "Achats / Juridique" as AchatsJuridique
 
-rectangle "Plateforme Tiers de Justice Agirc-Arrco (REQ-001/EX-001)" {
+actor "SI CDC" as SICDC
+actor "SI Mandant" as SIMandant
+actor "Data.gouv" as DataGouv
+actor "Microsoft Teams" as Teams
 
-  usecase "Authentifier utilisateur" as UC_AUTH
-  usecase "Autoriser accès multi-IRC (cloisonnement)" as UC_AUTHZ
+rectangle "Plateforme SaaS PIA/France2030 & PIC" {
 
-  usecase "Gérer dossiers (vue unifiée)\nREQ-008/EX-013, REQ-013/EX-019" as UC_DOSSIER
-  usecase "Rechercher dossiers (SIREN/SIRET)\nREQ-014/EX-020" as UC_SEARCH
+  usecase "S'authentifier via SSO/MFA\n(REQ-026)" as UC_AUTH
+  usecase "Gérer habilitations RBAC/ABAC\n(REQ-004)" as UC_RBAC
+  usecase "Appliquer confidentialité par stade\n(REQ-025)" as UC_CONF
 
-  usecase "Collaborer par messagerie\nREQ-020/EX-026" as UC_MSG
-  usecase "Accusé de réception simple + notification\nREQ-022/EX-028" as UC_AR
+  usecase "Paramétrer un dispositif\n(REQ-001)" as UC_PARAM_DISP
+  usecase "Publier AAP/AMI et calendrier\n(REQ-008)" as UC_PUB_AAP
+  usecase "Configurer formulaire candidature\n(REQ-008)" as UC_FORM
 
-  usecase "Gérer délais, tâches, alertes\nREQ-019/EX-025" as UC_DELAIS
+  usecase "Déposer candidature\n(REQ-008)" as UC_DEPOT
+  usecase "Vérifier éligibilité/recevabilité\n(REQ-008, REQ-005)" as UC_ELIG
+  usecase "Notifier statuts et alertes\n(REQ-005, REQ-015)" as UC_NOTIF
 
-  usecase "Gérer annuaire tiers de justice\nREQ-006/EX-010" as UC_DIR_TIERS
-  usecase "Attribuer dossier à un tiers\nREQ-009/EX-014, REQ-010/EX-016, REQ-011/EX-017" as UC_ATTR
-  usecase "Transférer tiers / transfert massif de dossiers\nREQ-012/EX-018" as UC_TRANSFER
+  usecase "Affecter candidatures à un jury\n(REQ-009)" as UC_AFF_JURY
+  usecase "Évaluer via grille paramétrable\n(REQ-009)" as UC_EVAL
+  usecase "Gérer conflits d'intérêts\n(REQ-009)" as UC_CONFLIT
+  usecase "Gérer indemnités jury\n(REQ-009)" as UC_INDEM
 
-  usecase "Gérer facturation par dossier\nREQ-023..REQ-026, REQ-050" as UC_FACT
-  usecase "Valider / contrôler factures (seuils)\nREQ-025/EX-031, REQ-028/EX-034" as UC_VALID_FACT
-  usecase "Suivre frais de tribunal (sans paiement)\nREQ-035/EX-041" as UC_FRAIS_TRIB
+  usecase "Préparer comitologies & consolidation\n(REQ-010)" as UC_COMITO
+  usecase "Rendre décision et notifier\n(REQ-010)" as UC_DECISION
+  usecase "Générer conventions/avenants\n(REQ-010, REQ-005)" as UC_CONTRAT
 
-  usecase "Tableau de bord KPI\nREQ-016/EX-022, REQ-017/EX-023" as UC_KPI
-  usecase "Restreindre KPI par IRC\nREQ-018/EX-024" as UC_KPI_SEC
+  usecase "Déposer rapports d'activité & pièces\n(REQ-013)" as UC_RA
+  usecase "Contrôler complétude/ratios/service fait\n(REQ-013)" as UC_SF
+  usecase "Gérer audits et demandes de modification\n(REQ-014)" as UC_AUDIT
 
-  usecase "Gérer annuaire tribunaux\nREQ-007/EX-011" as UC_DIR_TRIB
-  usecase "Sélection automatique du tribunal\nREQ-040/EX-047" as UC_SEL_TRIB
+  usecase "Collecter KPI et relancer\n(REQ-017)" as UC_COLLECTE
+  usecase "Contrôler qualité & consolider KPI\n(REQ-017)" as UC_QUALI
+  usecase "Produire reporting / dashboards / exports\n(REQ-011, REQ-017)" as UC_REPORT
 
-  usecase "Envoyer injonction de payer au greffe\nREQ-032/EX-038, REQ-033/EX-039, REQ-041/EX-048" as UC_SEND_IP
-  usecase "Recevoir retours IP quotidiens\nREQ-042/EX-049" as UC_RET_IP
-  usecase "Traiter rejets et régénérer IP\nREQ-034/EX-040, REQ-043/EX-050, REQ-044/EX-051" as UC_REJET_IP
+  usecase "Accéder espace documentaire\n(REQ-016)" as UC_GED
+  usecase "Accéder espace communication (FAQ, actus)\n(REQ-015)" as UC_COM
+  usecase "Planifier réunion Teams\n(REQ-015)" as UC_TEAMS
 
-  usecase "Envoyer radiation au tribunal\nREQ-046/EX-053" as UC_SEND_RAD
-  usecase "Recevoir retours radiation quotidiens\nREQ-047/EX-054" as UC_RET_RAD
-  usecase "Traiter rejets et régénérer radiation\nREQ-048/EX-055, REQ-049/EX-056" as UC_REJET_RAD
+  usecase "Échanger via API sécurisées\n(REQ-007, REQ-027)" as UC_API
+  usecase "Importer historique dossiers\n(REQ-020)" as UC_IMPORT
+  usecase "Exporter données/documents (réversibilité)\n(REQ-021)" as UC_EXPORT
 
-  usecase "Synchroniser actions manuelles vers GCE\nREQ-029/EX-035" as UC_SYNC_GCE
-  usecase "Réception hebdo en masse depuis GCE\nREQ-039/EX-046, REQ-045/EX-052, REQ-053/EX-060" as UC_BATCH_GCE
-  usecase "Transférer documents vers SI-RC (quotidien)\nREQ-002/EX-002, REQ-013/EX-019" as UC_DOC_SIRC
+  usecase "Documenter mesures SSI + sauvegardes\n(REQ-029)" as UC_SSI_CTRL
+  usecase "Fournir politique de sécurité SaaS\n(REQ-031)" as UC_SSI_DOC
+  usecase "Gérer conformité RGPD (droits/purge)\n(REQ-024)" as UC_RGPD
+  usecase "Gérer registre des sous-traitants RGPD\n(REQ-032)" as UC_SUBS
 
-  usecase "Mode dégradé papier/email par tribunal\nREQ-041/EX-048, REQ-046/EX-053" as UC_DEGRADE
+  usecase "Activer marque blanche & design system\n(REQ-006)" as UC_BRAND
+  usecase "Accès mobile (option)\n(REQ-019)" as UC_MOBILE
 
-  usecase "Administrer lots indépendants\nREQ-005/EX-009" as UC_LOTS
+  usecase "Former utilisateurs/administrateurs\n(REQ-035)" as UC_TRAIN
 }
 
-Gestionnaire --> UC_DOSSIER
-Gestionnaire --> UC_SEARCH
-Gestionnaire --> UC_MSG
-Gestionnaire --> UC_DELAIS
-Gestionnaire --> UC_ATTR
-Gestionnaire --> UC_FACT
-Gestionnaire --> UC_VALID_FACT
-Gestionnaire --> UC_SEND_IP
-Gestionnaire --> UC_REJET_IP
-Gestionnaire --> UC_SEND_RAD
-Gestionnaire --> UC_REJET_RAD
-Gestionnaire --> UC_SYNC_GCE
+' Accès / sécurité
+Candidat --> UC_AUTH
+ConsortiumMember --> UC_AUTH
+Evaluateur --> UC_AUTH
+Jury --> UC_AUTH
+Comite --> UC_AUTH
+SGPI --> UC_AUTH
+Ministere --> UC_AUTH
+Agence --> UC_AUTH
+ServiceDeconcentre --> UC_AUTH
+GestionnaireCDC --> UC_AUTH
+Admin --> UC_AUTH
+RSSI --> UC_AUTH
+DPO --> UC_AUTH
+AchatsJuridique --> UC_AUTH
 
-AdminIRC --> UC_DIR_TIERS
-AdminIRC --> UC_DIR_TRIB
-AdminIRC --> UC_KPI
-AdminIRC --> UC_VALID_FACT
-AdminIRC --> UC_TRANSFER
+Admin --> UC_RBAC : "administre"
+Admin --> UC_BRAND : "paramètre"
+Admin --> UC_PARAM_DISP : "configure"
+Admin --> UC_PUB_AAP : "publie"
+Admin --> UC_FORM : "définit"
+GestionnaireCDC --> UC_COMITO : "prépare"
+Comite --> UC_DECISION : "décide"
+GestionnaireCDC --> UC_CONTRAT : "génère"
+Candidat --> UC_DEPOT : "soumet"
+Candidat --> UC_RA : "dépose"
+ConsortiumMember --> UC_DEPOT : "contribue"
+Evaluateur --> UC_EVAL : "évalue"
+Jury --> UC_AFF_JURY : "participe"
+Jury --> UC_INDEM : "déclare"
+GestionnaireCDC --> UC_SF : "contrôle"
+GestionnaireCDC --> UC_AUDIT : "suit"
+GestionnaireCDC --> UC_COLLECTE : "collecte"
+GestionnaireCDC --> UC_REPORT : "pilote"
+Candidat --> UC_GED : "consulte"
+Candidat --> UC_COM : "interagit"
+GestionnaireCDC --> UC_COM : "anime"
+GestionnaireCDC --> UC_TEAMS : "planifie"
 
-Tiers --> UC_MSG
-Tiers --> UC_FACT
+' Externes
+SICDC --> UC_API : "consomme/expose"
+SIMandant --> UC_API : "consomme/expose"
+DataGouv --> UC_API : "alimente"
+Teams --> UC_TEAMS : "intègre"
 
-GCE --> UC_BATCH_GCE
-SIRC --> UC_DOC_SIRC
-Infogreffe --> UC_SEND_IP
-Tribunal --> UC_RET_IP
-Tribunal --> UC_RET_RAD
+' Conformité
+RSSI --> UC_SSI_CTRL
+RSSI --> UC_SSI_DOC
+DPO --> UC_RGPD
+AchatsJuridique --> UC_SUBS
 
-AdminPlat --> UC_LOTS
+' Includes / extends
+UC_DEPOT --> UC_ELIG : "<<include>>"
+UC_DEPOT --> UC_NOTIF : "<<include>>"
+UC_EVAL --> UC_CONFLIT : "<<include>>"
+UC_DECISION --> UC_NOTIF : "<<include>>"
+UC_CONTRAT --> UC_GED : "<<include>>"
+UC_RA --> UC_GED : "<<include>>"
+UC_SF --> UC_GED : "<<include>>"
+UC_REPORT --> UC_API : "<<include>>"
+UC_IMPORT --> UC_API : "<<include>>"
+UC_EXPORT --> UC_API : "<<include>>"
+UC_API --> UC_AUTH : "<<include>>"
+UC_RBAC --> UC_AUTH : "<<include>>"
+UC_CONF --> UC_RBAC : "<<include>>"
+UC_RGPD --> UC_RBAC : "<<include>>"
+UC_SSI_CTRL --> UC_API : "<<include>>"
 
-' includes / extends
-UC_DOSSIER --> UC_AUTH : <<include>>
-UC_DOSSIER --> UC_AUTHZ : <<include>>
-UC_SEARCH --> UC_AUTH : <<include>>
-UC_SEARCH --> UC_AUTHZ : <<include>>
-UC_MSG --> UC_AUTH : <<include>>
-UC_MSG --> UC_AR : <<include>>
-UC_AR --> UC_AUTH : <<include>>
-UC_DELAIS --> UC_AUTH : <<include>>
-UC_ATTR --> UC_AUTH : <<include>>
-UC_FACT --> UC_AUTH : <<include>>
-UC_VALID_FACT --> UC_FACT : <<include>>
-UC_KPI --> UC_AUTH : <<include>>
-UC_KPI --> UC_KPI_SEC : <<include>>
-UC_SEND_IP --> UC_SEL_TRIB : <<include>>
-UC_SEND_IP --> UC_DEGRADE : <<extend>>
-UC_SEND_RAD --> UC_DEGRADE : <<extend>>
-UC_REJET_IP --> UC_RET_IP : <<include>>
-UC_REJET_RAD --> UC_RET_RAD : <<include>>
-UC_SYNC_GCE --> UC_AUTH : <<include>>
-UC_BATCH_GCE --> UC_AUTHZ : <<include>>
-UC_DOC_SIRC --> UC_AUTHZ : <<include>>
-UC_LOTS --> UC_AUTH : <<include>>
-
-@enduml
-```
-
-3. DIAGRAMMES DE SÉQUENCE (plusieurs, complets) :
-
-```plantuml
-@startuml Sequence_IP_Demat
-!theme plain
-
-actor "Gestionnaire IRC" as Gestionnaire
-participant "AuthService\n(Securite)" as Auth
-participant "OrchestrationService\n(Technical)" as Orch
-participant "ReglesEngineService\n(Technical)" as Rules
-participant "IntegrationGCEAdapter\n(Technical)" as GCE
-participant "InfogreffeWebServiceAdapter\n(Technical)" as InfoG
-participant "TribunalFluxAdapter\n(Technical)" as Trib
-participant "StockageDocumentaireService\n(Technical)" as DocStore
-participant "IntegrationSIRCAdapter\n(Technical)" as SIRC
-participant "AuditService\n(Technical)" as Audit
-
-== Soumission IP dématérialisée (REQ-032/EX-038, REQ-033/EX-039, REQ-041/EX-048) ==
-Gestionnaire -> Auth : authenticate()
-Auth --> Gestionnaire : boolean
-
-Gestionnaire -> Orch : processData()\nCréer InjonctionDePayer
-Orch -> Rules : processData()\nSélection tribunal (REQ-040/EX-047)
-Rules --> Orch : Tribunal
-
-Orch -> DocStore : processData()\nAssembler pièces (REQ-033/EX-039)
-DocStore --> Orch : OK
-
-Orch -> GCE : processData()\nSynchroniser action manuelle (REQ-029/EX-035)
-GCE --> Orch : OK
-
-Orch -> InfoG : processData()\nEnvoyer IP + bordereau + pièces\n(REQ-033/EX-039)
-InfoG --> Orch : OK (accusé technique)
-
-Orch -> Audit : processData()\nJournaliser envoi + statut
-Audit --> Orch : OK
-
-== Retour quotidien tribunal (REQ-042/EX-049) ==
-Trib -> Trib : processData()\nGénérer retour quotidien
-Trib -> Trib : validateInput()
-Trib -> Orch : processData()\nRetourTribunal(date, reference, statut, motif)
-Orch -> Audit : processData()\nJournaliser retour
-Audit --> Orch : OK
-
-Orch -> GCE : processData()\nMise à jour état si action requise (REQ-039/EX-046)
-GCE --> Orch : OK
-
-Orch -> SIRC : processData()\nTransfert documentaire quotidien (REQ-002/EX-002, REQ-013/EX-019)
-SIRC --> Orch : OK
+UC_MOBILE ..> UC_DEPOT : "<<extend>>"
+UC_MOBILE ..> UC_RA : "<<extend>>"
+UC_MOBILE ..> UC_COLLECTE : "<<extend>>"
 
 @enduml
 ```
 
+3. DIAGRAMMES DE SÉQUENCE (plusieurs) :
 ```plantuml
-@startuml Sequence_IP_Rejet_Regeneration
+@startuml Sequence_Candidature
 !theme plain
 
-actor "Gestionnaire IRC" as Gestionnaire
-participant "AuthService\n(Securite)" as Auth
-participant "OrchestrationService\n(Technical)" as Orch
-participant "TransformationControleFluxService\n(Technical)" as Ctrl
-participant "ReprocessingService\n(Technical)" as Reproc
-participant "InfogreffeWebServiceAdapter\n(Technical)" as InfoG
-participant "AuditService\n(Technical)" as Audit
-participant "IntegrationGCEAdapter\n(Technical)" as GCE
+actor "Candidat / Porteur" as Candidat
+participant "FrontendThemingService\n(REQ-006)" as FE
+participant "ApiGateway\n(REQ-007)" as API
+participant "IAMService\n(REQ-026)" as IAM
+participant "AutorisationService\n(REQ-004)" as AUTHZ
+participant "WorkflowEngine\n(REQ-002/008)" as BPM
+participant "RuleEngine\n(REQ-005/008)" as RULES
+participant "JournalisationSecurite\n(REQ-026/029)" as LOG
+participant "GEDService\n(REQ-016)" as GED
+participant "Notification\n(REQ-015)" as NOTIF
 
-== Rejet + correction + régénération IP (REQ-034/EX-040, REQ-043/EX-050, REQ-044/EX-051) ==
-Gestionnaire -> Auth : authenticate()
-Auth --> Gestionnaire : boolean
+Candidat -> FE : ouvrirPortail()
+FE -> API : POST /auth/start
+API -> IAM : authentifier()
+IAM --> API : jetonSSO
+API -> LOG : journaliserConnexion() (REQ-026/029)
 
-Gestionnaire -> Orch : processData()\nOuvrir Rejet (motif)
-Orch -> Ctrl : processData()\nQualifier rejet + responsabilité (REQ-044/EX-051)
-Ctrl --> Orch : OK
+Candidat -> FE : saisirCandidature()
+FE -> API : POST /candidatures
+API -> AUTHZ : verifierDroitEcriture() (REQ-004)
+AUTHZ --> API : OK
 
-alt Rejet imputable prestataire (REQ-044/EX-051)
-  Orch -> Reproc : processData()\nRégénération idempotente
-  Reproc --> Orch : Flux régénéré
-  Orch -> InfoG : processData()\nRéémettre IP corrigée
-  InfoG --> Orch : OK
-else Rejet imputable gestionnaire (REQ-043/EX-050)
-  Orch --> Gestionnaire : Demander Correction guidée
-  Gestionnaire -> Orch : processData()\nSoumettre Correction
-  Orch -> GCE : processData()\nSynchroniser action manuelle (REQ-029/EX-035)
-  GCE --> Orch : OK
-  Orch -> InfoG : processData()\nRéémettre IP corrigée
-  InfoG --> Orch : OK
-end
+API -> RULES : evaluerEligibilite() (REQ-008)
+RULES --> API : eligible=true/false
+API -> RULES : evaluerRecevabilite() (REQ-008)
+RULES --> API : recevable=true/false
 
-Orch -> Audit : processData()\nJournaliser rejet/correction/réémission
-Audit --> Orch : OK
+API -> BPM : demarrerInstance() (REQ-002/008)
+BPM --> API : idInstance
 
+API -> GED : classerDocument() (REQ-016)  ' pièces jointes
+GED --> API : OK
+
+API -> LOG : journaliserAction() (REQ-029)
+API -> NOTIF : envoyer() (REQ-015) ' accusé dépôt + alertes
+NOTIF --> API : statutEnvoi
+
+API --> FE : réponse dépôt + statuts
 @enduml
 ```
 
 ```plantuml
-@startuml Sequence_Batch_Hebdo_GCE
+@startuml Sequence_Evaluation_Decision
 !theme plain
 
-participant "BatchSchedulerService\n(Technical)" as Batch
-participant "IntegrationGCEAdapter\n(Technical)" as GCE
-participant "WorkflowService\n(Technical)" as WF
-participant "CloisonnementTenantService\n(Technical)" as Tenant
-participant "AuditService\n(Technical)" as Audit
+actor "Gestionnaire CDC" as Gestionnaire
+actor "Evaluateur" as Evaluateur
+actor "Membre Comité" as Comite
 
-== Réception hebdomadaire en masse depuis GCE (REQ-039/EX-046, REQ-045/EX-052, REQ-053/EX-060) ==
-Batch -> Batch : validateInput()
-Batch -> GCE : processData()\nRécupérer demandes IP/Radiation en masse
-GCE --> Batch : Liste dossiers + demandes
+participant "ApiGateway\n(REQ-007)" as API
+participant "IAMService\n(REQ-026)" as IAM
+participant "AutorisationService\n(REQ-004)" as AUTHZ
+participant "PolitiqueConfidentialiteParStade\n(REQ-025)" as CONF
+participant "WorkflowEngine\n(REQ-009/010)" as BPM
+participant "JournalisationSecurite\n(REQ-029)" as LOG
+participant "ReportingService\n(REQ-011)" as BI
+participant "GEDService\n(REQ-016)" as GED
+participant "Notification\n(REQ-015)" as NOTIF
 
-loop Pour chaque dossier
-  Batch -> Tenant : processData()\nAppliquer cloisonnement IRC (REQ-018/EX-024)
-  Tenant --> Batch : OK
-  Batch -> WF : processData()\nCréer/mettre à jour workflow\n(coexistence REQ-004/EX-005)
-  WF --> Batch : OK
-  Batch -> Audit : processData()\nTracer traitement + cas (REQ-053/EX-060)
-  Audit --> Batch : OK
-end
+Gestionnaire -> API : POST /jurys/{id}/affectations (REQ-009)
+API -> IAM : authentifier()
+IAM --> API : jeton
+API -> AUTHZ : verifierDroitEcriture() (REQ-004)
+AUTHZ --> API : OK
+API -> BPM : appliquerTransition("AFFECTEE_JURY") (REQ-009)
+API -> LOG : journaliserAction() (REQ-029)
+
+Evaluateur -> API : POST /evaluations (note, commentaire) (REQ-009)
+API -> CONF : estVisible() (REQ-025)
+CONF --> API : OK
+API -> AUTHZ : verifierDroitEcriture() (REQ-004)
+AUTHZ --> API : OK
+API -> BPM : appliquerTransition("EVALUATION_SOUMISE") (REQ-009)
+API -> LOG : journaliserAction() (REQ-029)
+
+Gestionnaire -> API : POST /comitologies/consolidation (REQ-010)
+API -> BI : genererTableauDeBord() (REQ-011)
+BI --> API : syntheseDecisionnelle
+API -> GED : classerDocument() (REQ-010/016) ' relevé, annexes
+API -> LOG : journaliserAction() (REQ-029)
+
+Comite -> API : POST /decisions (retenu/non) (REQ-010)
+API -> AUTHZ : verifierDroitEcriture() (REQ-004)
+AUTHZ --> API : OK
+API -> BPM : appliquerTransition("DECISION_RENDUE") (REQ-010)
+API -> NOTIF : envoyer() (REQ-015) ' notification décision
+API -> LOG : journaliserAction() (REQ-029)
 
 @enduml
 ```
 
 ```plantuml
-@startuml Sequence_Radiation_Retour_Rejet
+@startuml Sequence_API_Securisee_Integration
 !theme plain
 
-actor "Gestionnaire IRC" as Gestionnaire
-participant "AuthService\n(Securite)" as Auth
-participant "OrchestrationService\n(Technical)" as Orch
-participant "TribunalFluxAdapter\n(Technical)" as Trib
-participant "ReprocessingService\n(Technical)" as Reproc
-participant "AuditService\n(Technical)" as Audit
-participant "IntegrationSIRCAdapter\n(Technical)" as SIRC
+actor "SI CDC" as SICDC
+participant "ApiGateway\n(REQ-007)" as API
+participant "TLSCertificateService\n(REQ-027)" as TLS
+participant "IAMService\n(REQ-026)" as IAM
+participant "JournalisationSecurite\n(REQ-029)" as LOG
+participant "ConnecteurSICDC\n(REQ-007)" as CONN
+participant "AnnuaireReferentiel\n(REQ-012)" as MDM
 
-== Radiation : retour quotidien + rejet + régénération (REQ-045/EX-052, REQ-046/EX-053, REQ-047/EX-054, REQ-048/EX-055, REQ-049/EX-056) ==
-Gestionnaire -> Auth : authenticate()
-Auth --> Gestionnaire : boolean
+SICDC -> API : Appel API REST (REQ-007)
+API -> TLS : validerEndpointTLS() (REQ-027)
+TLS --> API : OK_TLS
 
-Trib -> Orch : processData()\nRetour radiation quotidien (REQ-047/EX-054)
-Orch -> Audit : processData()\nJournaliser retour
-Audit --> Orch : OK
+API -> IAM : authentifier() (compte technique) (REQ-026)
+IAM --> API : jetonM2M
 
-alt Statut = rejet
-  Orch --> Gestionnaire : Afficher motif + demander correction (REQ-048/EX-055)
-  Gestionnaire -> Orch : processData()\nSoumettre correction
-  Orch -> Reproc : processData()\nRégénérer flux radiation (REQ-049/EX-056)
-  Reproc --> Orch : OK
-  Orch -> Audit : processData()\nJournaliser régénération
-  Audit --> Orch : OK
-end
+API -> LOG : journaliserAction() (flux API) (REQ-029)
+API -> CONN : synchroniserReferentiels() (REQ-007/012)
+CONN -> MDM : reconcilier() (REQ-012)
+MDM --> CONN : OK
+CONN --> API : statutSync
+API --> SICDC : 200 OK + statutSync
 
-Orch -> SIRC : processData()\nTransfert documentaire quotidien (REQ-013/EX-019)
-SIRC --> Orch : OK
+@enduml
+```
+
+```plantuml
+@startuml Sequence_Migration_Reversibilite
+!theme plain
+
+actor "Administrateur Plateforme" as Admin
+actor "RSSI" as RSSI
+participant "MigrationService\n(REQ-020)" as MIG
+participant "ApiGateway\n(REQ-007)" as API
+participant "GEDService\n(REQ-016)" as GED
+participant "JournalisationSecurite\n(REQ-029)" as LOG
+participant "ExportService\n(REQ-021)" as EXP
+participant "PlanReversibilite\n(REQ-021)" as PLAN
+participant "SauvegardeChiffreeService\n(REQ-029)" as BACKUP
+participant "DossierPolitiqueSecuriteSaaS\n(REQ-031)" as DOSSIER
+
+Admin -> MIG : traiterLot() (REQ-020)
+MIG -> API : POST /imports/lots (REQ-020/007)
+API -> LOG : journaliserAction() (REQ-029)
+API -> GED : classerDocument() (pièces historiques) (REQ-020/016)
+GED --> API : OK
+API --> MIG : rapportQualite + rejets (REQ-020)
+
+RSSI -> BACKUP : declencherSauvegarde() (REQ-029)
+BACKUP -> LOG : journaliserAction() (REQ-029)
+
+Admin -> EXP : exporterDonnees() (REQ-021)
+EXP -> PLAN : verifierExitReady() (REQ-021)
+PLAN --> EXP : OK
+EXP -> API : GET /exports (REQ-021/007)
+API -> LOG : journaliserAction() (REQ-029)
+API --> EXP : archive données + documents (REQ-021)
+
+RSSI -> DOSSIER : produireQuestionnaireSecurite() (REQ-031)
+DOSSIER -> LOG : journaliserAction() (REQ-029)
+DOSSIER --> RSSI : dossier SSI à jour
 
 @enduml
 ```
