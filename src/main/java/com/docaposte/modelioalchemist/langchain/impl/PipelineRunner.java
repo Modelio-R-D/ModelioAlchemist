@@ -452,15 +452,9 @@ public class PipelineRunner {
             """;
         progress.onStep(++step, totalSteps, "progress.pipeline.classifyRequirements");
         long classifyStartTime = System.currentTimeMillis();
-        String classified = llm.runPrompt(classifierPrompt, filteredJson, StageModelConfig.STAGE_CLASSIFY);
+        String classifiedJson = classifyRequirementsChunked(classifierPrompt, filteredJson, outDir);
         metrics.recordStageTiming("classification", classifyStartTime);
 
-        // attempt to find JSON in the response
-        String classifiedJson = JsonUtils.extractFirstJson(classified);
-        if (classifiedJson == null) {
-            // fallback: assume entire response is JSON
-            classifiedJson = classified;
-        }
         Files.writeString(outDir.resolve("classified.json"), classifiedJson);
         System.out.println("✅ [Stage 4/15] Classifier output saved.");
 
@@ -1188,17 +1182,37 @@ public class PipelineRunner {
             // heuristique des traces MCP que si ce marqueur est absent (ex. anciens rapports).
             int satisfyRelationsAttempted;
             int satisfyRelationsConfirmed;
-            Matcher deterministicMatcher = Pattern.compile("SATISFY_LINKS_DETERMINISTIC:\\s*attempted=(\\d+)\\s*confirmed=(\\d+)")
+            Matcher deterministicMatcher = Pattern.compile(
+                    "SATISFY_LINKS_DETERMINISTIC:\\s*attempted=(\\d+)\\s*confirmed=(\\d+)"
+                    + "(?:\\s*\\|\\s*use_cases_total=(\\d+)\\s*covered_by_llm=(\\d+)\\s*covered_by_fallback=(\\d+)\\s*uncovered=(\\d+))?")
                     .matcher(classModelReport == null ? "" : classModelReport);
             if (deterministicMatcher.find()) {
                 satisfyRelationsAttempted = Integer.parseInt(deterministicMatcher.group(1));
                 satisfyRelationsConfirmed = Integer.parseInt(deterministicMatcher.group(2));
+                if (deterministicMatcher.group(3) != null) {
+                    metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed,
+                            Integer.parseInt(deterministicMatcher.group(3)), Integer.parseInt(deterministicMatcher.group(4)),
+                            Integer.parseInt(deterministicMatcher.group(5)), Integer.parseInt(deterministicMatcher.group(6)));
+                } else {
+                    metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+                }
             } else {
                 satisfyRelationsAttempted = countSatisfyRelations(classModelReport, outputPath, true);
                 satisfyRelationsConfirmed = countSatisfyRelations(classModelReport, outputPath, false);
+                metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
             }
 
-            metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+            // "use_case_elements" : décompte déterministe imprimé par LangchainService sous la forme
+            // "USE_CASE_ELEMENTS_DETERMINISTIC: actors=A usecases=U diagram=0|1".
+            Matcher useCaseElementsMatcher = Pattern.compile(
+                    "USE_CASE_ELEMENTS_DETERMINISTIC:\\s*actors=(\\d+)\\s*usecases=(\\d+)\\s*diagram=([01])")
+                    .matcher(classModelReport == null ? "" : classModelReport);
+            if (useCaseElementsMatcher.find()) {
+                metrics.setUseCaseElementsMetrics(
+                        Integer.parseInt(useCaseElementsMatcher.group(1)),
+                        Integer.parseInt(useCaseElementsMatcher.group(2)),
+                        "1".equals(useCaseElementsMatcher.group(3)));
+            }
 
             int[] classModelElements = countClassModelElements(classModelReport);
             metrics.setClassModelElementsMetrics(
@@ -1207,6 +1221,83 @@ public class PipelineRunner {
         } catch (Exception e) {
             System.err.println("⚠️ Error parsing MCP metrics: " + e.getMessage());
         }
+    }
+
+    /** Au-delà de ce nombre d'exigences, la classification est répartie en lots plutôt qu'envoyée en un seul appel. */
+    private static final int CLASSIFY_CHUNK_THRESHOLD = 30;
+    private static final int CLASSIFY_CHUNK_SIZE = 25;
+    private static final List<String> CLASSIFY_CATEGORY_KEYS =
+            List.of("technique", "rssi", "fonctionnel", "rse", "ecoconception");
+
+    /**
+     * Classifie les exigences filtrées, en répartissant l'appel en plusieurs lots au-delà de
+     * {@link #CLASSIFY_CHUNK_THRESHOLD} exigences. Un seul appel LLM pour un grand nombre
+     * d'exigences (observé : 92) risque de tronquer silencieusement sa sortie JSON avant la fin —
+     * le pipeline continuait alors avec un {@code classified.json} incomplet (30 exigences
+     * catégorisées sur 92) sans qu'aucune erreur ne remonte, seulement une métrique de validation
+     * discordante découverte a posteriori.
+     */
+    private String classifyRequirementsChunked(String classifierPrompt, String filteredJson, Path outDir) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(filteredJson);
+        JsonNode filteredReqs = root.path("filtered_requirements");
+        if (!filteredReqs.isArray() || filteredReqs.size() <= CLASSIFY_CHUNK_THRESHOLD) {
+            String classified = llm.runPrompt(classifierPrompt, filteredJson, StageModelConfig.STAGE_CLASSIFY);
+            String classifiedJson = JsonUtils.extractFirstJson(classified);
+            return classifiedJson != null ? classifiedJson : classified;
+        }
+
+        List<JsonNode> allReqs = new ArrayList<>();
+        filteredReqs.forEach(allReqs::add);
+        int totalChunks = (allReqs.size() + CLASSIFY_CHUNK_SIZE - 1) / CLASSIFY_CHUNK_SIZE;
+        System.out.println("📦 Classification répartie en " + totalChunks + " lots (" + allReqs.size() + " exigences, seuil="
+                + CLASSIFY_CHUNK_THRESHOLD + ")");
+
+        Map<String, ArrayNode> mergedCategories = new LinkedHashMap<>();
+        for (String key : CLASSIFY_CATEGORY_KEYS) {
+            mergedCategories.put(key, mapper.createArrayNode());
+        }
+        ArrayNode mergedCrossLinks = mapper.createArrayNode();
+
+        for (int i = 0; i < allReqs.size(); i += CLASSIFY_CHUNK_SIZE) {
+            List<JsonNode> chunkReqs = allReqs.subList(i, Math.min(i + CLASSIFY_CHUNK_SIZE, allReqs.size()));
+            ObjectNode chunkInput = mapper.createObjectNode();
+            ArrayNode chunkArray = chunkInput.putArray("filtered_requirements");
+            chunkReqs.forEach(chunkArray::add);
+
+            int chunkIndex = (i / CLASSIFY_CHUNK_SIZE) + 1;
+            String classified = llm.runPrompt(classifierPrompt, mapper.writeValueAsString(chunkInput), StageModelConfig.STAGE_CLASSIFY);
+            String chunkJsonText = JsonUtils.extractFirstJson(classified);
+            if (chunkJsonText == null) {
+                chunkJsonText = classified;
+            }
+            if (outDir != null) {
+                Files.writeString(outDir.resolve("classified_chunk_" + chunkIndex + ".json"), chunkJsonText);
+            }
+
+            try {
+                JsonNode chunkRoot = mapper.readTree(chunkJsonText);
+                for (String key : CLASSIFY_CATEGORY_KEYS) {
+                    JsonNode categoryArray = chunkRoot.path(key);
+                    if (categoryArray.isArray()) {
+                        categoryArray.forEach(mergedCategories.get(key)::add);
+                    }
+                }
+                JsonNode crossLinks = chunkRoot.path("cross_category_links");
+                if (crossLinks.isArray()) {
+                    crossLinks.forEach(mergedCrossLinks::add);
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Lot de classification " + chunkIndex + "/" + totalChunks + " illisible, ignoré : " + e.getMessage());
+            }
+        }
+
+        ObjectNode merged = mapper.createObjectNode();
+        for (String key : CLASSIFY_CATEGORY_KEYS) {
+            merged.set(key, mergedCategories.get(key));
+        }
+        merged.set("cross_category_links", mergedCrossLinks);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(merged);
     }
 
     /**

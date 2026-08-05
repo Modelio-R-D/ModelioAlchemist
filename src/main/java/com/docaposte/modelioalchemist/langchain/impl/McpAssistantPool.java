@@ -114,6 +114,77 @@ final class McpAssistantPool {
     }
 
     /**
+     * Liste les UUIDs réels des {@code UseCase} existant sous {@code packageUuid}, via l'outil MCP
+     * déterministe {@code uml_listModelElements} — jamais via le JSON as-built auto-rapporté par
+     * l'agent de la phase cas d'usage. Ce rapport peut être un texte libre sans structure JSON
+     * valide, auquel cas {@code AgentResultProcessor} retombe sur un synthétiseur qui regex-scanne
+     * le texte de clôture de l'agent pour en extraire "tous les UUID mentionnés" — une liste bruitée
+     * qui peut à la fois dupliquer massivement certains UUID (répétés dans plusieurs messages de
+     * confirmation) et complètement omettre d'autres cas d'usage réels jamais ré-évoqués dans le
+     * texte final. Résultat observé : liens «Satisfait» comptés à tort comme "100% couverts" alors
+     * que certains cas d'usage réels n'en avaient aucun. Cette méthode interroge le modèle lui-même
+     * pour obtenir la liste réelle, dédupliquée, au lieu de faire confiance au texte de l'agent.
+     */
+    static List<String> listUseCaseUuidsUnderPackage(String packageUuid) throws IOException {
+        return listElementUuidsUnderPackage(packageUuid, "UseCase");
+    }
+
+    /**
+     * Compte les {@code Actor} réels sous {@code packageUuid}, avec la même garantie déterministe
+     * que {@link #listUseCaseUuidsUnderPackage} (voir sa Javadoc pour le pourquoi).
+     */
+    static int countActorsUnderPackage(String packageUuid) throws IOException {
+        return listElementUuidsUnderPackage(packageUuid, "Actor").size();
+    }
+
+    /** Indique si le projet contient au moins un diagramme du type donné (ex. "UseCaseDiagram"). */
+    static boolean hasDiagramOfType(String diagramType) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("diagram-presence-check-" + System.nanoTime())
+                .name("project_overview")
+                .arguments(mapper.writeValueAsString(mapper.createObjectNode()))
+                .build());
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response);
+            com.fasterxml.jackson.databind.JsonNode diagramsByType = root.path("diagrams_by_type");
+            return diagramsByType.path(diagramType).asInt(0) > 0;
+        } catch (Exception e) {
+            debug("⚠️ Could not parse project_overview response for diagram presence: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static List<String> listElementUuidsUnderPackage(String packageUuid, String typeFilter) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode arguments = mapper.createObjectNode();
+        arguments.put("type_filter", typeFilter);
+        arguments.put("max_results", 1000);
+        String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("list-elements-" + typeFilter + "-" + System.nanoTime())
+                .name("uml_listModelElements")
+                .arguments(mapper.writeValueAsString(arguments))
+                .build());
+        List<String> uuids = new ArrayList<>();
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response);
+            com.fasterxml.jackson.databind.JsonNode items = root.path("items");
+            if (items.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode item : items) {
+                    String ownerUuid = item.path("owner_uuid").asText(null);
+                    String uuid = item.path("uuid").asText(null);
+                    if (uuid != null && (packageUuid == null || packageUuid.equals(ownerUuid))) {
+                        uuids.add(uuid);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            debug("⚠️ Could not parse uml_listModelElements response for type " + typeFilter + ": " + e.getMessage());
+        }
+        return uuids;
+    }
+
+    /**
      * Crée un lien «Satisfait» de manière déterministe (sans dépendre du LLM), via l'outil MCP
      * {@code analyst_createRelation}. Le prompt seul laissait le LLM libre de sauter ce lien
      * (formulé comme optionnel, "ne jamais bloquer"), ce qui aboutissait à 0 lien créé sur 6

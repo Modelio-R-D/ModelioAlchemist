@@ -229,19 +229,19 @@ public class LangchainService {
             }
 
             List<Requirement> requirements = new ArrayList<>();
-            int index = 1;
+            Map<String, Integer> perCategoryCounters = new HashMap<>();
             for (JsonNode reqNode : filteredReqs) {
-                String normalizedId = RequirementIdFormatter.normalizeRequirementId(reqNode.path("id").asText(null), index);
+                String category = reqNode.path("category").asText("Fonctionnel");
+                String normalizedId = RequirementIdFormatter.nextRequirementId(perCategoryCounters, category);
                 String description = reqNode.path("description").asText("");
                 String origin = RequirementIdFormatter.buildRequirementOrigin(reqNode, sourceDocumentName, description);
                 requirements.add(new Requirement(
                         normalizedId,
                         normalizedId,
                         description,
-                        reqNode.path("category").asText("Fonctionnel"),
+                        category,
                         reqNode.path("priority").asText("Moyenne"),
                         origin));
-                index++;
             }
 
             String result = RequirementCreationService.createRequirementsDirectlyViaMcp(requirements, outputDirectory);
@@ -388,7 +388,7 @@ public class LangchainService {
                 // Liens «Satisfait» créés de manière déterministe côté Java, avec repli garanti pour
                 // tout cas d'usage que le LLM n'aurait pas correctement rattaché à une exigence :
                 // sans ce repli, les 6 exécutions réelles observées aboutissaient toutes à 0 lien créé.
-                int[] satisfyCounts = createDeterministicSatisfyLinks(requirementsResult, useCasesResult);
+                int[] satisfyCounts = createDeterministicSatisfyLinks(requirementsResult, useCasesResult, useCasesPackageUuid);
                 finalReport.append("PHASE 2B - LIENS «SATISFAIT» (création déterministe):\n")
                         .append("SATISFY_LINKS_DETERMINISTIC: attempted=").append(satisfyCounts[0])
                         .append(" confirmed=").append(satisfyCounts[1])
@@ -412,6 +412,19 @@ public class LangchainService {
                 String useCaseDiagramReport = attemptUseCaseDiagramCreation(useCasesPackageUuid, outputDirectory);
                 if (useCaseDiagramReport != null) {
                     finalReport.append("PHASE 2C - DIAGRAMME DE CAS D'USAGE:\n").append(useCaseDiagramReport).append("\n\n");
+                }
+
+                // Décompte déterministe (mêmes requêtes MCP que satisfyCounts[2]) pour peupler
+                // "use_case_elements" dans les métriques persistées — jusqu'ici invisible en dehors
+                // des logs de debug malgré la présence d'une section "class_model_elements" symétrique.
+                try {
+                    int actorsCount = McpAssistantPool.countActorsUnderPackage(useCasesPackageUuid);
+                    boolean diagramExists = McpAssistantPool.hasDiagramOfType("UseCaseDiagram");
+                    finalReport.append("USE_CASE_ELEMENTS_DETERMINISTIC: actors=").append(actorsCount)
+                            .append(" usecases=").append(satisfyCounts[2])
+                            .append(" diagram=").append(diagramExists ? 1 : 0).append("\n\n");
+                } catch (Exception e) {
+                    debug("⚠️ Could not compute deterministic use-case element counts: " + e.getMessage());
                 }
 
             } finally {
@@ -530,18 +543,26 @@ public class LangchainService {
      * exigences qu'il déclare couvrir ({@code linked_requirements} dans le JSON as-built), en
      * s'appuyant sur la table id → UUID des exigences créées en Phase 1.
      * <p>
-     * Garantit l'invariant "chaque cas d'usage est relié à au moins une exigence" même si le LLM
-     * n'a pas respecté la consigne (linked_requirements vide, IDs invalides, ou tous les appels
-     * échouent) : tout cas d'usage qui termine sans lien confirmé se voit assigner une exigence de
-     * repli par répartition tournante sur la liste des exigences connues, plutôt que de dépendre du
-     * seul bon vouloir du LLM (jusqu'ici formulé comme optionnel dans le prompt).
+     * La liste des cas d'usage à couvrir vient de {@link McpAssistantPool#listUseCaseUuidsUnderPackage}
+     * — une requête déterministe sur le modèle réel — et non du JSON as-built auto-rapporté par
+     * l'agent. Ce rapport peut être du texte libre sans structure JSON valide, auquel cas
+     * {@code AgentResultProcessor} retombe sur un synthétiseur qui regex-scanne le texte de clôture
+     * de l'agent pour "tous les UUID mentionnés" : observé en pratique avec 49 entrées régex-extraites
+     * (fortement dupliquées, certains UUID répétés 3 à 5 fois) pour seulement 24 cas d'usage réels —
+     * certains cas d'usage réels jamais ré-évoqués dans le texte final n'apparaissaient alors dans
+     * AUCUNE entrée, et se retrouvaient donc sans aucun lien malgré un décompte "100% couverts".
+     * Le JSON as-built (quand il existe et qu'il est valide) reste utilisé pour son
+     * {@code linked_requirements} déclaré par UUID, en persistance best-effort seulement.
+     * <p>
+     * Garantit l'invariant "chaque cas d'usage réel est relié à au moins une exigence" même si le
+     * LLM n'a pas respecté la consigne : tout cas d'usage qui termine sans lien confirmé se voit
+     * assigner une exigence de repli par répartition tournante sur la liste des exigences connues.
      *
      * @return {attempted, confirmed, useCasesTotal, useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered}
      */
-    private static int[] createDeterministicSatisfyLinks(String requirementsResult, String useCasesResult) {
+    private static int[] createDeterministicSatisfyLinks(String requirementsResult, String useCasesResult, String useCasesPackageUuid) {
         int attempted = 0;
         int confirmed = 0;
-        int useCasesTotal = 0;
         int useCasesCoveredByLlm = 0;
         int useCasesCoveredByFallback = 0;
         int useCasesUncovered = 0;
@@ -572,40 +593,49 @@ public class LangchainService {
             }
             List<String> fallbackRequirementUuids = new ArrayList<>(requirementUuidById.values());
 
+            // Meilleur effort : récupérer les liens que le LLM a explicitement déclarés par UUID,
+            // pour les honorer avant de recourir au repli — mais uniquement si le JSON as-built est
+            // réellement structuré (jamais la sortie régex-synthétisée, qui n'a pas ce champ).
+            Map<String, List<String>> declaredLinksByUseCaseUuid = new HashMap<>();
             String useCasesJson = AgentResultProcessor.extractJSONStructure(useCasesResult, "use_cases_created");
-            if (useCasesJson == null) {
-                debug("⚠️ No use_cases_created JSON found; skipping deterministic satisfy links");
-                return new int[]{0, 0, 0, 0, 0, 0};
+            if (useCasesJson != null && !useCasesJson.contains("\"synthesized_from_uuids_only\"")) {
+                JsonNode ucRoot = new ObjectMapper().readTree(useCasesJson).path("use_cases_created");
+                JsonNode useCases = ucRoot.path("use_cases");
+                if (useCases.isArray()) {
+                    for (JsonNode useCase : useCases) {
+                        String useCaseUuid = useCase.path("uuid").asText(null);
+                        JsonNode linked = useCase.path("linked_requirements");
+                        if (useCaseUuid == null || !linked.isArray()) {
+                            continue;
+                        }
+                        List<String> reqIds = new ArrayList<>();
+                        linked.forEach(n -> { String v = n.asText(null); if (v != null) reqIds.add(v); });
+                        if (!reqIds.isEmpty()) {
+                            declaredLinksByUseCaseUuid.put(useCaseUuid, reqIds);
+                        }
+                    }
+                }
             }
 
-            JsonNode ucRoot = new ObjectMapper().readTree(useCasesJson).path("use_cases_created");
-            JsonNode useCases = ucRoot.path("use_cases");
-            if (!useCases.isArray()) {
+            List<String> realUseCaseUuids = McpAssistantPool.listUseCaseUuidsUnderPackage(useCasesPackageUuid);
+            if (realUseCaseUuids.isEmpty()) {
+                debug("⚠️ No real UseCase elements found under package " + useCasesPackageUuid + "; skipping deterministic satisfy links");
                 return new int[]{0, 0, 0, 0, 0, 0};
             }
 
             int fallbackCursor = 0;
-            for (JsonNode useCase : useCases) {
-                String useCaseUuid = useCase.path("uuid").asText(null);
-                if (useCaseUuid == null) {
-                    continue;
-                }
-                useCasesTotal++;
+            for (String useCaseUuid : realUseCaseUuids) {
                 boolean hasConfirmedLink = false;
 
-                JsonNode linked = useCase.path("linked_requirements");
-                if (linked.isArray()) {
-                    for (JsonNode reqIdNode : linked) {
-                        String reqId = reqIdNode.asText(null);
-                        String reqUuid = reqId == null ? null : requirementUuidById.get(reqId);
-                        if (reqUuid == null) {
-                            continue;
-                        }
-                        attempted++;
-                        if (McpAssistantPool.createSatisfyRelation(useCaseUuid, reqUuid)) {
-                            confirmed++;
-                            hasConfirmedLink = true;
-                        }
+                for (String reqId : declaredLinksByUseCaseUuid.getOrDefault(useCaseUuid, List.of())) {
+                    String reqUuid = requirementUuidById.get(reqId);
+                    if (reqUuid == null) {
+                        continue;
+                    }
+                    attempted++;
+                    if (McpAssistantPool.createSatisfyRelation(useCaseUuid, reqUuid)) {
+                        confirmed++;
+                        hasConfirmedLink = true;
                     }
                 }
 
@@ -628,10 +658,11 @@ public class LangchainService {
                     debug("❌ Cas d'usage " + useCaseUuid + " reste sans lien «Satisfait» — le lien de repli a échoué");
                 }
             }
+            return new int[]{attempted, confirmed, realUseCaseUuids.size(), useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered};
         } catch (Exception e) {
             debug("⚠️ Error creating deterministic satisfy links: " + e.getMessage());
         }
-        return new int[]{attempted, confirmed, useCasesTotal, useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered};
+        return new int[]{attempted, confirmed, 0, useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered};
     }
 
     // Injecter des extraits de ressources MCP sélectionnées dans la mémoire de chat.
@@ -754,11 +785,12 @@ public class LangchainService {
                 if (root.has("filtered_requirements")) {
                     JsonNode filteredReqs = root.get("filtered_requirements");
                     if (filteredReqs.isArray()) {
+                        Map<String, Integer> perCategoryCounters = new HashMap<>();
                         for (JsonNode reqNode : filteredReqs) {
-                            String id = RequirementIdFormatter.normalizeRequirementId(reqNode.path("id").asText(null), requirements.size() + 1);
                             String description = reqNode.get("description").asText("");
                             String category = reqNode.get("category").asText("Fonctionnel");
                             String priority = reqNode.get("priority").asText("Moyenne");
+                            String id = RequirementIdFormatter.nextRequirementId(perCategoryCounters, category);
                             String origin = RequirementIdFormatter.buildRequirementOrigin(reqNode, "Documents d'analyse", description);
 
                             if (!description.trim().isEmpty()) {

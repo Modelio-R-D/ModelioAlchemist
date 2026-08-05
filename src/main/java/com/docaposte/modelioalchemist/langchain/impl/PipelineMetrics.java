@@ -23,6 +23,7 @@ public class PipelineMetrics {
     private McpRequirementsMetrics mcpRequirementsMetrics;
     private McpSatisfyLinksMetrics mcpSatisfyLinksMetrics;
     private ClassModelElementsMetrics classModelElementsMetrics;
+    private UseCaseElementsMetrics useCaseElementsMetrics;
     
     // Timing markers
     private long pipelineStartTime;
@@ -143,8 +144,18 @@ public class PipelineMetrics {
         this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
     }
 
+    public void setMcpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed,
+            int useCasesTotal, int useCasesCoveredByLlm, int useCasesCoveredByFallback, int useCasesUncovered) {
+        this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed,
+                useCasesTotal, useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered);
+    }
+
     public void setClassModelElementsMetrics(int classesCreated, int attributesCreated, int associationsCreated, int packagesCreated) {
         this.classModelElementsMetrics = new ClassModelElementsMetrics(classesCreated, attributesCreated, associationsCreated, packagesCreated);
+    }
+
+    public void setUseCaseElementsMetrics(int actorsCreated, int useCasesCreated, boolean diagramCreated) {
+        this.useCaseElementsMetrics = new UseCaseElementsMetrics(actorsCreated, useCasesCreated, diagramCreated);
     }
     
     public ObjectNode toJson() {
@@ -199,6 +210,11 @@ public class PipelineMetrics {
         // Class Model Elements
         if (classModelElementsMetrics != null) {
             root.set("class_model_elements", classModelElementsMetrics.toJson());
+        }
+
+        // Use Case Elements
+        if (useCaseElementsMetrics != null) {
+            root.set("use_case_elements", useCaseElementsMetrics.toJson());
         }
 
         return root;
@@ -372,19 +388,64 @@ public class PipelineMetrics {
         int umlElementsCreated;
         int satisfyRelationsAttempted;
         int satisfyRelationsConfirmed;
-        
+        // -1 = non renseigné (ancien appelant à 3 arguments) plutôt que 0, qui laisserait croire à
+        // "zéro cas d'usage" au lieu de "cette donnée n'a pas été fournie".
+        int useCasesTotal = -1;
+        int useCasesCoveredByLlm = -1;
+        int useCasesCoveredByFallback = -1;
+        int useCasesUncovered = -1;
+
         McpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed) {
             this.umlElementsCreated = umlElementsCreated;
             this.satisfyRelationsAttempted = satisfyRelationsAttempted;
             this.satisfyRelationsConfirmed = satisfyRelationsConfirmed;
         }
-        
+
+        McpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed,
+                int useCasesTotal, int useCasesCoveredByLlm, int useCasesCoveredByFallback, int useCasesUncovered) {
+            this(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+            this.useCasesTotal = useCasesTotal;
+            this.useCasesCoveredByLlm = useCasesCoveredByLlm;
+            this.useCasesCoveredByFallback = useCasesCoveredByFallback;
+            this.useCasesUncovered = useCasesUncovered;
+        }
+
         ObjectNode toJson() {
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode node = mapper.createObjectNode();
             node.put("uml_elements_created", umlElementsCreated);
             node.put("satisfy_relations_attempted", satisfyRelationsAttempted);
             node.put("satisfy_relations_confirmed", satisfyRelationsConfirmed);
+            if (useCasesTotal >= 0) {
+                node.put("use_cases_total", useCasesTotal);
+                node.put("use_cases_covered_by_llm", useCasesCoveredByLlm);
+                node.put("use_cases_covered_by_fallback", useCasesCoveredByFallback);
+                node.put("use_cases_uncovered", useCasesUncovered);
+            }
+            return node;
+        }
+    }
+
+    static class UseCaseElementsMetrics {
+        int actorsCreated;
+        int useCasesCreated;
+        boolean diagramCreated;
+
+        UseCaseElementsMetrics(int actorsCreated, int useCasesCreated, boolean diagramCreated) {
+            this.actorsCreated = actorsCreated;
+            this.useCasesCreated = useCasesCreated;
+            this.diagramCreated = diagramCreated;
+        }
+
+        ObjectNode toJson() {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode node = mapper.createObjectNode();
+            node.put("actors_created", actorsCreated);
+            node.put("use_cases_created", useCasesCreated);
+            node.put("diagram_created", diagramCreated);
+            // "associations_created" volontairement omis : aucun outil MCP ne permet de lister les
+            // associations acteur-cas d'usage de façon déterministe (contrairement aux classes et
+            // cas d'usage) ; mieux vaut omettre le champ que publier un nombre non fiable.
             return node;
         }
     }

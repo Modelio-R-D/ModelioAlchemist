@@ -14,10 +14,11 @@ public class RequirementsValidator {
     
     private static final ObjectMapper mapper = new ObjectMapper();
     // Les CCTP réels n'utilisent pas tous la convention d'exemple "EX-NNN" citée dans les prompts ;
-    // nos propres prompts assignent en revanche systématiquement des id "REQ-NNN"/"EXG-NNN". Se
-    // limiter à "EX-\d+" faisait retomber extracted_count/classified_count à 0 sur les documents qui
-    // ne reprennent pas cette convention, alors que le "id" auto-assigné, lui, est toujours présent.
-    private static final Pattern REQUIREMENT_PATTERN = Pattern.compile("(?:EX|EXG|REQ)-\\d+");
+    // nos propres prompts assignent en revanche systématiquement des id "REQ-NNN"/"EXG-NNN"
+    // (et désormais "EXG-<CAT>-NNN", ex. "EXG-FON-003", où <CAT> est le code catégorie 3 lettres).
+    // Se limiter à "EX-\d+" faisait retomber extracted_count/classified_count à 0 sur les documents
+    // qui ne reprennent pas cette convention, alors que le "id" auto-assigné, lui, est toujours présent.
+    private static final Pattern REQUIREMENT_PATTERN = Pattern.compile("(?:EX|EXG|REQ)-(?:[A-Z]{3}-)?\\d+");
 
     /**
      * Valide que toutes les exigences extraites sont présentes dans la classification
@@ -33,9 +34,12 @@ public class RequirementsValidator {
             Set<String> extraReqs = new HashSet<>(classifiedReqs);
             extraReqs.removeAll(extractedReqs);
 
-            // Une extraction vide rend missingReqs vide par construction : sans ce garde-fou la
-            // validation « réussit » alors qu'aucune comparaison n'a réellement eu lieu.
-            boolean comparisonWasPossible = !extractedReqs.isEmpty() || classifiedReqs.isEmpty();
+            // Une extraction vide rend missingReqs vide par construction, quel que soit l'état de
+            // classifiedReqs : sans ce garde-fou, une extraction cassée (0 identifiant trouvé côté
+            // référence) rapportait "valide" dès que classifiedReqs était LUI AUSSI vide (0 vs 0),
+            // masquant silencieusement le fait qu'aucune comparaison réelle n'a eu lieu. Seule une
+            // extraction non vide constitue une base de comparaison significative.
+            boolean comparisonWasPossible = !extractedReqs.isEmpty();
 
             return new ValidationResult(
                 extractedReqs.size(),
@@ -44,8 +48,10 @@ public class RequirementsValidator {
                 extraReqs,
                 missingReqs.isEmpty() && comparisonWasPossible,
                 comparisonWasPossible ? null
-                    : "Aucun identifiant EX-XXX trouvé dans le texte source alors que "
-                      + classifiedReqs.size() + " exigence(s) sont classifiées : comparaison impossible."
+                    : "Aucun identifiant EX-XXX/EXG-XXX trouvé dans le texte source"
+                      + (classifiedReqs.isEmpty()
+                          ? " (côté classifié non plus — le motif d'identifiant utilisé ne correspond peut-être pas à ce document)."
+                          : ", alors que " + classifiedReqs.size() + " exigence(s) sont classifiées : comparaison impossible.")
             );
             
         } catch (Exception e) {
