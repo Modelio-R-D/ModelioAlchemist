@@ -2,8 +2,10 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -403,22 +405,47 @@ public class LangchainService {
                     debug("⚠️ " + satisfyCounts[5] + " cas d'usage restent SANS lien «Satisfait» malgré le repli (probablement 0 exigence disponible).");
                 }
 
+                // Garantie déterministe "chaque cas d'usage réel a au moins un acteur", par la même
+                // logique que le repli des liens «Satisfait» : aucun outil MCP ne permet de vérifier
+                // au préalable si un cas d'usage a déjà un acteur (get_element_detail ne rapporte pas
+                // les associations pour UseCase/Actor), donc on assigne systématiquement un acteur par
+                // répartition tournante via l'outil idempotent uml_createAssociationsBulk. Un cas
+                // d'usage déjà associé au même acteur ne duplique rien ; un cas d'usage déjà associé à
+                // un autre acteur se retrouve avec les deux — jamais avec zéro, ce qui est l'invariant.
+                int actorsCount = 0;
+                try {
+                    List<String> realUseCaseUuidsForActors = McpAssistantPool.listUseCaseUuidsUnderPackage(useCasesPackageUuid);
+                    List<String> realActorUuids = McpAssistantPool.listActorUuidsUnderPackage(useCasesPackageUuid);
+                    actorsCount = realActorUuids.size();
+                    if (!realUseCaseUuidsForActors.isEmpty() && !realActorUuids.isEmpty()) {
+                        int[] actorCoverageCounts = McpAssistantPool.ensureEveryUseCaseHasActor(realUseCaseUuidsForActors, realActorUuids);
+                        debug("👤 Use case ↔ actor coverage (deterministic): attempted=" + actorCoverageCounts[0]
+                                + ", confirmed=" + actorCoverageCounts[1]);
+                    } else {
+                        debug("⚠️ Cannot guarantee use case ↔ actor coverage: " + realUseCaseUuidsForActors.size()
+                                + " use case(s), " + realActorUuids.size() + " actor(s) found under package " + useCasesPackageUuid);
+                    }
+                } catch (Exception e) {
+                    debug("⚠️ Error ensuring use case ↔ actor coverage: " + e.getMessage());
+                }
+
                 // Contrôle déterministe : l'agent unique gère acteurs + cas d'usage + associations +
                 // diagramme en un seul passage et peut épuiser son budget d'appels d'outils avant la
                 // dernière étape (le diagramme) sans que rien ne le signale — même symptôme que celui
                 // corrigé pour le diagramme de classes du modèle de domaine. On (re)tente donc toujours
-                // la création du diagramme explicitement ; le prompt de recours retrouve lui-même les
-                // acteurs/cas d'usage via search_model et réutilise un diagramme existant s'il y en a déjà un.
+                // la création du diagramme explicitement (APRÈS la garantie acteur ci-dessus, pour que
+                // le futur unmask_all affiche aussi les associations acteur-cas d'usage qu'elle ajoute) ;
+                // le prompt de recours retrouve lui-même les acteurs/cas d'usage via search_model et
+                // réutilise un diagramme existant s'il y en a déjà un.
                 String useCaseDiagramReport = attemptUseCaseDiagramCreation(useCasesPackageUuid, outputDirectory);
                 if (useCaseDiagramReport != null) {
                     finalReport.append("PHASE 2C - DIAGRAMME DE CAS D'USAGE:\n").append(useCaseDiagramReport).append("\n\n");
                 }
 
-                // Décompte déterministe (mêmes requêtes MCP que satisfyCounts[2]) pour peupler
-                // "use_case_elements" dans les métriques persistées — jusqu'ici invisible en dehors
-                // des logs de debug malgré la présence d'une section "class_model_elements" symétrique.
+                // Décompte déterministe pour peupler "use_case_elements" dans les métriques persistées
+                // — jusqu'ici invisible en dehors des logs de debug malgré la présence d'une section
+                // "class_model_elements" symétrique.
                 try {
-                    int actorsCount = McpAssistantPool.countActorsUnderPackage(useCasesPackageUuid);
                     boolean diagramExists = McpAssistantPool.hasDiagramOfType("UseCaseDiagram");
                     finalReport.append("USE_CASE_ELEMENTS_DETERMINISTIC: actors=").append(actorsCount)
                             .append(" usecases=").append(satisfyCounts[2])
@@ -483,6 +510,22 @@ public class LangchainService {
                     debug("🎯 As-built PlantUML diagram extracted successfully");
                 }
 
+                // Traçabilité classe ↔ cas d'usage, garantie déterministe côté Java (même repli que
+                // les liens «Satisfait» et la couverture acteur ↔ cas d'usage) : chaque classe du
+                // modèle de domaine doit être reliée à au moins un cas d'usage qui la manipule.
+                int[] classUseCaseLinkCounts = createDeterministicClassUseCaseLinks(useCasesResult, domainPackageUuid, useCasesPackageUuid);
+                finalReport.append("PHASE 3B - LIENS «RELATED» CLASSE ↔ CAS D'USAGE (création déterministe):\n")
+                        .append("CLASS_USECASE_LINKS_DETERMINISTIC: attempted=").append(classUseCaseLinkCounts[0])
+                        .append(" confirmed=").append(classUseCaseLinkCounts[1])
+                        .append(" | classes_total=").append(classUseCaseLinkCounts[2])
+                        .append(" covered_by_llm=").append(classUseCaseLinkCounts[3])
+                        .append(" covered_by_fallback=").append(classUseCaseLinkCounts[4])
+                        .append(" uncovered=").append(classUseCaseLinkCounts[5]).append("\n\n");
+                debug("🔗 Class↔UseCase links (deterministic): attempted=" + classUseCaseLinkCounts[0]
+                        + ", confirmed=" + classUseCaseLinkCounts[1] + " | classes: total=" + classUseCaseLinkCounts[2]
+                        + " covered_by_llm=" + classUseCaseLinkCounts[3] + " covered_by_fallback=" + classUseCaseLinkCounts[4]
+                        + " uncovered=" + classUseCaseLinkCounts[5]);
+
             } finally {
                 try {
                     McpAssistantPool.assistantPool().offer(pa3);
@@ -531,6 +574,11 @@ public class LangchainService {
                     diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, 2);
             diagramResult = McpRetryHandler.retryOnProjectOverviewOnly(
                     diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, diagramResult, 2);
+            try {
+                McpAssistantPool.ensureDiagramFullyUnmasked("UseCaseDiagram");
+            } catch (Exception e) {
+                debug("⚠️ ensureDiagramFullyUnmasked(UseCaseDiagram) failed (non-fatal): " + e.getMessage());
+            }
             return "### " + diagramPhase + System.lineSeparator() + diagramResult.trim();
         } catch (Exception e) {
             debug("⚠️ Use case diagram phase failed (non-fatal): " + e.getMessage());
@@ -663,6 +711,104 @@ public class LangchainService {
             debug("⚠️ Error creating deterministic satisfy links: " + e.getMessage());
         }
         return new int[]{attempted, confirmed, 0, useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered};
+    }
+
+    /**
+     * Crée déterministiquement les liens «related» entre chaque classe du modèle de domaine (Phase 3)
+     * et le(s) cas d'usage qui la manipulent, en s'appuyant sur {@code domain_classes_used} déclaré
+     * par l'agent de la Phase 2 (jamais sur le JSON régex-synthétisé, sans structure fiable — même
+     * garde-fou que pour les liens «Satisfait»). Résolution des noms de classe vers leurs UUID réels
+     * via une requête déterministe sur le modèle (les classes n'existaient pas encore à l'écriture de
+     * {@code useCasesResult}, donc l'agent de la Phase 2 ne pouvait déclarer que des noms).
+     * <p>
+     * Garantit l'invariant "chaque classe réelle est reliée à au moins un cas d'usage" via un repli
+     * par répartition tournante sur la liste des cas d'usage réels, pour toute classe qui termine sans
+     * lien confirmé — même logique que {@link #createDeterministicSatisfyLinks}.
+     *
+     * @return {attempted, confirmed, classesTotal, classesCoveredByLlm, classesCoveredByFallback, classesUncovered}
+     */
+    private static int[] createDeterministicClassUseCaseLinks(String useCasesResult, String domainPackageUuid, String useCasesPackageUuid) {
+        int attempted = 0;
+        int confirmed = 0;
+        int classesCoveredByFallback = 0;
+        int classesUncovered = 0;
+        try {
+            Map<String, String> classUuidByName = McpAssistantPool.listElementsUnderPackage(domainPackageUuid, "Class");
+            if (classUuidByName.isEmpty()) {
+                debug("⚠️ No real Class elements found under package " + domainPackageUuid + "; skipping deterministic class↔usecase links");
+                return new int[]{0, 0, 0, 0, 0, 0};
+            }
+            List<String> realUseCaseUuids = McpAssistantPool.listUseCaseUuidsUnderPackage(useCasesPackageUuid);
+            if (realUseCaseUuids.isEmpty()) {
+                debug("⚠️ No real UseCase elements found under package " + useCasesPackageUuid + "; skipping deterministic class↔usecase links");
+                return new int[]{0, 0, 0, 0, 0, 0};
+            }
+
+            // Meilleur effort : domain_classes_used déclaré par nom (les classes n'existaient pas
+            // encore quand la Phase 2 a écrit son rapport) — uniquement si le JSON as-built est
+            // réellement structuré, jamais la sortie régex-synthétisée (pas de ce champ, bruitée).
+            Map<String, List<String>> declaredClassNamesByUseCaseUuid = new HashMap<>();
+            String useCasesJson = AgentResultProcessor.extractJSONStructure(useCasesResult, "use_cases_created");
+            if (useCasesJson != null && !useCasesJson.contains("\"synthesized_from_uuids_only\"")) {
+                JsonNode ucRoot = new ObjectMapper().readTree(useCasesJson).path("use_cases_created");
+                JsonNode useCases = ucRoot.path("use_cases");
+                if (useCases.isArray()) {
+                    for (JsonNode useCase : useCases) {
+                        String useCaseUuid = useCase.path("uuid").asText(null);
+                        JsonNode classesUsed = useCase.path("domain_classes_used");
+                        if (useCaseUuid == null || !classesUsed.isArray()) {
+                            continue;
+                        }
+                        List<String> names = new ArrayList<>();
+                        classesUsed.forEach(n -> { String v = n.asText(null); if (v != null) names.add(v); });
+                        if (!names.isEmpty()) {
+                            declaredClassNamesByUseCaseUuid.put(useCaseUuid, names);
+                        }
+                    }
+                }
+            }
+
+            Set<String> coveredClassUuids = new HashSet<>();
+            for (Map.Entry<String, List<String>> entry : declaredClassNamesByUseCaseUuid.entrySet()) {
+                String useCaseUuid = entry.getKey();
+                for (String className : entry.getValue()) {
+                    String classUuid = classUuidByName.get(className);
+                    if (classUuid == null) {
+                        continue;
+                    }
+                    attempted++;
+                    if (McpAssistantPool.createRelatedRelation(useCaseUuid, classUuid)) {
+                        confirmed++;
+                        coveredClassUuids.add(classUuid);
+                    }
+                }
+            }
+            int classesCoveredByLlm = coveredClassUuids.size();
+
+            int fallbackCursor = 0;
+            for (String classUuid : classUuidByName.values()) {
+                if (coveredClassUuids.contains(classUuid)) {
+                    continue;
+                }
+                // Repli : aucun cas d'usage n'a déclaré (ou confirmé) manipuler cette classe — on lui
+                // assigne quand même un cas d'usage plutôt que de la laisser sans aucune traçabilité.
+                String fallbackUseCaseUuid = realUseCaseUuids.get(fallbackCursor % realUseCaseUuids.size());
+                fallbackCursor++;
+                attempted++;
+                if (McpAssistantPool.createRelatedRelation(fallbackUseCaseUuid, classUuid)) {
+                    confirmed++;
+                    classesCoveredByFallback++;
+                    debug("↪️ Classe " + classUuid + " sans cas d'usage déclaré valide — lien de repli créé depuis " + fallbackUseCaseUuid);
+                } else {
+                    classesUncovered++;
+                    debug("❌ Classe " + classUuid + " reste sans lien «related» — le lien de repli a échoué");
+                }
+            }
+            return new int[]{attempted, confirmed, classUuidByName.size(), classesCoveredByLlm, classesCoveredByFallback, classesUncovered};
+        } catch (Exception e) {
+            debug("⚠️ Error creating deterministic class↔usecase links: " + e.getMessage());
+        }
+        return new int[]{attempted, confirmed, 0, 0, classesCoveredByFallback, classesUncovered};
     }
 
     // Injecter des extraits de ressources MCP sélectionnées dans la mémoire de chat.

@@ -1,0 +1,75 @@
+{
+  "source_document" : "20245175 - CCTP.pdf",
+  "build_timestamp" : "2026-08-05 17:49:39 UTC",
+  "build_location" : "C:\\Users\\jcadavid\\git\\ModelioAlchemist\\target\\modelioalchemist-0.1.0.jar",
+  "timings_ms" : {
+    "extraction" : 2622,
+    "extractor_agent" : 87574,
+    "filtering" : 27890,
+    "classification" : 52361,
+    "validate_completeness" : 6,
+    "validate_context" : 8,
+    "domain_analysis" : 29480,
+    "plantuml" : 81391,
+    "create_requirements" : 3338,
+    "create_class_model" : 369821,
+    "finalizing" : 0,
+    "total" : 651334
+  },
+  "filtering" : {
+    "total_items_analyzed" : 36,
+    "requirements_retained" : 36,
+    "items_rejected" : 0,
+    "retention_rate_pct" : 100.0
+  },
+  "classification_validation" : {
+    "extracted_count" : 36,
+    "classified_count" : 33,
+    "missing_requirements" : 3,
+    "extra_requirements" : 0,
+    "is_valid" : false
+  },
+  "context_validation" : {
+    "total_requirements" : 37,
+    "contextualized_requirements" : 37,
+    "contextRate_pct" : 100.0,
+    "category_distribution" : {
+      "fonctionnel" : 17,
+      "rssi" : 10,
+      "ecoconception" : 0,
+      "rse" : 1,
+      "technique" : 9
+    },
+    "missing_references" : 0
+  },
+  "source_location" : {
+    "from_llm" : 36,
+    "from_deterministic_fallback" : 0,
+    "still_missing" : 0
+  },
+  "mcp_requirements" : {
+    "attempted" : 36,
+    "created_successfully" : 36,
+    "failed" : 0
+  },
+  "mcp_satisfy_links" : {
+    "uml_elements_created" : 0,
+    "satisfy_relations_attempted" : 27,
+    "satisfy_relations_confirmed" : 27,
+    "use_cases_total" : 27,
+    "use_cases_covered_by_llm" : 0,
+    "use_cases_covered_by_fallback" : 27,
+    "use_cases_uncovered" : 0
+  },
+  "class_model_elements" : {
+    "classes_created" : 55,
+    "attributes_created" : 201,
+    "associations_created" : 62,
+    "packages_created" : 1
+  },
+  "use_case_elements" : {
+    "actors_created" : 16,
+    "use_cases_created" : 27,
+    "diagram_created" : true
+  }
+}

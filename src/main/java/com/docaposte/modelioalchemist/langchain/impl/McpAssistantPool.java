@@ -2,7 +2,9 @@ package com.docaposte.modelioalchemist.langchain.impl;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -130,11 +132,120 @@ final class McpAssistantPool {
     }
 
     /**
-     * Compte les {@code Actor} réels sous {@code packageUuid}, avec la même garantie déterministe
+     * Liste les UUIDs réels des {@code Actor} sous {@code packageUuid}, même garantie déterministe
      * que {@link #listUseCaseUuidsUnderPackage} (voir sa Javadoc pour le pourquoi).
      */
+    static List<String> listActorUuidsUnderPackage(String packageUuid) throws IOException {
+        return listElementUuidsUnderPackage(packageUuid, "Actor");
+    }
+
+    /** Compte les {@code Actor} réels sous {@code packageUuid}. */
     static int countActorsUnderPackage(String packageUuid) throws IOException {
-        return listElementUuidsUnderPackage(packageUuid, "Actor").size();
+        return listActorUuidsUnderPackage(packageUuid).size();
+    }
+
+    /**
+     * Garantit qu'un acteur donné (round-robin) est associé à chaque cas d'usage de la liste, via
+     * l'outil idempotent {@code uml_createAssociationsBulk} (un seul appel pour tout le lot). Aucune
+     * vérification préalable "ce cas d'usage a-t-il déjà un acteur ?" n'est possible avec les outils
+     * MCP actuels ({@code get_element_detail} ne rapporte pas les associations pour UseCase/Actor) —
+     * l'idempotence du outil signifie qu'un cas d'usage déjà associé au MÊME acteur choisi ici ne
+     * duplique rien ; s'il était déjà associé à un AUTRE acteur, il se retrouve avec les deux (jamais
+     * moins d'un, ce qui est l'invariant recherché).
+     *
+     * @return {attempted, confirmed}
+     */
+    static int[] ensureEveryUseCaseHasActor(List<String> useCaseUuids, List<String> actorUuids) throws IOException {
+        if (useCaseUuids.isEmpty() || actorUuids.isEmpty()) {
+            return new int[]{0, 0};
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode arguments = mapper.createObjectNode();
+        com.fasterxml.jackson.databind.node.ArrayNode relations = arguments.putArray("relations");
+        for (int i = 0; i < useCaseUuids.size(); i++) {
+            String actorUuid = actorUuids.get(i % actorUuids.size());
+            ObjectNode relation = relations.addObject();
+            relation.put("relation_type", "association");
+            relation.put("source_uuid", actorUuid);
+            relation.put("target_uuid", useCaseUuids.get(i));
+        }
+        String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("ensure-usecase-actor-" + System.nanoTime())
+                .name("uml_createAssociationsBulk")
+                .arguments(mapper.writeValueAsString(arguments))
+                .build());
+        int attempted = useCaseUuids.size();
+        int confirmed = 0;
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response);
+            com.fasterxml.jackson.databind.JsonNode created = root.path("created");
+            if (created.isArray()) {
+                confirmed = created.size();
+            }
+        } catch (Exception e) {
+            debug("⚠️ Could not parse uml_createAssociationsBulk response for actor coverage: " + e.getMessage());
+        }
+        return new int[]{attempted, confirmed};
+    }
+
+    /**
+     * Garantit qu'un diagramme du type donné (ex. "ClassDiagram", "UseCaseDiagram") affiche bien
+     * tous ses éléments, en appelant déterministiquement {@code uml_unmaskInDiagram}
+     * (action="unmask_all") côté Java plutôt que de dépendre du LLM pour le faire correctement.
+     * Un agent qui unmask classe par classe (N appels) peut s'arrêter en cours de route (budget
+     * épuisé, erreur transitoire) et laisser un diagramme partiellement — voire totalement — vide,
+     * sans qu'aucune erreur ne remonte puisque la CRÉATION du diagramme, elle, a réussi. "unmask_all"
+     * est un seul appel idempotent : le réexécuter sur un diagramme déjà entièrement peuplé est sans
+     * effet, donc l'appeler systématiquement après la phase diagramme (qu'elle ait réussi ou non côté
+     * LLM) ne peut pas faire de mal et corrige silencieusement l'omission la plus fréquente.
+     * <p>
+     * Ne s'applique que s'il existe EXACTEMENT UN diagramme de ce type dans le projet — en cas
+     * d'ambiguïté (0 ou plusieurs), ne fait rien plutôt que de deviner lequel unmask.
+     */
+    static boolean ensureDiagramFullyUnmasked(String diagramType) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode listArgs = mapper.createObjectNode();
+        listArgs.put("type_filter", diagramType);
+        String listResponse = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("list-diagrams-for-unmask-" + System.nanoTime())
+                .name("list_diagrams")
+                .arguments(mapper.writeValueAsString(listArgs))
+                .build());
+
+        String diagramUuid = null;
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(listResponse);
+            com.fasterxml.jackson.databind.JsonNode items = root.path("items");
+            if (!items.isArray()) {
+                items = root.path("diagrams");
+            }
+            if (items.isArray() && items.size() == 1) {
+                diagramUuid = items.get(0).path("uuid").asText(null);
+            } else if (items.isArray() && items.size() > 1) {
+                debug("⚠️ ensureDiagramFullyUnmasked: " + items.size() + " diagrammes de type " + diagramType
+                        + " trouvés, impossible de choisir sans ambiguïté — unmask_all ignoré.");
+            }
+        } catch (Exception e) {
+            debug("⚠️ Could not parse list_diagrams response: " + e.getMessage());
+        }
+        if (diagramUuid == null) {
+            return false;
+        }
+
+        ObjectNode unmaskArgs = mapper.createObjectNode();
+        unmaskArgs.put("diagram_uuid", diagramUuid);
+        unmaskArgs.put("action", "unmask_all");
+        String unmaskResponse = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                .id("unmask-all-" + System.nanoTime())
+                .name("uml_unmaskInDiagram")
+                .arguments(mapper.writeValueAsString(unmaskArgs))
+                .build());
+        boolean success = unmaskResponse != null && !containsMcpError(unmaskResponse);
+        if (!success) {
+            debug("⚠️ unmask_all failed for diagram " + diagramUuid + ": "
+                    + (unmaskResponse == null ? "null response" : unmaskResponse.substring(0, Math.min(300, unmaskResponse.length()))));
+        }
+        return success;
     }
 
     /** Indique si le projet contient au moins un diagramme du type donné (ex. "UseCaseDiagram"). */
@@ -156,6 +267,21 @@ final class McpAssistantPool {
     }
 
     private static List<String> listElementUuidsUnderPackage(String packageUuid, String typeFilter) throws IOException {
+        List<String> uuids = new ArrayList<>();
+        for (Map.Entry<String, String> entry : listElementsUnderPackage(packageUuid, typeFilter).entrySet()) {
+            uuids.add(entry.getValue());
+        }
+        return uuids;
+    }
+
+    /**
+     * Comme {@link #listElementUuidsUnderPackage}, mais conserve aussi le nom de chaque élément —
+     * nécessaire pour résoudre les noms de classe déclarés par le LLM (ex. {@code domain_classes_used})
+     * vers un UUID réel, puisque le LLM ne connaît que les noms au moment où il les écrit.
+     * <p>
+     * Clé = nom (dernier élément gagne en cas d'homonymes sous le même package), valeur = UUID.
+     */
+    static Map<String, String> listElementsUnderPackage(String packageUuid, String typeFilter) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode arguments = mapper.createObjectNode();
         arguments.put("type_filter", typeFilter);
@@ -165,7 +291,7 @@ final class McpAssistantPool {
                 .name("uml_listModelElements")
                 .arguments(mapper.writeValueAsString(arguments))
                 .build());
-        List<String> uuids = new ArrayList<>();
+        Map<String, String> uuidByName = new LinkedHashMap<>();
         try {
             com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response);
             com.fasterxml.jackson.databind.JsonNode items = root.path("items");
@@ -173,15 +299,16 @@ final class McpAssistantPool {
                 for (com.fasterxml.jackson.databind.JsonNode item : items) {
                     String ownerUuid = item.path("owner_uuid").asText(null);
                     String uuid = item.path("uuid").asText(null);
+                    String name = item.path("name").asText(null);
                     if (uuid != null && (packageUuid == null || packageUuid.equals(ownerUuid))) {
-                        uuids.add(uuid);
+                        uuidByName.put(name, uuid);
                     }
                 }
             }
         } catch (Exception e) {
             debug("⚠️ Could not parse uml_listModelElements response for type " + typeFilter + ": " + e.getMessage());
         }
-        return uuids;
+        return uuidByName;
     }
 
     /**
@@ -192,26 +319,38 @@ final class McpAssistantPool {
      * la tentative a réellement lieu dès qu'un couple d'UUIDs valides est identifié.
      */
     static boolean createSatisfyRelation(String sourceUuid, String targetUuid) {
+        return createAnalystRelation("satisfy", sourceUuid, targetUuid);
+    }
+
+    /**
+     * Crée un lien de traçabilité «related» entre un cas d'usage et une classe du modèle de domaine
+     * qu'il manipule, avec la même garantie déterministe que {@link #createSatisfyRelation}.
+     */
+    static boolean createRelatedRelation(String sourceUuid, String targetUuid) {
+        return createAnalystRelation("related", sourceUuid, targetUuid);
+    }
+
+    private static boolean createAnalystRelation(String relationType, String sourceUuid, String targetUuid) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode arguments = mapper.createObjectNode();
-            arguments.put("relation_type", "satisfy");
+            arguments.put("relation_type", relationType);
             arguments.put("source_uuid", sourceUuid);
             arguments.put("target_uuid", targetUuid);
             arguments.put("module_name", "ModelerModule");
             String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
-                    .id("satisfy-relation-" + System.nanoTime())
+                    .id(relationType + "-relation-" + System.nanoTime())
                     .name("analyst_createRelation")
                     .arguments(mapper.writeValueAsString(arguments))
                     .build());
             boolean success = response != null && !containsMcpError(response);
             if (!success) {
-                debug("⚠️ Satisfy relation creation failed (" + sourceUuid + " -> " + targetUuid + "): "
+                debug("⚠️ " + relationType + " relation creation failed (" + sourceUuid + " -> " + targetUuid + "): "
                         + (response == null ? "null response" : response.substring(0, Math.min(300, response.length()))));
             }
             return success;
         } catch (Exception e) {
-            debug("⚠️ Satisfy relation creation threw (" + sourceUuid + " -> " + targetUuid + "): " + e.getMessage());
+            debug("⚠️ " + relationType + " relation creation threw (" + sourceUuid + " -> " + targetUuid + "): " + e.getMessage());
             return false;
         }
     }

@@ -135,6 +135,11 @@ final class DomainModelChunker {
                     diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, 2);
             diagramResult = McpRetryHandler.retryOnProjectOverviewOnly(
                     diagramAssistant, diagramPhase, diagramPrompt, outputDirectory, diagramResult, 2);
+            try {
+                McpAssistantPool.ensureDiagramFullyUnmasked("ClassDiagram");
+            } catch (Exception e) {
+                McpAssistantPool.debug("⚠️ ensureDiagramFullyUnmasked(ClassDiagram) failed (non-fatal): " + e.getMessage());
+            }
             return "### " + diagramPhase + System.lineSeparator() + diagramResult.trim();
         } catch (Exception e) {
             McpAssistantPool.debug("⚠️ Class diagram phase failed (non-fatal): " + e.getMessage());

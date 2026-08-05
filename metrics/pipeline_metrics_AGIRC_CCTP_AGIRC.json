@@ -1,0 +1,75 @@
+{
+  "source_document" : "CCTP_AGIRC.pdf",
+  "build_timestamp" : "2026-08-05 17:49:39 UTC",
+  "build_location" : "C:\\Users\\jcadavid\\git\\ModelioAlchemist\\target\\modelioalchemist-0.1.0.jar",
+  "timings_ms" : {
+    "extraction" : 1804,
+    "extractor_agent" : 65025,
+    "filtering" : 21705,
+    "classification" : 36324,
+    "validate_completeness" : 7,
+    "validate_context" : 8,
+    "domain_analysis" : 28461,
+    "plantuml" : 84120,
+    "create_requirements" : 2342,
+    "create_class_model" : 301441,
+    "finalizing" : 0,
+    "total" : 539087
+  },
+  "filtering" : {
+    "total_items_analyzed" : 30,
+    "requirements_retained" : 30,
+    "items_rejected" : 0,
+    "retention_rate_pct" : 100.0
+  },
+  "classification_validation" : {
+    "extracted_count" : 30,
+    "classified_count" : 26,
+    "missing_requirements" : 4,
+    "extra_requirements" : 0,
+    "is_valid" : false
+  },
+  "context_validation" : {
+    "total_requirements" : 28,
+    "contextualized_requirements" : 28,
+    "contextRate_pct" : 100.0,
+    "category_distribution" : {
+      "fonctionnel" : 17,
+      "rssi" : 2,
+      "ecoconception" : 1,
+      "rse" : 1,
+      "technique" : 7
+    },
+    "missing_references" : 0
+  },
+  "source_location" : {
+    "from_llm" : 30,
+    "from_deterministic_fallback" : 0,
+    "still_missing" : 0
+  },
+  "mcp_requirements" : {
+    "attempted" : 30,
+    "created_successfully" : 30,
+    "failed" : 0
+  },
+  "mcp_satisfy_links" : {
+    "uml_elements_created" : 0,
+    "satisfy_relations_attempted" : 20,
+    "satisfy_relations_confirmed" : 20,
+    "use_cases_total" : 20,
+    "use_cases_covered_by_llm" : 5,
+    "use_cases_covered_by_fallback" : 15,
+    "use_cases_uncovered" : 0
+  },
+  "class_model_elements" : {
+    "classes_created" : 40,
+    "attributes_created" : 161,
+    "associations_created" : 45,
+    "packages_created" : 1
+  },
+  "use_case_elements" : {
+    "actors_created" : 5,
+    "use_cases_created" : 20,
+    "diagram_created" : true
+  }
+}

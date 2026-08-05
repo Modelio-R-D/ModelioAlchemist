@@ -136,8 +136,8 @@ class UmlPromptBuilder {
         prompt.append("   - 🚨 NE PAS IGNORER AUCUNE ASSOCIATION\n\n");
         prompt.append("4️⃣ **Créer le Diagramme de Classes** : OBLIGATOIRE, en dernier\n");
         prompt.append("   - `uml_createDiagram` : diagramme de classes nommé 'Modèle de Domaine' dans le package 'Modèle de Domaine'\n");
-        prompt.append("   - Puis `uml_unmaskInDiagram` pour CHAQUE classe créée (UUID du diagramme + UUID de la classe)\n");
-        prompt.append("   - Les associations entre classes affichées apparaissent automatiquement\n");
+        prompt.append("   - Puis UN SEUL appel `uml_unmaskInDiagram` (diagram_uuid=<UUID du diagramme>, action=\"unmask_all\") — PAS un appel par classe.\n");
+        prompt.append("     Affiche automatiquement toutes les classes du package, leurs attributs/opérations, et les relations entre elles.\n");
         prompt.append("   - Si un appel diagramme échoue, continuer sans bloquer et le signaler\n\n");
 
         prompt.append("📊 **CRITIQUE : PRODUIRE UNE SORTIE AS-BUILT**\n");
@@ -290,11 +290,12 @@ class UmlPromptBuilder {
         prompt.append("  2) `list_diagrams` (type_filter=ClassDiagram) : si un diagramme nommé 'Modèle de Domaine' existe déjà, réutiliser son UUID\n");
         prompt.append("     et passer directement à l'étape 3 — NE PAS en créer un second. Sinon, `uml_createDiagram` pour le créer\n");
         prompt.append("     (diagramme de classes nommé 'Modèle de Domaine', avec ce package comme propriétaire) et conserver l'UUID retourné.\n");
-        prompt.append("  3) Pour CHAQUE classe listée ci-dessous : `search_model` (type=class) pour obtenir son UUID,\n");
-        prompt.append("     puis `uml_unmaskInDiagram` avec l'UUID du diagramme et l'UUID de la classe.\n");
-        prompt.append("  4) Les associations entre classes affichées apparaissent automatiquement : ne pas les recréer.\n");
-        prompt.append("Si un `uml_unmaskInDiagram` échoue, continuer avec les classes suivantes sans bloquer.\n");
-        prompt.append("Retour attendu: UUID du diagramme et liste des classes effectivement affichées.\n\n");
+        prompt.append("  3) UN SEUL appel `uml_unmaskInDiagram` (diagram_uuid=<UUID du diagramme>, action=\"unmask_all\") — PAS un appel par classe.\n");
+        prompt.append("     Cette action affiche automatiquement TOUTES les classes enfants du package (composition), avec leurs attributs et\n");
+        prompt.append("     opérations, et découvre/affiche automatiquement les relations entre elles. Un diagramme non vide en dépend entièrement :\n");
+        prompt.append("     omettre cet appel, ou le remplacer par des appels un par un qui échouent en cours de route, laisse le diagramme vide.\n");
+        prompt.append("  4) Les associations entre classes affichées apparaissent automatiquement via l'étape 3 : ne pas les recréer.\n");
+        prompt.append("Retour attendu: UUID du diagramme et confirmation que 'unmask_all' a été exécuté.\n\n");
 
         prompt.append("## CLASSES À AFFICHER\n");
         if (classNames != null) {
@@ -325,11 +326,11 @@ class UmlPromptBuilder {
         prompt.append("     Si l'un d'eux a pour propriétaire (owner) le package UUID ci-dessus, réutiliser SON UUID — QUEL QUE SOIT SON NOM —\n");
         prompt.append("     et passer directement à l'étape 2 — NE PAS en créer un second. Sinon SEULEMENT, `uml_createDiagram` pour le créer\n");
         prompt.append("     (diagramme de cas d'usage nommé 'Cas d'Usage', avec le package ci-dessus comme propriétaire) et conserver l'UUID retourné.\n");
-        prompt.append("  2) `search_model` (type=actor, owner_uuid=").append(useCasesPackageUuid).append(") ET `search_model` (type=usecase, owner_uuid=")
-                .append(useCasesPackageUuid).append(") pour lister TOUS les acteurs et cas d'usage déjà créés sous ce package.\n");
-        prompt.append("  3) Pour CHAQUE acteur et CHAQUE cas d'usage trouvé : `uml_unmaskInDiagram` avec l'UUID du diagramme et son UUID.\n");
-        prompt.append("  4) Les associations acteur-cas d'usage affichées apparaissent automatiquement : ne pas les recréer.\n");
-        prompt.append("Si un `uml_unmaskInDiagram` échoue, continuer avec les éléments suivants sans bloquer.\n");
+        prompt.append("  2) UN SEUL appel `uml_unmaskInDiagram` (diagram_uuid=<UUID du diagramme>, action=\"unmask_all\") — PAS un appel par acteur/cas d'usage.\n");
+        prompt.append("     Cette action affiche automatiquement TOUS les acteurs et cas d'usage enfants du package (composition), et découvre/affiche\n");
+        prompt.append("     automatiquement les associations entre eux. Un diagramme non vide en dépend entièrement : des appels un par un qui\n");
+        prompt.append("     s'interrompent en cours de route laissent le diagramme vide ou partiel.\n");
+        prompt.append("  3) Les associations acteur-cas d'usage affichées apparaissent automatiquement via l'étape 2 : ne pas les recréer.\n");
         prompt.append("Retour attendu: UUID du diagramme et liste des acteurs/cas d'usage effectivement affichés.\n");
         return prompt.toString();
     }

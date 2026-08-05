@@ -1,60 +1,75 @@
 {
   "source_document" : "CCTP.pdf",
-  "build_timestamp" : "2026-08-04 14:10:13 UTC",
+  "build_timestamp" : "2026-08-05 17:49:39 UTC",
   "build_location" : "C:\\Users\\jcadavid\\git\\ModelioAlchemist\\target\\modelioalchemist-0.1.0.jar",
   "timings_ms" : {
-    "extraction" : 2443,
-    "extractor_agent" : 87268,
-    "filtering" : 16021,
-    "classification" : 47180,
-    "validate_completeness" : 4,
-    "validate_context" : 15,
-    "domain_analysis" : 22341,
-    "plantuml" : 81314,
-    "create_requirements" : 1594,
-    "create_class_model" : 332077,
+    "extraction" : 3060,
+    "extractor_agent" : 66375,
+    "filtering" : 34884,
+    "classification" : 63564,
+    "validate_completeness" : 1,
+    "validate_context" : 2,
+    "domain_analysis" : 28195,
+    "plantuml" : 77896,
+    "create_requirements" : 2694,
+    "create_class_model" : 263896,
     "finalizing" : 0,
-    "total" : 588843
+    "total" : 538116
   },
   "filtering" : {
-    "total_items_analyzed" : 22,
-    "requirements_retained" : 20,
-    "items_rejected" : 2,
-    "retention_rate_pct" : 90.9090909090909
+    "total_items_analyzed" : 50,
+    "requirements_retained" : 50,
+    "items_rejected" : 1,
+    "retention_rate_pct" : 100.0
   },
   "classification_validation" : {
-    "extracted_count" : 22,
-    "classified_count" : 20,
-    "missing_requirements" : 2,
+    "extracted_count" : 50,
+    "classified_count" : 39,
+    "missing_requirements" : 11,
     "extra_requirements" : 0,
     "is_valid" : false
   },
   "context_validation" : {
-    "total_requirements" : 26,
-    "contextualized_requirements" : 26,
+    "total_requirements" : 43,
+    "contextualized_requirements" : 43,
     "contextRate_pct" : 100.0,
     "category_distribution" : {
-      "fonctionnel" : 11,
-      "rssi" : 2,
+      "fonctionnel" : 10,
+      "rssi" : 5,
       "ecoconception" : 2,
-      "rse" : 0,
-      "technique" : 11
+      "rse" : 8,
+      "technique" : 18
     },
     "missing_references" : 0
   },
   "source_location" : {
-    "from_llm" : 20,
+    "from_llm" : 50,
     "from_deterministic_fallback" : 0,
     "still_missing" : 0
   },
   "mcp_requirements" : {
-    "attempted" : 20,
-    "created_successfully" : 20,
+    "attempted" : 50,
+    "created_successfully" : 50,
     "failed" : 0
   },
   "mcp_satisfy_links" : {
     "uml_elements_created" : 0,
-    "satisfy_relations_attempted" : 0,
-    "satisfy_relations_confirmed" : 0
+    "satisfy_relations_attempted" : 12,
+    "satisfy_relations_confirmed" : 12,
+    "use_cases_total" : 12,
+    "use_cases_covered_by_llm" : 12,
+    "use_cases_covered_by_fallback" : 0,
+    "use_cases_uncovered" : 0
+  },
+  "class_model_elements" : {
+    "classes_created" : 43,
+    "attributes_created" : 66,
+    "associations_created" : 42,
+    "packages_created" : 1
+  },
+  "use_case_elements" : {
+    "actors_created" : 6,
+    "use_cases_created" : 12,
+    "diagram_created" : true
   }
 }
