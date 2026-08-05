@@ -121,6 +121,20 @@ class McpFailurePatterns {
             "|UUID.*invalid.*addMember" +
             ")");
 
+    /**
+     * Matches a self-detected malformed/invalid UUID (typo'd segment, duplicated group, wrong
+     * length...) where the agent explicitly confirms no creation tool ran — i.e. no side effect
+     * occurred, so a plain retry is safe. Seen in practice: an agent correctly retyping the same
+     * UUID across 9 consecutive tool calls, then garbling it on the 10th (duplicated hex segment).
+     */
+    static final Pattern MALFORMED_UUID_NO_SIDE_EFFECT_PATTERN = Pattern.compile(
+            "(?is)MCP_EXECUTION_FAILED:.*(?:" +
+            "uuid.{0,40}invalide.{0,80}segment\\s+dupliqu[eé]" +
+            "|owner_uuid.{0,40}invalide" +
+            "|uuid.{0,40}malform[eé]" +
+            "|invalid\\s+uuid.{0,80}duplicate.{0,20}segment" +
+            ").*(?:aucun\\s+outil\\s+de\\s+cr[eé]ation.*ex[eé]cut[eé]|no\\s+creation\\s+tool.*executed)");
+
     /** Matches LLM output that contains manual instructions instead of MCP tool calls. */
     static final Pattern MANUAL_INSTRUCTIONS_PATTERN = Pattern.compile(
             "(?i)(^|\\b)(?:étape\\s*1|step\\s*1|ouvrez?\\s+modelio|ouvrir\\s+modelio|suivez\\s+les\\s+étapes|vous\\s+pouvez\\s+trouver\\s+l['']uuid|trouver\\s+l['']uuid|assurez-vous\\s+d['']avoir\\s+modelio|créez\\s+un\\s+nouveau\\s+projet)");
@@ -149,6 +163,10 @@ class McpFailurePatterns {
 
     static boolean isMemberUuidNotFoundFailure(String result) {
         return result != null && MEMBER_UUID_NOT_FOUND_PATTERN.matcher(result).find();
+    }
+
+    static boolean isMalformedUuidNoSideEffectFailure(String result) {
+        return result != null && MALFORMED_UUID_NO_SIDE_EFFECT_PATTERN.matcher(result).find();
     }
 
     static boolean isNoToolCallFailure(IllegalStateException e) {

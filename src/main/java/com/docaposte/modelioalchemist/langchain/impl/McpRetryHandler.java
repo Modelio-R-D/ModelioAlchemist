@@ -192,6 +192,41 @@ class McpRetryHandler {
         return result;
     }
 
+    /**
+     * Reprise pour une erreur auto-détectée d'UUID malformé (segment dupliqué, typo...) où l'agent
+     * confirme lui-même qu'aucun outil de création n'a été exécuté — donc aucun effet de bord à
+     * réparer. Observé en pratique : un agent retype correctement le même UUID sur 9 appels
+     * consécutifs puis le corrompt au 10e ; un simple nouvel essai avec le même prompt suffit dans
+     * l'immense majorité des cas, l'erreur étant une pure fluctuation d'aléa, pas un problème
+     * structurel du prompt ou des données.
+     */
+    static String retryOnMalformedUuidNoSideEffect(
+            PooledUmlAssistant pa,
+            String phaseName,
+            String basePrompt,
+            String outputDirectory,
+            String initialResult,
+            int maxAttempts) throws IOException {
+        String result = initialResult;
+        if (maxAttempts <= 1 || !McpFailurePatterns.isMalformedUuidNoSideEffectFailure(result)) {
+            return result;
+        }
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            if (!McpFailurePatterns.isMalformedUuidNoSideEffectFailure(result)) {
+                return result;
+            }
+            String retryPrompt = basePrompt + System.lineSeparator() + System.lineSeparator()
+                    + "RECOVERY RETRY #" + attempt + ": la tentative précédente a échoué car un UUID a été mal retranscrit"
+                    + " (segment dupliqué ou tronqué) dans un appel d'outil — aucune création n'a eu lieu, rien à corriger dans le modèle."
+                    + System.lineSeparator()
+                    + "Reprends EXACTEMENT la même demande depuis le début. Recopie chaque UUID caractère par caractère depuis le contexte"
+                    + " ci-dessus avant de l'utiliser dans un appel d'outil ; ne le retype jamais de mémoire.";
+            debug("♻️ Retrying phase '" + phaseName + "' after self-detected malformed UUID with no side effect (attempt " + attempt + "/" + maxAttempts + ")");
+            result = executeAssistantWithMcpTrace(pa, phaseName + "_malformed_uuid_retry_" + attempt, retryPrompt, outputDirectory);
+        }
+        return result;
+    }
+
     static String retryOnProjectOverviewOnly(
             PooledUmlAssistant pa,
             String phaseName,

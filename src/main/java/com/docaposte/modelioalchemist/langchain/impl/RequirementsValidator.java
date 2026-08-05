@@ -13,14 +13,18 @@ import java.util.regex.Matcher;
 public class RequirementsValidator {
     
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final Pattern REQUIREMENT_PATTERN = Pattern.compile("EX-\\d+");
-    
+    // Les CCTP réels n'utilisent pas tous la convention d'exemple "EX-NNN" citée dans les prompts ;
+    // nos propres prompts assignent en revanche systématiquement des id "REQ-NNN"/"EXG-NNN". Se
+    // limiter à "EX-\d+" faisait retomber extracted_count/classified_count à 0 sur les documents qui
+    // ne reprennent pas cette convention, alors que le "id" auto-assigné, lui, est toujours présent.
+    private static final Pattern REQUIREMENT_PATTERN = Pattern.compile("(?:EX|EXG|REQ)-\\d+");
+
     /**
      * Valide que toutes les exigences extraites sont présentes dans la classification
      */
     public static ValidationResult validateClassification(String extractedText, String classifiedJson) {
         try {
-            Set<String> extractedReqs = extractRequirementIds(extractedText);
+            Set<String> extractedReqs = extractRequirementIdsFromFilteredJson(extractedText);
             Set<String> classifiedReqs = extractRequirementIdsFromJson(classifiedJson);
             
             Set<String> missingReqs = new HashSet<>(extractedReqs);
@@ -92,6 +96,44 @@ public class RequirementsValidator {
     }
     
     /**
+     * Extrait les identifiants d'exigences depuis le JSON de filtrage (filteredJson), en priorité
+     * via la structure ("filtered_requirements"[].id / .original_ref), qui porte l'id que NOTRE
+     * propre prompt assigne de façon déterministe (fiable, contrairement à la convention de
+     * numérotation propre à chaque document source). Retombe sur une recherche regex texte brut
+     * si le JSON ne parse pas ou ne contient pas ce tableau.
+     */
+    private static Set<String> extractRequirementIdsFromFilteredJson(String filteredJson) {
+        Set<String> requirements = new HashSet<>();
+        try {
+            JsonNode root = mapper.readTree(filteredJson);
+            JsonNode filtered = root.path("filtered_requirements");
+            if (filtered.isArray() && !filtered.isEmpty()) {
+                for (JsonNode reqNode : filtered) {
+                    // Seul "id" (assigné par le filtrage) fait foi pour la comparaison de couverture.
+                    // "original_ref" trace la provenance vers l'extraction pré-filtrage — une métadonnée
+                    // de lignage, pas une identité que le classifieur est censé reproduire. La confondre
+                    // avec "id" gonflait extractedCount et fabriquait de fausses "exigences manquantes"
+                    // dès que le classifieur (légitimement) ne reportait pas cette référence historique.
+                    addMatches(requirements, reqNode.path("id").asText(""));
+                }
+                if (!requirements.isEmpty()) {
+                    return requirements;
+                }
+            }
+        } catch (Exception e) {
+            // Pas un JSON exploitable : on retombe sur la recherche texte brute ci-dessous.
+        }
+        return extractRequirementIds(filteredJson);
+    }
+
+    private static void addMatches(Set<String> target, String text) {
+        Matcher matcher = REQUIREMENT_PATTERN.matcher(text);
+        while (matcher.find()) {
+            target.add(matcher.group());
+        }
+    }
+
+    /**
      * Extrait les identifiants d'exigences (EX-XXX) d'un texte
      */
     private static Set<String> extractRequirementIds(String text) {
@@ -118,16 +160,12 @@ public class RequirementsValidator {
                 categoryNode.forEach(reqNode -> {
                     // New format: objects with requirement_id or original_ref fields
                     if (reqNode.isObject()) {
+                        // Symétrique à extractRequirementIdsFromFilteredJson : seul "requirement_id" est
+                        // comparé. "original_ref" (s'il est présent) reste une référence de lignage, pas
+                        // l'identité à valider.
                         if (reqNode.has("requirement_id")) {
                             String reqId = reqNode.get("requirement_id").asText();
                             Matcher matcher = REQUIREMENT_PATTERN.matcher(reqId);
-                            while (matcher.find()) {
-                                requirements.add(matcher.group());
-                            }
-                        }
-                        if (reqNode.has("original_ref")) {
-                            String origRef = reqNode.get("original_ref").asText();
-                            Matcher matcher = REQUIREMENT_PATTERN.matcher(origRef);
                             while (matcher.find()) {
                                 requirements.add(matcher.group());
                             }

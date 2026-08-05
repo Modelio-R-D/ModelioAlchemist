@@ -22,6 +22,7 @@ public class PipelineMetrics {
     private SourceLocationMetrics sourceLocationMetrics;
     private McpRequirementsMetrics mcpRequirementsMetrics;
     private McpSatisfyLinksMetrics mcpSatisfyLinksMetrics;
+    private ClassModelElementsMetrics classModelElementsMetrics;
     
     // Timing markers
     private long pipelineStartTime;
@@ -104,6 +105,25 @@ public class PipelineMetrics {
         this.classificationValidationMetrics = new ClassificationValidationMetrics(
             extractedCount, classifiedCount, missingCount, extraCount, isValid);
     }
+
+    /**
+     * Détecte l'incohérence : classification_validation rapporte 0 exigence classifiée alors que
+     * des exigences ont bien été créées avec succès dans Modelio ailleurs dans le run. Sans ce
+     * garde-fou, is_valid restait "true" par défaut (rien à comparer) et masquait silencieusement
+     * un problème de parsing en amont. Appelé après que mcp_requirements soit connu (étape
+     * ultérieure du pipeline), donc a posteriori sur les métriques déjà enregistrées.
+     */
+    public void reconcileClassificationValidation(int mcpRequirementsCreatedSuccessfully) {
+        if (classificationValidationMetrics == null) {
+            return;
+        }
+        if (classificationValidationMetrics.classifiedCount == 0 && mcpRequirementsCreatedSuccessfully > 0) {
+            classificationValidationMetrics.isValid = false;
+            classificationValidationMetrics.coherenceWarning =
+                "classified_count=0 mais " + mcpRequirementsCreatedSuccessfully
+                + " exigence(s) créées avec succès dans mcp_requirements : extraction JSON probablement en échec, pas une validation réussie.";
+        }
+    }
     
     public void setContextValidationMetrics(int totalRequirements, int contextualizedRequirements,
                                            Map<String, Integer> categoryDistribution, int missingReferencesCount) {
@@ -121,6 +141,10 @@ public class PipelineMetrics {
     
     public void setMcpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed) {
         this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+    }
+
+    public void setClassModelElementsMetrics(int classesCreated, int attributesCreated, int associationsCreated, int packagesCreated) {
+        this.classModelElementsMetrics = new ClassModelElementsMetrics(classesCreated, attributesCreated, associationsCreated, packagesCreated);
     }
     
     public ObjectNode toJson() {
@@ -171,7 +195,12 @@ public class PipelineMetrics {
         if (mcpSatisfyLinksMetrics != null) {
             root.set("mcp_satisfy_links", mcpSatisfyLinksMetrics.toJson());
         }
-        
+
+        // Class Model Elements
+        if (classModelElementsMetrics != null) {
+            root.set("class_model_elements", classModelElementsMetrics.toJson());
+        }
+
         return root;
     }
     
@@ -194,8 +223,14 @@ public class PipelineMetrics {
             node.put("total_items_analyzed", total);
             node.put("requirements_retained", retained);
             node.put("items_rejected", rejected);
-            if (total > 0) {
-                node.put("retention_rate_pct", (retained * 100.0) / total);
+            // Le LLM ne renseigne pas toujours total_items_analyzed correctement (observé à 0 sur
+            // certains runs réels alors que retained/rejected sont cohérents) : on retombe sur
+            // retained+rejected pour ne jamais laisser le taux absent, et on le borne à [0,100] pour
+            // ne jamais publier une valeur aberrante (>100%) en cas d'incohérence amont.
+            int effectiveTotal = total > 0 ? total : (retained + rejected);
+            if (effectiveTotal > 0) {
+                double rate = (retained * 100.0) / effectiveTotal;
+                node.put("retention_rate_pct", Math.max(0.0, Math.min(100.0, rate)));
             }
             return node;
         }
@@ -207,7 +242,8 @@ public class PipelineMetrics {
         int missingCount;
         int extraCount;
         boolean isValid;
-        
+        String coherenceWarning;
+
         ClassificationValidationMetrics(int extractedCount, int classifiedCount,
                                         int missingCount, int extraCount, boolean isValid) {
             this.extractedCount = extractedCount;
@@ -225,10 +261,13 @@ public class PipelineMetrics {
             node.put("missing_requirements", missingCount);
             node.put("extra_requirements", extraCount);
             node.put("is_valid", isValid);
+            if (coherenceWarning != null) {
+                node.put("coherence_warning", coherenceWarning);
+            }
             return node;
         }
     }
-    
+
     static class ContextValidationMetrics {
         int totalRequirements;
         int contextualizedRequirements;
@@ -305,6 +344,30 @@ public class PipelineMetrics {
         }
     }
     
+    static class ClassModelElementsMetrics {
+        int classesCreated;
+        int attributesCreated;
+        int associationsCreated;
+        int packagesCreated;
+
+        ClassModelElementsMetrics(int classesCreated, int attributesCreated, int associationsCreated, int packagesCreated) {
+            this.classesCreated = classesCreated;
+            this.attributesCreated = attributesCreated;
+            this.associationsCreated = associationsCreated;
+            this.packagesCreated = packagesCreated;
+        }
+
+        ObjectNode toJson() {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode node = mapper.createObjectNode();
+            node.put("classes_created", classesCreated);
+            node.put("attributes_created", attributesCreated);
+            node.put("associations_created", associationsCreated);
+            node.put("packages_created", packagesCreated);
+            return node;
+        }
+    }
+
     static class McpSatisfyLinksMetrics {
         int umlElementsCreated;
         int satisfyRelationsAttempted;

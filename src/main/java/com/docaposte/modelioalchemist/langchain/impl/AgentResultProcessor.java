@@ -86,32 +86,62 @@ final class AgentResultProcessor {
     /**
      * Extrait la structure JSON depuis un output d'agent
      */
+    private static final Pattern FENCED_JSON_BLOCK_PATTERN =
+            Pattern.compile("```json\\s*([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Extrait le bloc JSON contenant l'une des clés données. {@code agentOutput} est désormais un
+     * rapport agrégé multi-phases (exigences + cas d'usage + modèle de domaine, potentiellement
+     * plusieurs lots) qui peut contenir PLUSIEURS blocs JSON distincts. Prendre "la première { à la
+     * dernière }" du texte entier — comme le faisait l'ancienne implémentation — fusionnait tous ces
+     * blocs (et le texte/prose entre eux) en un seul span le plus souvent invalide, que
+     * {@code ObjectMapper} rejetait silencieusement ; les métriques de la phase 3 (classes créées,
+     * attributs, associations) retombaient donc systématiquement à zéro malgré une exécution
+     * réussie. On isole maintenant chaque bloc ```json``` individuellement et on ne retourne que
+     * celui qui contient la clé recherchée ET qui parse réellement comme JSON valide.
+     */
     static String extractJSONStructure(String agentOutput, String... jsonKeys) {
         if (agentOutput == null || jsonKeys == null || jsonKeys.length == 0) return null;
 
-        try {
-            // Chercher le bloc JSON avec la clé spécifiée
-            int jsonStart = agentOutput.indexOf("{");
-            int jsonEnd = agentOutput.lastIndexOf("}");
-
-            if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
-                String potentialJson = agentOutput.substring(jsonStart, jsonEnd + 1);
-
-                for (String jsonKey : jsonKeys) {
-                    if (jsonKey != null && potentialJson.contains("\"" + jsonKey + "\"")) {
-                        McpAssistantPool.debug("📊 Extracted JSON structure for key: " + jsonKey);
-                        return potentialJson;
+        ObjectMapper validationMapper = new ObjectMapper();
+        Matcher fenceMatcher = FENCED_JSON_BLOCK_PATTERN.matcher(agentOutput);
+        while (fenceMatcher.find()) {
+            String candidate = fenceMatcher.group(1).trim();
+            for (String jsonKey : jsonKeys) {
+                if (jsonKey != null && candidate.contains("\"" + jsonKey + "\"")) {
+                    try {
+                        validationMapper.readTree(candidate);
+                    } catch (Exception e) {
+                        continue; // bloc mal formé (tronqué, échappement cassé...) : essayer le suivant
                     }
+                    McpAssistantPool.debug("📊 Extracted JSON structure for key: " + jsonKey);
+                    return candidate;
                 }
             }
-
-            McpAssistantPool.debug("⚠️ No JSON structure found for keys: " + String.join(", ", jsonKeys));
-            return null;
-
-        } catch (Exception e) {
-            McpAssistantPool.debug("❌ Error extracting JSON structure: " + e.getMessage());
-            return null;
         }
+
+        // Repli : aucun bloc ```json``` trouvé (chemin plus ancien qui n'en émet pas). On retombe
+        // sur l'ancien comportement première-{-à-dernière-} UNIQUEMENT si le résultat parse : mieux
+        // vaut ne rien retourner que retourner un span invalide qui échouera plus loin en silence.
+        int jsonStart = agentOutput.indexOf("{");
+        int jsonEnd = agentOutput.lastIndexOf("}");
+        if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
+            String potentialJson = agentOutput.substring(jsonStart, jsonEnd + 1);
+            for (String jsonKey : jsonKeys) {
+                if (jsonKey != null && potentialJson.contains("\"" + jsonKey + "\"")) {
+                    try {
+                        validationMapper.readTree(potentialJson);
+                    } catch (Exception e) {
+                        continue;
+                    }
+                    McpAssistantPool.debug("📊 Extracted JSON structure for key (fallback, unfenced): " + jsonKey);
+                    return potentialJson;
+                }
+            }
+        }
+
+        McpAssistantPool.debug("⚠️ No JSON structure found for keys: " + String.join(", ", jsonKeys));
+        return null;
     }
 
     static String ensureStructuredRequirementsResult(String result) {

@@ -305,6 +305,35 @@ class UmlPromptBuilder {
         return prompt.toString();
     }
 
+    // ------------------------------------------------------------------ Phase 2C: use case diagram (deterministic recovery)
+
+    /**
+     * Recovery prompt used when the main use-cases agent didn't create its diagram (a single agent
+     * handling actors + use cases + associations + diagram in one pass can run out of budget before
+     * the last step). Looks up actors/use cases itself via search_model — deliberately doesn't rely
+     * on names parsed from the main agent's report, which may be incomplete or malformed.
+     */
+    static String createUseCaseDiagramPrompt(String useCasesPackageUuid) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("DEMANDE UTILISATEUR À EXÉCUTER MAINTENANT (PHASE 2C : DIAGRAMME DE CAS D'USAGE)\n");
+        prompt.append("Objectif unique: créer UN diagramme de cas d'usage et y afficher les acteurs et cas d'usage du package ci-dessous.\n");
+        prompt.append("Interdictions absolues: ne pas exécuter `project_overview`, ne pas appeler `analyst_queryItems`,\n");
+        prompt.append("   ne créer AUCUN acteur, AUCUN cas d'usage et AUCUNE association — tout existe déjà.\n\n");
+        prompt.append("Package Cas d'Usage, UUID EXACT : ").append(useCasesPackageUuid).append("\n\n");
+        prompt.append("Séquence obligatoire:\n");
+        prompt.append("  1) `list_diagrams` (type_filter=UseCaseDiagram, SANS name_filter) : parcourir TOUS les résultats.\n");
+        prompt.append("     Si l'un d'eux a pour propriétaire (owner) le package UUID ci-dessus, réutiliser SON UUID — QUEL QUE SOIT SON NOM —\n");
+        prompt.append("     et passer directement à l'étape 2 — NE PAS en créer un second. Sinon SEULEMENT, `uml_createDiagram` pour le créer\n");
+        prompt.append("     (diagramme de cas d'usage nommé 'Cas d'Usage', avec le package ci-dessus comme propriétaire) et conserver l'UUID retourné.\n");
+        prompt.append("  2) `search_model` (type=actor, owner_uuid=").append(useCasesPackageUuid).append(") ET `search_model` (type=usecase, owner_uuid=")
+                .append(useCasesPackageUuid).append(") pour lister TOUS les acteurs et cas d'usage déjà créés sous ce package.\n");
+        prompt.append("  3) Pour CHAQUE acteur et CHAQUE cas d'usage trouvé : `uml_unmaskInDiagram` avec l'UUID du diagramme et son UUID.\n");
+        prompt.append("  4) Les associations acteur-cas d'usage affichées apparaissent automatiquement : ne pas les recréer.\n");
+        prompt.append("Si un `uml_unmaskInDiagram` échoue, continuer avec les éléments suivants sans bloquer.\n");
+        prompt.append("Retour attendu: UUID du diagramme et liste des acteurs/cas d'usage effectivement affichés.\n");
+        return prompt.toString();
+    }
+
     // ------------------------------------------------------------------ shared context appender
 
     static void appendRequirementsContext(
@@ -353,7 +382,8 @@ class UmlPromptBuilder {
         prompt.append("🎯 Créer un modèle de cas d'usage complet en français avec acteurs et scénarios.\n");
         prompt.append("🚨 Utiliser les outils MCP pour créer acteurs, cas d'usage et leurs associations.\n\n");
         prompt.append("🚫 INTERDICTIONS ABSOLUES : ne pas appeler `analyst_queryItems` et ne jamais rechercher une exigence par nom, catégorie ou mot-clé.\n");
-        prompt.append("🔗 Les liens «Satisfait» sont OPTIONNELS : utilisez uniquement un UUID d'exigence fourni explicitement dans ce prompt; sinon sautez le lien sans erreur.\n\n");
+        prompt.append("🔗 TRAÇABILITÉ OBLIGATOIRE : chaque cas d'usage DOIT être rattaché à au moins une exigence (voir `linked_requirements` plus bas) —\n");
+        prompt.append("   choisir uniquement parmi les identifiants d'exigence fournis explicitement dans ce prompt, jamais par recherche.\n\n");
 
         if (parsedRequirements != null && !parsedRequirements.isEmpty()) {
             prompt.append("## CONTEXTE FONCTIONNEL - APERÇU DES EXIGENCES\n");
@@ -367,7 +397,7 @@ class UmlPromptBuilder {
                             req.description.length() > 100 ? req.description.substring(0, 100) + "..." : req.description));
                 }
             }
-            prompt.append("\n🔗 LIEN : Créer des cas d'usage qui couvrent ces exigences fonctionnelles; les liens «Satisfait» restent optionnels.\n\n");
+            prompt.append("\n🔗 LIEN OBLIGATOIRE : créer des cas d'usage qui couvrent ces exigences fonctionnelles ET déclarer ce lien dans `linked_requirements`.\n\n");
         }
 
         prompt.append("## CONTEXTE DES PHASES PRÉCÉDENTES\n### Exigences Créées (Phase 1) :\n");
@@ -378,14 +408,14 @@ class UmlPromptBuilder {
         }
 
         if (requirementUUIDs != null && !requirementUUIDs.isEmpty()) {
-            prompt.append("## UUIDS DES EXIGENCES DISPONIBLES POUR LIEN «SATISFAIT» (OPTIONNEL)\n");
-            prompt.append("NE PAS chercher les exigences par mots-clés! Utiliser directement ces UUIDs si pertinent:\n\n");
+            prompt.append("## UUIDS EXIGENCES (référence — pour information uniquement)\n");
+            prompt.append("NE PAS chercher les exigences par mots-clés! Ces UUIDs confirment que les exigences ci-dessus existent bien dans Modelio:\n\n");
             for (int i = 0; i < requirementUUIDs.size(); i++) {
                 prompt.append(String.format("- UUID exigence #%d: %s\n", (i + 1), requirementUUIDs.get(i)));
             }
-            prompt.append("\nSi un lien «Satisfait» est créé, utiliser analyst_createRelation avec relation_type=\"satisfy\",");
-            prompt.append(" source_uuid=<UUID cas d'usage>, target_uuid=<l'un des UUIDs exigences ci-dessus>.\n");
-            prompt.append("⚠️ CES LIENS SONT OPTIONNELS — ne jamais bloquer ni échouer si aucun UUID d'exigence n'est disponible.\n\n");
+            prompt.append("\n🚨 RAPPEL : dans le JSON as-built, `linked_requirements` de CHAQUE cas d'usage doit contenir au moins un identifiant\n");
+            prompt.append("   (EXG-XXX) parmi les exigences listées ci-dessus — jamais vide. NE PAS appeler `analyst_createRelation` vous-même ;\n");
+            prompt.append("   la création du lien «Satisfait» à partir de ce champ est faite automatiquement après coup.\n\n");
         }
 
         prompt.append("🔍 **EXTRAIRE LE JSON DES EXIGENCES** : Rechercher la structure JSON dans les résultats ci-dessus\n\n");
@@ -416,16 +446,25 @@ class UmlPromptBuilder {
         prompt.append("3️⃣ **Créer les Cas d'Usage** : Utiliser les outils MCP\n");
         prompt.append("   - Extraire les fonctionnalités principales des exigences et du PlantUML de référence\n");
         prompt.append("   - Créer les cas d'usage : 'Gérer les Utilisateurs', 'Traiter les Données', etc.\n");
-        prompt.append("   - Lier aux exigences d'implémentation uniquement si un UUID d'exigence valide est déjà fourni dans ce prompt\n");
         prompt.append("   - Placer sous parentUuid=").append(useCasesPackageUuid).append("\n   - Rapporter l'UUID de chaque cas d'usage\n");
-        prompt.append("   - OPTIONNEL : si un UUID d'exigence valide est disponible, matérialiser le lien «Satisfait» avec `analyst_createRelation`\n");
-        prompt.append("     (relation_type=\"satisfy\", source_uuid=<UUID du cas d'usage>, target_uuid=<UUID de l'exigence>, module_name=\"ModelerModule\").\n");
-        prompt.append("     Si aucun UUID valide n'est disponible, ne cherchez pas l'exigence par nom et continuez sans erreur.\n\n");
+        prompt.append("   🚨 OBLIGATOIRE — TRAÇABILITÉ : dans le JSON as-built (section suivante), le champ `linked_requirements` de\n");
+        prompt.append("      CHAQUE cas d'usage DOIT contenir AU MOINS UN identifiant d'exigence (ex. \"EXG-003\") parmi ceux fournis dans ce prompt.\n");
+        prompt.append("      Choisir l'exigence la plus pertinente même si le lien n'est pas parfait — ne JAMAIS laisser `linked_requirements` vide.\n");
+        prompt.append("      NE PAS appeler `analyst_createRelation` vous-même : la création réelle du lien «Satisfait» à partir de ce champ\n");
+        prompt.append("      est faite automatiquement après coup, de façon déterministe — un appel manuel créerait un doublon.\n\n");
         prompt.append("4️⃣ **Créer les Associations Acteur-Cas d'Usage** : Utiliser les outils MCP\n");
         prompt.append("   - Connecter chaque acteur aux cas d'usage pertinents\n");
         prompt.append("   - Utiliser les types d'association appropriés\n");
         prompt.append("   - Ajouter les relations <<include>> et <<extend>> si nécessaire\n");
         prompt.append("   - Maintenir la traçabilité vers les exigences\n\n");
+        prompt.append("5️⃣ **Créer le Diagramme de Cas d'Usage** : OBLIGATOIRE, en dernier\n");
+        prompt.append("   - `list_diagrams` (type_filter=UseCaseDiagram, SANS name_filter) : parcourir TOUS les résultats retournés.\n");
+        prompt.append("     Si l'un d'eux a pour propriétaire (owner) le package UUID ").append(useCasesPackageUuid).append(", réutiliser SON UUID — QUEL QUE SOIT SON NOM — et NE PAS en créer un second.\n");
+        prompt.append("   - Sinon SEULEMENT, `uml_createDiagram` : diagramme de cas d'usage nommé EXACTEMENT 'Cas d'Usage' (jamais un nom basé sur le contenu),\n");
+        prompt.append("     avec le package 'Cas d'Usage' (UUID ci-dessus) comme propriétaire.\n");
+        prompt.append("   - Puis `uml_unmaskInDiagram` pour CHAQUE acteur ET CHAQUE cas d'usage créés (UUID du diagramme + UUID de l'élément).\n");
+        prompt.append("   - Les associations acteur-cas d'usage affichées apparaissent automatiquement.\n");
+        prompt.append("   - Si un appel diagramme échoue, continuer sans bloquer et le signaler.\n\n");
 
         prompt.append("📊 **CRITICAL: PRODUCE VALIDATION & OUTPUTS**\n");
         prompt.append("After creating use cases, generate:\n\n");
@@ -458,11 +497,12 @@ class UmlPromptBuilder {
         prompt.append("- Intégration avec systèmes externes\n\n");
 
         prompt.append("## EXIGENCES DE TRAÇABILITÉ\n");
-        prompt.append("🔗 Lier les cas d'usage aux exigences qui définissent leurs fonctionnalités\n");
+        prompt.append("🔗 OBLIGATOIRE : lier CHAQUE cas d'usage à au moins une exigence qui définit sa fonctionnalité (champ `linked_requirements`)\n");
         prompt.append("🔗 Référencer les classes du modèle de domaine manipulées par les cas d'usage\n");
         prompt.append("🔗 Assurer une couverture complète des exigences fonctionnelles\n");
-        prompt.append("⚠️ RAPPEL : un lien de traçabilité vers une exigence ne peut être créé que si un UUID d'exigence valide est fourni dans ce prompt.\n");
-        prompt.append("   Ne jamais appeler `analyst_queryItems` ni rechercher une exigence par nom; si l'UUID manque, conservez la traçabilité uniquement dans le compte-rendu/JSON et continuez.\n\n");
+        prompt.append("⚠️ RAPPEL : choisir uniquement parmi les identifiants d'exigence fournis dans ce prompt.\n");
+        prompt.append("   Ne jamais appeler `analyst_queryItems` ni rechercher une exigence par nom — si un cas d'usage ne correspond à aucune exigence évidente,\n");
+        prompt.append("   choisir la plus proche plutôt que de laisser `linked_requirements` vide.\n\n");
 
         prompt.append("NE FOURNISSEZ PAS DE PROCÉDURE MANUELLE. COMMENCEZ MAINTENANT : créez le package cas d'usage, les acteurs, les cas d'usage, puis les associations avec les outils MCP et retournez uniquement les résultats as-built.");
         return prompt.toString();

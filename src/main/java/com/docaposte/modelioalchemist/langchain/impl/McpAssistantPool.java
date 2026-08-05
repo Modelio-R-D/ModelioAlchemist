@@ -114,6 +114,45 @@ final class McpAssistantPool {
     }
 
     /**
+     * Crée un lien «Satisfait» de manière déterministe (sans dépendre du LLM), via l'outil MCP
+     * {@code analyst_createRelation}. Le prompt seul laissait le LLM libre de sauter ce lien
+     * (formulé comme optionnel, "ne jamais bloquer"), ce qui aboutissait à 0 lien créé sur 6
+     * exécutions réelles malgré des UUIDs d'exigence disponibles. Cet appel Java garantit que
+     * la tentative a réellement lieu dès qu'un couple d'UUIDs valides est identifié.
+     */
+    static boolean createSatisfyRelation(String sourceUuid, String targetUuid) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode arguments = mapper.createObjectNode();
+            arguments.put("relation_type", "satisfy");
+            arguments.put("source_uuid", sourceUuid);
+            arguments.put("target_uuid", targetUuid);
+            arguments.put("module_name", "ModelerModule");
+            String response = sharedMcpClient.executeTool(ToolExecutionRequest.builder()
+                    .id("satisfy-relation-" + System.nanoTime())
+                    .name("analyst_createRelation")
+                    .arguments(mapper.writeValueAsString(arguments))
+                    .build());
+            boolean success = response != null && !containsMcpError(response);
+            if (!success) {
+                debug("⚠️ Satisfy relation creation failed (" + sourceUuid + " -> " + targetUuid + "): "
+                        + (response == null ? "null response" : response.substring(0, Math.min(300, response.length()))));
+            }
+            return success;
+        } catch (Exception e) {
+            debug("⚠️ Satisfy relation creation threw (" + sourceUuid + " -> " + targetUuid + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static final Pattern MCP_ERROR_PATTERN =
+            Pattern.compile("(?i)\\b(error|failed|exception|mcp_execution_failed)\\b");
+
+    private static boolean containsMcpError(String response) {
+        return MCP_ERROR_PATTERN.matcher(response).find();
+    }
+
+    /**
      * Extrait la valeur d'un champ JSON précis nommé {@code fieldName} (ex. "uuid") plutôt que le
      * premier UUID trouvé dans le texte : la réponse de {@code uml_findOrCreatePackage} contient
      * aussi "parent_uuid", qui apparaît avant "uuid" et serait capturé à tort par une regex générique.

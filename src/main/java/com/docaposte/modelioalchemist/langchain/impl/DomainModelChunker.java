@@ -166,6 +166,7 @@ final class DomainModelChunker {
             String prompt,
             String outputDirectory) throws IOException {
         String result = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(assistant, phaseName, prompt, outputDirectory, 2);
+        result = McpRetryHandler.retryOnMalformedUuidNoSideEffect(assistant, phaseName, prompt, outputDirectory, result, 2);
         result = McpRetryHandler.retryOnMissingRequirementTargetUuid(assistant, phaseName, prompt, outputDirectory, result, 2);
         result = McpRetryHandler.retryOnMissingModelingRequest(assistant, phaseName, prompt, outputDirectory, result, 2);
         result = McpRetryHandler.retryOnProjectOverviewOnly(assistant, phaseName, prompt, outputDirectory, result, 2);
@@ -191,6 +192,7 @@ final class DomainModelChunker {
                 || parts.relationLines.size() >= PHASE2_CHUNKING_RELATION_THRESHOLD;
         if (!shouldChunk) {
             String classesResult = McpRetryHandler.executeAssistantWithMcpTraceWithRetry(assistant, "domain_model_phase", defaultPrompt, outputDirectory, 2);
+            classesResult = McpRetryHandler.retryOnMalformedUuidNoSideEffect(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpRetryHandler.retryOnMissingRequirementTargetUuid(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpRetryHandler.retryOnMissingModelingRequest(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);
             classesResult = McpRetryHandler.retryOnProjectOverviewOnly(assistant, "domain_model_phase", defaultPrompt, outputDirectory, classesResult, 2);

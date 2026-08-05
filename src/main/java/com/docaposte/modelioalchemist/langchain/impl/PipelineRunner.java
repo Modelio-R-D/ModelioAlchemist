@@ -339,19 +339,35 @@ public class PipelineRunner {
             JsonNode filterResults = mapper.readTree(filteredJson);
             if (filterResults.has("statistics")) {
                 JsonNode stats = filterResults.get("statistics");
-                filterTotal = stats.get("total_items_analyzed").asInt();
-                filterRetained = stats.get("requirements_retained").asInt();
-                filterRejected = stats.get("items_rejected").asInt();
-                
-                System.out.println("📊 Requirements filtering statistics:");
-                System.out.println("   - Total items analyzed: " + filterTotal);
-                System.out.println("   - True requirements retained: " + filterRetained);
-                System.out.println("   - False positives rejected: " + filterRejected);
-                System.out.println("   - Retention rate: " + (filterTotal > 0 ? (filterRetained * 100 / filterTotal) : 0) + "%");
-                
-                // Record filtering metrics
-                metrics.setFilteringMetrics(filterTotal, filterRetained, filterRejected);
+                filterTotal = stats.path("total_items_analyzed").asInt(0);
+                filterRetained = stats.path("requirements_retained").asInt(0);
+                filterRejected = stats.path("items_rejected").asInt(0);
+            } else if (filterResults.has("filtered_requirements") && filterResults.get("filtered_requirements").isArray()) {
+                // Le LLM a parfois omis le bloc "statistics" entièrement (observé sur des runs réels),
+                // ce qui faisait disparaître silencieusement le bloc "filtering" du JSON de sortie.
+                // On dérive un total de repli depuis le tableau réellement produit plutôt que de
+                // laisser le bloc absent.
+                System.err.println("⚠️ 'statistics' block missing from filter output; deriving from filtered_requirements array");
+                filterRetained = filterResults.get("filtered_requirements").size();
+                filterTotal = filterRetained;
             }
+
+            // Le LLM rapporte parfois total_items_analyzed=0 alors que retained/rejected sont
+            // cohérents entre eux : dériver le total plutôt que publier un taux de rétention absent.
+            if (filterTotal <= 0 && (filterRetained + filterRejected) > 0) {
+                System.err.println("⚠️ total_items_analyzed reported as " + filterTotal
+                        + " but retained/rejected are non-zero; deriving total_items_analyzed from their sum");
+                filterTotal = filterRetained + filterRejected;
+            }
+
+            System.out.println("📊 Requirements filtering statistics:");
+            System.out.println("   - Total items analyzed: " + filterTotal);
+            System.out.println("   - True requirements retained: " + filterRetained);
+            System.out.println("   - False positives rejected: " + filterRejected);
+            System.out.println("   - Retention rate: " + (filterTotal > 0 ? (filterRetained * 100 / filterTotal) : 0) + "%");
+
+            // Record filtering metrics
+            metrics.setFilteringMetrics(filterTotal, filterRetained, filterRejected);
         } catch (Exception e) {
             System.err.println("⚠️ Could not parse filter statistics: " + e.getMessage());
         }
@@ -1159,18 +1175,91 @@ public class PipelineRunner {
             }
             
             metrics.setMcpRequirementsMetrics(mcpAttempted, mcpCreatedSuccessfully, mcpFailed);
+            metrics.reconcileClassificationValidation(mcpCreatedSuccessfully);
             
             // Parse UML and satisfy metrics from generated reports first, then trace files as fallback.
             Path outputPath = Path.of(outputDir);
             int umlElementsCreated = countUmlElementsCreated(classModelReport, outputPath);
-            int satisfyRelationsAttempted = countSatisfyRelations(classModelReport, outputPath, true);
-            int satisfyRelationsConfirmed = countSatisfyRelations(classModelReport, outputPath, false);
-            
+
+            // Les liens «Satisfait» sont désormais créés de façon déterministe côté Java
+            // (LangchainService.createDeterministicSatisfyLinks) et le compte réel est imprimé dans
+            // le rapport sous la forme "SATISFY_LINKS_DETERMINISTIC: attempted=X confirmed=Y".
+            // On privilégie cette valeur, garantie non fabriquée, et on ne retombe sur le parsing
+            // heuristique des traces MCP que si ce marqueur est absent (ex. anciens rapports).
+            int satisfyRelationsAttempted;
+            int satisfyRelationsConfirmed;
+            Matcher deterministicMatcher = Pattern.compile("SATISFY_LINKS_DETERMINISTIC:\\s*attempted=(\\d+)\\s*confirmed=(\\d+)")
+                    .matcher(classModelReport == null ? "" : classModelReport);
+            if (deterministicMatcher.find()) {
+                satisfyRelationsAttempted = Integer.parseInt(deterministicMatcher.group(1));
+                satisfyRelationsConfirmed = Integer.parseInt(deterministicMatcher.group(2));
+            } else {
+                satisfyRelationsAttempted = countSatisfyRelations(classModelReport, outputPath, true);
+                satisfyRelationsConfirmed = countSatisfyRelations(classModelReport, outputPath, false);
+            }
+
             metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
-            
+
+            int[] classModelElements = countClassModelElements(classModelReport);
+            metrics.setClassModelElementsMetrics(
+                    classModelElements[0], classModelElements[1], classModelElements[2], classModelElements[3]);
+
         } catch (Exception e) {
             System.err.println("⚠️ Error parsing MCP metrics: " + e.getMessage());
         }
+    }
+
+    /**
+     * Compte les éléments réellement créés lors de la PHASE 3 (classes/associations) en parsant la
+     * structure JSON as-built {@code domain_model_created}/{@code modele_domaine_cree} produite par
+     * le prompt (cf. UmlPromptBuilder.createClassesPrompt). Étape la plus coûteuse du pipeline
+     * (46-58% du temps total) et jusqu'ici totalement dépourvue de métrique de résultat.
+     *
+     * @return {classes_created, attributes_created, associations_created, packages_created}
+     */
+    private int[] countClassModelElements(String classModelReport) {
+        int classesCreated = 0, attributesCreated = 0, associationsCreated = 0;
+        java.util.Set<String> packageUuids = new java.util.HashSet<>();
+        try {
+            String domainModelJson = AgentResultProcessor.extractJSONStructure(
+                    classModelReport, "domain_model_created", "modele_domaine_cree");
+            if (domainModelJson == null) {
+                return new int[]{0, 0, 0, 0};
+            }
+            ObjectMapper localMapper = new ObjectMapper();
+            JsonNode root = localMapper.readTree(domainModelJson);
+            JsonNode domainModel = root.path("domain_model_created");
+            if (domainModel.isMissingNode()) {
+                domainModel = root.path("modele_domaine_cree");
+            }
+
+            String packageUuid = domainModel.path("package_uuid").asText(null);
+            if (packageUuid != null && !packageUuid.isBlank()) {
+                packageUuids.add(packageUuid);
+            }
+
+            JsonNode classes = domainModel.path("classes");
+            if (classes.isArray()) {
+                classesCreated = classes.size();
+                for (JsonNode classNode : classes) {
+                    JsonNode attributs = classNode.path("attributs");
+                    if (!attributs.isArray()) {
+                        attributs = classNode.path("attributes");
+                    }
+                    if (attributs.isArray()) {
+                        attributesCreated += attributs.size();
+                    }
+                }
+            }
+
+            JsonNode associations = domainModel.path("associations");
+            if (associations.isArray()) {
+                associationsCreated = associations.size();
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not count class model elements: " + e.getMessage());
+        }
+        return new int[]{classesCreated, attributesCreated, associationsCreated, packageUuids.size()};
     }
     
     /**
