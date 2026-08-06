@@ -140,13 +140,13 @@ public class PipelineMetrics {
         this.mcpRequirementsMetrics = new McpRequirementsMetrics(attempted, createdSuccessfully, failed);
     }
     
-    public void setMcpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed) {
-        this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+    public void setMcpSatisfyLinksMetrics(int satisfyRelationsAttempted, int satisfyRelationsConfirmed) {
+        this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(satisfyRelationsAttempted, satisfyRelationsConfirmed);
     }
 
-    public void setMcpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed,
+    public void setMcpSatisfyLinksMetrics(int satisfyRelationsAttempted, int satisfyRelationsConfirmed,
             int useCasesTotal, int useCasesCoveredByLlm, int useCasesCoveredByFallback, int useCasesUncovered) {
-        this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed,
+        this.mcpSatisfyLinksMetrics = new McpSatisfyLinksMetrics(satisfyRelationsAttempted, satisfyRelationsConfirmed,
                 useCasesTotal, useCasesCoveredByLlm, useCasesCoveredByFallback, useCasesUncovered);
     }
 
@@ -385,25 +385,23 @@ public class PipelineMetrics {
     }
 
     static class McpSatisfyLinksMetrics {
-        int umlElementsCreated;
         int satisfyRelationsAttempted;
         int satisfyRelationsConfirmed;
-        // -1 = non renseigné (ancien appelant à 3 arguments) plutôt que 0, qui laisserait croire à
+        // -1 = non renseigné (ancien appelant à 2 arguments) plutôt que 0, qui laisserait croire à
         // "zéro cas d'usage" au lieu de "cette donnée n'a pas été fournie".
         int useCasesTotal = -1;
         int useCasesCoveredByLlm = -1;
         int useCasesCoveredByFallback = -1;
         int useCasesUncovered = -1;
 
-        McpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed) {
-            this.umlElementsCreated = umlElementsCreated;
+        McpSatisfyLinksMetrics(int satisfyRelationsAttempted, int satisfyRelationsConfirmed) {
             this.satisfyRelationsAttempted = satisfyRelationsAttempted;
             this.satisfyRelationsConfirmed = satisfyRelationsConfirmed;
         }
 
-        McpSatisfyLinksMetrics(int umlElementsCreated, int satisfyRelationsAttempted, int satisfyRelationsConfirmed,
+        McpSatisfyLinksMetrics(int satisfyRelationsAttempted, int satisfyRelationsConfirmed,
                 int useCasesTotal, int useCasesCoveredByLlm, int useCasesCoveredByFallback, int useCasesUncovered) {
-            this(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+            this(satisfyRelationsAttempted, satisfyRelationsConfirmed);
             this.useCasesTotal = useCasesTotal;
             this.useCasesCoveredByLlm = useCasesCoveredByLlm;
             this.useCasesCoveredByFallback = useCasesCoveredByFallback;
@@ -413,7 +411,9 @@ public class PipelineMetrics {
         ObjectNode toJson() {
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode node = mapper.createObjectNode();
-            node.put("uml_elements_created", umlElementsCreated);
+            // "uml_elements_created" retiré : il reposait sur un comptage heuristique par en-têtes
+            // de section obsolètes et retombait systématiquement à 0. "class_model_elements" et
+            // "use_case_elements" couvrent déjà ce besoin avec des comptes déterministes réels.
             node.put("satisfy_relations_attempted", satisfyRelationsAttempted);
             node.put("satisfy_relations_confirmed", satisfyRelationsConfirmed);
             if (useCasesTotal >= 0) {

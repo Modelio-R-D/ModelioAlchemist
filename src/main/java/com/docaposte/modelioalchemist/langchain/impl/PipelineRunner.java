@@ -358,6 +358,17 @@ public class PipelineRunner {
                 System.err.println("⚠️ total_items_analyzed reported as " + filterTotal
                         + " but retained/rejected are non-zero; deriving total_items_analyzed from their sum");
                 filterTotal = filterRetained + filterRejected;
+            } else if (filterTotal > 0 && filterTotal != filterRetained + filterRejected) {
+                // Le LLM rapporte parfois un total_items_analyzed incohérent avec ses propres
+                // retained/rejected (ex. observé : total=50, retained=50, rejected=1 — 50+1≠50).
+                // Les deux comptes détaillés (retained, rejected) sont plus fiables que le total
+                // résumé, car ce sont eux qui alimentent directement le JSON produit ; on les traite
+                // comme la source de vérité plutôt que de publier trois chiffres qui ne s'additionnent
+                // pas entre eux.
+                System.err.println("⚠️ total_items_analyzed=" + filterTotal + " is inconsistent with retained(" + filterRetained
+                        + ") + rejected(" + filterRejected + ") = " + (filterRetained + filterRejected)
+                        + "; overriding total_items_analyzed with the sum");
+                filterTotal = filterRetained + filterRejected;
             }
 
             System.out.println("📊 Requirements filtering statistics:");
@@ -1171,9 +1182,15 @@ public class PipelineRunner {
             metrics.setMcpRequirementsMetrics(mcpAttempted, mcpCreatedSuccessfully, mcpFailed);
             metrics.reconcileClassificationValidation(mcpCreatedSuccessfully);
             
-            // Parse UML and satisfy metrics from generated reports first, then trace files as fallback.
+            // Parse satisfy metrics from generated reports first, then trace files as fallback.
+            // ("uml_elements_created" existait ici mais reposait sur countUmlElementsCreated, un
+            // comptage heuristique par en-têtes de section français ("Éléments UML créés", "Cas
+            // d'usage créés sous"...) qui datait d'un format de rapport antérieur à toute la
+            // restructuration de cette session — ces en-têtes n'apparaissent plus dans les rapports
+            // actuels, donc le champ retombait systématiquement à 0. Supprimé plutôt que réparé :
+            // "class_model_elements" et "use_case_elements" couvrent déjà ce besoin avec des comptes
+            // déterministes réels, pas une heuristique de texte.)
             Path outputPath = Path.of(outputDir);
-            int umlElementsCreated = countUmlElementsCreated(classModelReport, outputPath);
 
             // Les liens «Satisfait» sont désormais créés de façon déterministe côté Java
             // (LangchainService.createDeterministicSatisfyLinks) et le compte réel est imprimé dans
@@ -1190,16 +1207,16 @@ public class PipelineRunner {
                 satisfyRelationsAttempted = Integer.parseInt(deterministicMatcher.group(1));
                 satisfyRelationsConfirmed = Integer.parseInt(deterministicMatcher.group(2));
                 if (deterministicMatcher.group(3) != null) {
-                    metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed,
+                    metrics.setMcpSatisfyLinksMetrics(satisfyRelationsAttempted, satisfyRelationsConfirmed,
                             Integer.parseInt(deterministicMatcher.group(3)), Integer.parseInt(deterministicMatcher.group(4)),
                             Integer.parseInt(deterministicMatcher.group(5)), Integer.parseInt(deterministicMatcher.group(6)));
                 } else {
-                    metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+                    metrics.setMcpSatisfyLinksMetrics(satisfyRelationsAttempted, satisfyRelationsConfirmed);
                 }
             } else {
                 satisfyRelationsAttempted = countSatisfyRelations(classModelReport, outputPath, true);
                 satisfyRelationsConfirmed = countSatisfyRelations(classModelReport, outputPath, false);
-                metrics.setMcpSatisfyLinksMetrics(umlElementsCreated, satisfyRelationsAttempted, satisfyRelationsConfirmed);
+                metrics.setMcpSatisfyLinksMetrics(satisfyRelationsAttempted, satisfyRelationsConfirmed);
             }
 
             // "use_case_elements" : décompte déterministe imprimé par LangchainService sous la forme
@@ -1251,53 +1268,72 @@ public class PipelineRunner {
         filteredReqs.forEach(allReqs::add);
         int totalChunks = (allReqs.size() + CLASSIFY_CHUNK_SIZE - 1) / CLASSIFY_CHUNK_SIZE;
         System.out.println("📦 Classification répartie en " + totalChunks + " lots (" + allReqs.size() + " exigences, seuil="
-                + CLASSIFY_CHUNK_THRESHOLD + ")");
+                + CLASSIFY_CHUNK_THRESHOLD + "), traités en parallèle");
 
-        Map<String, ArrayNode> mergedCategories = new LinkedHashMap<>();
-        for (String key : CLASSIFY_CATEGORY_KEYS) {
-            mergedCategories.put(key, mapper.createArrayNode());
-        }
-        ArrayNode mergedCrossLinks = mapper.createArrayNode();
-
+        // Les lots sont classifiés indépendamment (chacun via son propre appel LLM, sans écriture
+        // MCP partagée) : contrairement au chunking du modèle de domaine, rien ne les rend
+        // dépendants les uns des autres, donc ils sont dispatchés en parallèle puis fusionnés dans
+        // leur ordre d'origine pour rester déterministes.
+        List<List<JsonNode>> chunks = new ArrayList<>();
         for (int i = 0; i < allReqs.size(); i += CLASSIFY_CHUNK_SIZE) {
-            List<JsonNode> chunkReqs = allReqs.subList(i, Math.min(i + CLASSIFY_CHUNK_SIZE, allReqs.size()));
-            ObjectNode chunkInput = mapper.createObjectNode();
-            ArrayNode chunkArray = chunkInput.putArray("filtered_requirements");
-            chunkReqs.forEach(chunkArray::add);
+            chunks.add(allReqs.subList(i, Math.min(i + CLASSIFY_CHUNK_SIZE, allReqs.size())));
+        }
 
-            int chunkIndex = (i / CLASSIFY_CHUNK_SIZE) + 1;
-            String classified = llm.runPrompt(classifierPrompt, mapper.writeValueAsString(chunkInput), StageModelConfig.STAGE_CLASSIFY);
-            String chunkJsonText = JsonUtils.extractFirstJson(classified);
-            if (chunkJsonText == null) {
-                chunkJsonText = classified;
-            }
-            if (outDir != null) {
-                Files.writeString(outDir.resolve("classified_chunk_" + chunkIndex + ".json"), chunkJsonText);
+        ExecutorService classifyExecutor = Executors.newFixedThreadPool(chunks.size());
+        List<Future<String>> futures = new ArrayList<>();
+        try {
+            for (List<JsonNode> chunkReqs : chunks) {
+                ObjectNode chunkInput = mapper.createObjectNode();
+                ArrayNode chunkArray = chunkInput.putArray("filtered_requirements");
+                chunkReqs.forEach(chunkArray::add);
+                String chunkInputJson = mapper.writeValueAsString(chunkInput);
+                Callable<String> task = () -> llm.runPrompt(classifierPrompt, chunkInputJson, StageModelConfig.STAGE_CLASSIFY);
+                futures.add(classifyExecutor.submit(task));
             }
 
-            try {
-                JsonNode chunkRoot = mapper.readTree(chunkJsonText);
-                for (String key : CLASSIFY_CATEGORY_KEYS) {
-                    JsonNode categoryArray = chunkRoot.path(key);
-                    if (categoryArray.isArray()) {
-                        categoryArray.forEach(mergedCategories.get(key)::add);
+            Map<String, ArrayNode> mergedCategories = new LinkedHashMap<>();
+            for (String key : CLASSIFY_CATEGORY_KEYS) {
+                mergedCategories.put(key, mapper.createArrayNode());
+            }
+            ArrayNode mergedCrossLinks = mapper.createArrayNode();
+
+            for (int c = 0; c < futures.size(); c++) {
+                int chunkIndex = c + 1;
+                String classified = futures.get(c).get();
+                String chunkJsonText = JsonUtils.extractFirstJson(classified);
+                if (chunkJsonText == null) {
+                    chunkJsonText = classified;
+                }
+                if (outDir != null) {
+                    Files.writeString(outDir.resolve("classified_chunk_" + chunkIndex + ".json"), chunkJsonText);
+                }
+
+                try {
+                    JsonNode chunkRoot = mapper.readTree(chunkJsonText);
+                    for (String key : CLASSIFY_CATEGORY_KEYS) {
+                        JsonNode categoryArray = chunkRoot.path(key);
+                        if (categoryArray.isArray()) {
+                            categoryArray.forEach(mergedCategories.get(key)::add);
+                        }
                     }
+                    JsonNode crossLinks = chunkRoot.path("cross_category_links");
+                    if (crossLinks.isArray()) {
+                        crossLinks.forEach(mergedCrossLinks::add);
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Lot de classification " + chunkIndex + "/" + totalChunks + " illisible, ignoré : " + e.getMessage());
                 }
-                JsonNode crossLinks = chunkRoot.path("cross_category_links");
-                if (crossLinks.isArray()) {
-                    crossLinks.forEach(mergedCrossLinks::add);
-                }
-            } catch (Exception e) {
-                System.err.println("⚠️ Lot de classification " + chunkIndex + "/" + totalChunks + " illisible, ignoré : " + e.getMessage());
             }
-        }
 
-        ObjectNode merged = mapper.createObjectNode();
-        for (String key : CLASSIFY_CATEGORY_KEYS) {
-            merged.set(key, mergedCategories.get(key));
+            ObjectNode merged = mapper.createObjectNode();
+            for (String key : CLASSIFY_CATEGORY_KEYS) {
+                merged.set(key, mergedCategories.get(key));
+            }
+            merged.set("cross_category_links", mergedCrossLinks);
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(merged);
+        } finally {
+            classifyExecutor.shutdown();
         }
-        merged.set("cross_category_links", mergedCrossLinks);
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(merged);
     }
 
     /**
@@ -1351,70 +1387,6 @@ public class PipelineRunner {
             System.err.println("⚠️ Could not count class model elements: " + e.getMessage());
         }
         return new int[]{classesCreated, attributesCreated, associationsCreated, packageUuids.size()};
-    }
-    
-    /**
-     * Counts UML elements created by parsing the MCP report first, then trace files as fallback.
-     */
-    private int countUmlElementsCreated(String classModelReport, Path outputDir) {
-        try {
-            int reportCount = countUmlElementsCreatedFromReports(classModelReport, outputDir);
-            if (reportCount > 0) {
-                return reportCount;
-            }
-
-            // Check for class model report which contains UML creation info
-            Path classModelReportPath = outputDir.resolve("modelio_mcp_classmodel_report.txt");
-            if (Files.exists(classModelReportPath)) {
-                String content = Files.readString(classModelReportPath);
-                // Count analyst_createElement calls for UML elements (class, usecase, actor, etc.)
-                int count = 0;
-                Pattern pattern = Pattern.compile("analyst_createElement.*?type[\"']\\s*[:=]\\s*[\"']([^\"']+)", 
-                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                Matcher matcher = pattern.matcher(content);
-                while (matcher.find()) {
-                    count++;
-                }
-                if (count > 0) return count;
-            }
-            
-            // Parse from use_cases_phase_mcp_trace.txt if available
-            Path traceFile = outputDir.resolve("use_cases_phase_mcp_trace.txt");
-            if (Files.exists(traceFile)) {
-                String content = Files.readString(traceFile);
-                Pattern pattern = Pattern.compile("type[\"']\\s*[:=]\\s*[\"']([^\"']+)[\"']");
-                Matcher matcher = pattern.matcher(content);
-                int count = 0;
-                while (matcher.find()) {
-                    String type = matcher.group(1).toLowerCase();
-                    if (type.contains("class") || type.contains("usecase") || type.contains("actor") ||
-                        type.contains("component") || type.contains("package")) {
-                        count++;
-                    }
-                }
-                if (count > 0) return count;
-            }
-            
-            // Parse from domain_model_phase_mcp_trace.txt if available
-            Path domainTraceFile = outputDir.resolve("domain_model_phase_mcp_trace.txt");
-            if (Files.exists(domainTraceFile)) {
-                String content = Files.readString(domainTraceFile);
-                Pattern pattern = Pattern.compile("type[\"']\\s*[:=]\\s*[\"']([^\"']+)[\"']");
-                Matcher matcher = pattern.matcher(content);
-                int count = 0;
-                while (matcher.find()) {
-                    String type = matcher.group(1).toLowerCase();
-                    if (type.contains("class") || type.contains("usecase") || type.contains("actor") ||
-                        type.contains("component") || type.contains("package")) {
-                        count++;
-                    }
-                }
-                return count;
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Could not count UML elements: " + e.getMessage());
-        }
-        return 0;
     }
     
     /**
@@ -1489,38 +1461,6 @@ public class PipelineRunner {
         return 0;
     }
 
-    private int countUmlElementsCreatedFromReport(String classModelReport) {
-        if (classModelReport == null || classModelReport.isBlank()) {
-            return 0;
-        }
-
-        int count = 0;
-        count += countBulletLinesInSection(classModelReport,
-                "Éléments UML créés",
-                List.of("Relations «Satisfait»", "```json", "PHASE 3 -"));
-        count += countBulletLinesInSection(classModelReport,
-                "Acteurs déplacés sous le package",
-                List.of("Cas d’usage créés sous", "Cas d'usage créés sous", "```json", "Dépendances"));
-        count += countBulletLinesInSection(classModelReport,
-                "Cas d’usage créés sous",
-                List.of("Dépendances", "Diagramme UML créé", "```json"));
-        count += countBulletLinesInSection(classModelReport,
-                "Cas d'usage créés sous",
-                List.of("Dépendances", "Diagramme UML créé", "```json"));
-        return count;
-    }
-
-    private int countUmlElementsCreatedFromReports(String classModelReport, Path outputDir) {
-        int count = countUmlElementsCreatedFromReport(classModelReport);
-        for (String reportFileName : List.of(
-                "modelio_mcp_classmodel_report.txt",
-                "uml_model_3phase_report.txt",
-                "modelio_mcp_creation_summary.txt")) {
-            count = Math.max(count, countUmlElementsCreatedFromReport(readReportIfExists(outputDir.resolve(reportFileName))));
-        }
-        return count;
-    }
-
     private int countSatisfyRelationsFromReport(String classModelReport) {
         if (classModelReport == null || classModelReport.isBlank()) {
             return 0;
@@ -1538,40 +1478,6 @@ public class PipelineRunner {
             count = Math.max(count, countSatisfyRelationsFromReport(readReportIfExists(outputDir.resolve(reportFileName))));
         }
         return count;
-    }
-
-    private int countBulletLinesInSection(String content, String startMarker, List<String> endMarkers) {
-        int start = content.indexOf(startMarker);
-        if (start < 0) {
-            return 0;
-        }
-
-        int sectionStart = content.indexOf('\n', start);
-        if (sectionStart < 0) {
-            return 0;
-        }
-        sectionStart++;
-
-        int sectionEnd = content.length();
-        if (endMarkers != null) {
-            for (String endMarker : endMarkers) {
-                if (endMarker == null || endMarker.isBlank()) {
-                    continue;
-                }
-                int candidate = content.indexOf(endMarker, sectionStart);
-                if (candidate >= 0 && candidate < sectionEnd) {
-                    sectionEnd = candidate;
-                }
-            }
-        }
-
-        if (sectionEnd <= sectionStart) {
-            return 0;
-        }
-
-        return countPatternOccurrences(
-                content.substring(sectionStart, sectionEnd),
-                Pattern.compile("(?m)^\\s*-\\s+"));
     }
 
     private int countPatternOccurrences(String content, Pattern pattern) {
